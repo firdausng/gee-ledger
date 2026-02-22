@@ -55,33 +55,33 @@
 
 <div class="max-w-3xl">
 	<!-- Summary cards -->
-	<div class="grid grid-cols-3 gap-3 mb-6">
-		<div class="rounded-lg border border-border bg-card p-4">
-			<div class="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-				<TrendingUp class="size-4 text-green-500" />
-				Income
+	<div class="grid grid-cols-3 gap-2 mb-6">
+		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
+				<TrendingUp class="size-3.5 sm:size-4 text-green-500 shrink-0" />
+				<span class="truncate">Income</span>
 			</div>
-			<p class="text-xl font-bold text-green-600">
+			<p class="text-sm sm:text-xl font-bold text-green-600 truncate">
 				{formatAmount(totalIncome, data.business.currency)}
 			</p>
 			<p class="text-xs text-muted-foreground mt-0.5">This month</p>
 		</div>
-		<div class="rounded-lg border border-border bg-card p-4">
-			<div class="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-				<TrendingDown class="size-4 text-red-500" />
-				Expense
+		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
+				<TrendingDown class="size-3.5 sm:size-4 text-red-500 shrink-0" />
+				<span class="truncate">Expense</span>
 			</div>
-			<p class="text-xl font-bold text-red-600">
+			<p class="text-sm sm:text-xl font-bold text-red-600 truncate">
 				{formatAmount(totalExpense, data.business.currency)}
 			</p>
 			<p class="text-xs text-muted-foreground mt-0.5">This month</p>
 		</div>
-		<div class="rounded-lg border border-border bg-card p-4">
-			<div class="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-				<Scale class="size-4 text-blue-500" />
-				Balance
+		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
+				<Scale class="size-3.5 sm:size-4 text-blue-500 shrink-0" />
+				<span class="truncate">Balance</span>
 			</div>
-			<p class="text-xl font-bold {balance >= 0 ? 'text-foreground' : 'text-red-600'}">
+			<p class="text-sm sm:text-xl font-bold truncate {balance >= 0 ? 'text-foreground' : 'text-red-600'}">
 				{formatAmount(balance, data.business.currency)}
 			</p>
 			<p class="text-xs text-muted-foreground mt-0.5">This month</p>

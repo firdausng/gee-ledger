@@ -89,11 +89,11 @@
 	</div>
 
 	<!-- Filters -->
-	<div class="flex flex-wrap gap-2 mb-4">
+	<div class="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mb-4">
 		<select
 			bind:value={filterType}
 			onchange={() => loadTransactions()}
-			class="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+			class="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 		>
 			<option value="">All types</option>
 			<option value="income">Income</option>
@@ -104,15 +104,13 @@
 			type="date"
 			bind:value={filterFrom}
 			onchange={() => loadTransactions()}
-			class="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-			placeholder="From"
+			class="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 		/>
 		<input
 			type="date"
 			bind:value={filterTo}
 			onchange={() => loadTransactions()}
-			class="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-			placeholder="To"
+			class="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 		/>
 	</div>
 

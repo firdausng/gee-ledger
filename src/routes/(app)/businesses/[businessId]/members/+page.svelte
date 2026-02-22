@@ -241,7 +241,7 @@
 									value={member.policyKey}
 									onchange={(e) => updateRole(member.userId, (e.target as HTMLSelectElement).value)}
 									disabled={updatingRole === member.userId}
-									class="rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+									class="shrink-0 rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
 								>
 									{#each ROLES as r}
 										<option value={r}>{r}</option>

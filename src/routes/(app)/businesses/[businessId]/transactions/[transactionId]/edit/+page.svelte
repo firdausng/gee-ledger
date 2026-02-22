@@ -195,7 +195,10 @@
 			{#if type !== 'transfer'}
 				<div>
 					<label class="text-sm font-medium block mb-1" for="tx-channel">
-						Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}
+						Sales Channel
+						{#if type === 'income'}
+							<span class="text-destructive">*</span>
+						{/if}
 					</label>
 					<select
 						id="tx-channel"

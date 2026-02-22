@@ -9,7 +9,13 @@
 		Menu,
 		X,
 		Plus,
-		ChevronRight
+		ChevronRight,
+		ReceiptText,
+		BookOpen,
+		Tag,
+		MapPin,
+		ShoppingBag,
+		Users
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
@@ -17,6 +23,37 @@
 	let drawerOpen = $state(false);
 
 	let currentBusinessId = $derived($page.params.businessId ?? null);
+	let currentBusiness = $derived(
+		currentBusinessId
+			? (data.navBusinesses.find((b: { id: string }) => b.id === currentBusinessId) ?? null)
+			: null
+	);
+
+	// Which business sub-menu is expanded — auto-syncs when navigating
+	let expandedBusinessId = $state<string | null>(currentBusinessId);
+	$effect(() => {
+		expandedBusinessId = currentBusinessId;
+	});
+
+	function toggleBiz(id: string) {
+		expandedBusinessId = expandedBusinessId === id ? null : id;
+	}
+
+	const bizTabs = [
+		{ href: '', label: 'Transactions', icon: ReceiptText },
+		{ href: '/accounts', label: 'Accounts', icon: BookOpen },
+		{ href: '/categories', label: 'Categories', icon: Tag },
+		{ href: '/locations', label: 'Locations', icon: MapPin },
+		{ href: '/channels', label: 'Channels', icon: ShoppingBag },
+		{ href: '/members', label: 'Members', icon: Users }
+	];
+
+	function isSubActive(bizId: string, tabHref: string): boolean {
+		const base = `/businesses/${bizId}`;
+		const path = $page.url.pathname;
+		if (tabHref === '') return path === base || path.startsWith(`${base}/transactions`);
+		return path.startsWith(`${base}${tabHref}`);
+	}
 
 	function closeDrawer() {
 		drawerOpen = false;
@@ -46,7 +83,7 @@
 					<a
 						href="/businesses"
 						class="size-5 flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
-						title="New business"
+						title="Manage businesses"
 					>
 						<Plus class="size-3.5" />
 					</a>
@@ -54,20 +91,37 @@
 			</div>
 
 			{#each data.navBusinesses as biz (biz.id)}
-				<a
-					href="/businesses/{biz.id}"
-					class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors
+				<button
+					onclick={() => toggleBiz(biz.id)}
+					class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors
 						{currentBusinessId === biz.id
-						? 'bg-primary/10 text-primary font-medium'
+						? 'text-primary font-medium hover:bg-primary/5'
 						: 'text-foreground hover:bg-muted'}"
-					onclick={closeDrawer}
 				>
 					<Building2 class="size-4 shrink-0" />
-					<span class="truncate">{biz.name}</span>
-					{#if currentBusinessId === biz.id}
-						<ChevronRight class="size-3.5 ml-auto shrink-0" />
-					{/if}
-				</a>
+					<span class="truncate flex-1 text-left">{biz.name}</span>
+					<ChevronRight
+						class="size-3.5 shrink-0 transition-transform duration-200
+							{expandedBusinessId === biz.id ? 'rotate-90' : ''}"
+					/>
+				</button>
+
+				{#if expandedBusinessId === biz.id}
+					<div class="ml-3 pl-3 border-l border-border flex flex-col gap-0.5 py-0.5">
+						{#each bizTabs as tab}
+							<a
+								href="/businesses/{biz.id}{tab.href}"
+								class="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors
+									{isSubActive(biz.id, tab.href)
+									? 'bg-primary/10 text-primary font-medium'
+									: 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
+							>
+								<svelte:component this={tab.icon} class="size-3.5 shrink-0" />
+								{tab.label}
+							</a>
+						{/each}
+					</div>
+				{/if}
 			{:else}
 				<p class="px-2 py-1.5 text-sm text-muted-foreground">No businesses yet.</p>
 			{/each}
@@ -98,34 +152,38 @@
 						<p class="text-xs text-muted-foreground truncate">{data.user.email ?? ''}</p>
 					</div>
 				</div>
-<!--				<button-->
-<!--					onclick={() => authActions.signOut()}-->
-<!--					class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"-->
-<!--				>-->
-<!--					<LogOut class="size-4" />-->
-<!--					Sign out-->
-<!--				</button>-->
+				<button
+					onclick={() => authActions.signOut()}
+					class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
+				>
+					<LogOut class="size-4" />
+					Sign out
+				</button>
 			</div>
 		</div>
 	</aside>
 
 	<!-- ─── Main area ─────────────────────────────────────────────── -->
-	<div class="flex-1 lg:pl-64 flex flex-col min-h-screen">
+	<div class="flex-1 lg:pl-64 flex flex-col min-h-screen min-w-0 overflow-x-hidden">
 		<!-- Mobile topbar -->
 		<header
 			class="lg:hidden sticky top-0 z-10 h-14 border-b border-border bg-background/95 backdrop-blur flex items-center px-4 gap-3"
 		>
 			<button
 				onclick={() => (drawerOpen = !drawerOpen)}
-				class="p-1.5 rounded-md hover:bg-muted text-muted-foreground"
+				class="p-1.5 rounded-md hover:bg-muted text-muted-foreground shrink-0"
 				aria-label="Toggle menu"
 			>
 				<Menu class="size-5" />
 			</button>
-			<a href="/businesses" class="flex items-center gap-2 font-semibold text-foreground">
-				<LayoutDashboard class="size-5 text-primary" />
-				<span>Gee Ledger</span>
-			</a>
+			{#if currentBusiness}
+				<span class="font-semibold text-foreground truncate">{currentBusiness.name}</span>
+			{:else}
+				<a href="/businesses" class="flex items-center gap-2 font-semibold text-foreground">
+					<LayoutDashboard class="size-5 text-primary" />
+					<span>Gee Ledger</span>
+				</a>
+			{/if}
 		</header>
 
 		<!-- Page content -->
@@ -147,7 +205,10 @@
 	<!-- Drawer panel -->
 	<div class="lg:hidden fixed inset-y-0 left-0 z-40 w-72 bg-card border-r border-border flex flex-col">
 		<div class="h-14 flex items-center justify-between px-4 border-b border-border shrink-0">
-			<span class="font-semibold">Menu</span>
+			<a href="/businesses" class="flex items-center gap-2 font-semibold text-foreground" onclick={closeDrawer}>
+				<LayoutDashboard class="size-5 text-primary" />
+				<span>Gee Ledger</span>
+			</a>
 			<button onclick={closeDrawer} class="p-1.5 rounded-md hover:bg-muted text-muted-foreground">
 				<X class="size-5" />
 			</button>
@@ -161,17 +222,38 @@
 			</div>
 
 			{#each data.navBusinesses as biz (biz.id)}
-				<a
-					href="/businesses/{biz.id}"
-					class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors
+				<button
+					onclick={() => toggleBiz(biz.id)}
+					class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors
 						{currentBusinessId === biz.id
-						? 'bg-primary/10 text-primary font-medium'
+						? 'text-primary font-medium hover:bg-primary/5'
 						: 'text-foreground hover:bg-muted'}"
-					onclick={closeDrawer}
 				>
 					<Building2 class="size-4 shrink-0" />
-					<span class="truncate">{biz.name}</span>
-				</a>
+					<span class="truncate flex-1 text-left">{biz.name}</span>
+					<ChevronRight
+						class="size-3.5 shrink-0 transition-transform duration-200
+							{expandedBusinessId === biz.id ? 'rotate-90' : ''}"
+					/>
+				</button>
+
+				{#if expandedBusinessId === biz.id}
+					<div class="ml-3 pl-3 border-l border-border flex flex-col gap-0.5 py-0.5">
+						{#each bizTabs as tab}
+							<a
+								href="/businesses/{biz.id}{tab.href}"
+								class="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors
+									{isSubActive(biz.id, tab.href)
+									? 'bg-primary/10 text-primary font-medium'
+									: 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
+								onclick={closeDrawer}
+							>
+								<svelte:component this={tab.icon} class="size-3.5 shrink-0" />
+								{tab.label}
+							</a>
+						{/each}
+					</div>
+				{/if}
 			{/each}
 		</nav>
 
@@ -184,13 +266,13 @@
 				<Mail class="size-4" />
 				Invitations
 			</a>
-<!--			<button-->
-<!--				onclick={() => authActions.signOut()}-->
-<!--				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10"-->
-<!--			>-->
-<!--				<LogOut class="size-4" />-->
-<!--				Sign out-->
-<!--			</button>-->
+			<button
+				onclick={() => authActions.signOut()}
+				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10"
+			>
+				<LogOut class="size-4" />
+				Sign out
+			</button>
 		</div>
 	</div>
 {/if}
