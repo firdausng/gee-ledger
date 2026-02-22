@@ -181,8 +181,8 @@
 			<Loader2 class="size-7 animate-spin text-muted-foreground" />
 		</div>
 	{:else if channels.length === 0}
+		{@const meta = channelMeta['custom']}
 		<div class="rounded-lg border border-border bg-card p-10 text-center">
-			{@const meta = channelMeta['custom']}
 			<svelte:component this={meta.icon} class="size-8 text-muted-foreground mx-auto mb-2" />
 			<p class="text-muted-foreground text-sm">No sales channels yet.</p>
 		</div>

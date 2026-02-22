@@ -27,7 +27,6 @@ export function initAuthListener() {
 	onIdTokenChanged(auth, async (firebaseUser) => {
 		authState.user = firebaseUser;
 		authState.loading = false;
-		console.log('signInWithGoogle', authState);
 		if (firebaseUser) {
 			const idToken = await firebaseUser.getIdToken();
 			document.cookie = `__session=${idToken}; path=/; max-age=3600; SameSite=Strict`;

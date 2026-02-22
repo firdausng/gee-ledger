@@ -72,7 +72,8 @@ export const attachmentsApi = new Hono<App.Api>()
 
 		const headers = new Headers();
 		headers.set('Content-Type', attachment.mimeType);
-		headers.set('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
+		const disposition = attachment.mimeType.startsWith('image/') ? 'inline' : 'attachment';
+		headers.set('Content-Disposition', `${disposition}; filename="${attachment.fileName}"`);
 		headers.set('Content-Length', String(attachment.fileSize));
 		headers.set('Cache-Control', 'private, max-age=3600');
 

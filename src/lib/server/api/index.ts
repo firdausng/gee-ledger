@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { getCookie } from 'hono/cookie';
 import { HTTPException } from 'hono/http-exception';
 import { verifyFirebaseToken } from '$lib/server/auth/firebase-verifier';
 import { upsertUser } from '$lib/server/auth/user-manager';
@@ -35,11 +36,18 @@ const router = new Hono<App.Api>()
 	.use('*', async (c, next) => {
 		const authHeader = c.req.header('Authorization');
 
-		if (!authHeader?.startsWith('Bearer ')) {
+		let token: string | null = null;
+		if (authHeader?.startsWith('Bearer ')) {
+			token = authHeader.slice(7);
+		} else {
+			// Fallback: browser-initiated requests (img src, anchor) send cookies but no Bearer header
+			token = getCookie(c, '__session') ?? null;
+		}
+
+		if (!token) {
 			return c.json({ error: 'Unauthorized' }, 401);
 		}
 
-		const token = authHeader.slice(7);
 		const payload = await verifyFirebaseToken(token, PUBLIC_FIREBASE_PROJECT_ID);
 
 		if (!payload) {
