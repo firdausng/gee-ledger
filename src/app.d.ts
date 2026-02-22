@@ -1,5 +1,7 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
+import type { VerifyFirebaseAuthEnv } from '@hono/firebase-auth';
+
 declare global {
 	namespace App {
 		interface Platform {
@@ -21,7 +23,7 @@ declare global {
 		}
 
 		interface Api {
-			Bindings: Cloudflare.Env;
+			Bindings: Cloudflare.Env & VerifyFirebaseAuthEnv;
 			Variables: {
 				currentUser: App.User;
 			};

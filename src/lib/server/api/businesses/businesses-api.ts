@@ -7,11 +7,15 @@ import { createBusinessHandler } from './createBusinessHandler';
 import { updateBusinessHandler } from './updateBusinessHandler';
 import { deleteBusinessHandler } from './deleteBusinessHandler';
 import { HTTPException } from 'hono/http-exception';
+import {getFirebaseToken} from "@hono/firebase-auth";
 
 export const businessesApi = new Hono<App.Api>()
 
 	.get('/businesses', async (c) => {
+		const idToken = getFirebaseToken(c);
+		console.log('businessesApi:get:idToken', idToken);
 		const user = c.get('currentUser');
+		console.log('businessesApi:get', user);
 		const data = await getBusinessesHandler(user, c.env);
 		return c.json({ data });
 	})

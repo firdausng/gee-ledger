@@ -8,6 +8,7 @@ export async function createBusinessHandler(
 	data: CreateBusinessInput,
 	env: Cloudflare.Env
 ) {
+	console.log(user);
 	const db = drizzle(env.DB, { schema });
 	const now = new Date().toISOString();
 	const businessId = crypto.randomUUID();

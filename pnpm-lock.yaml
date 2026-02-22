@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@hono/firebase-auth':
+        specifier: ^1.4.2
+        version: 1.4.2(hono@4.12.1)
       firebase:
         specifier: ^12.8.0
         version: 12.8.0
@@ -1005,6 +1008,11 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
+  '@hono/firebase-auth@1.4.2':
+    resolution: {integrity: sha512-KSm8c+KPpKB+s5GRQt7xcVuOSF1CsetophaURcRzxElgthHY8hMRFFa/Sy2DHpL11In1TibZtLLZyxcJgmpzkQ==}
+    peerDependencies:
+      hono: '*'
+
   '@img/colour@1.0.0':
     resolution: {integrity: sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw==}
     engines: {node: '>=18'}
@@ -1928,6 +1936,9 @@ packages:
   firebase-admin@13.6.0:
     resolution: {integrity: sha512-GdPA/t0+Cq8p1JnjFRBmxRxAGvF/kl2yfdhALl38PrRp325YxyQ5aNaHui0XmaKcKiGRFIJ/EgBNWFoDP0onjw==}
     engines: {node: '>=18'}
+
+  firebase-auth-cloudflare-workers@2.0.6:
+    resolution: {integrity: sha512-KYfI3eM3/gDxEIGgN6lVUDhDruKnnRDaCMlN8HR5kRg7SppFTmktlrjxXHoTEEbkEC7yH721gyZ+ZUm8Z+675A==}
 
   firebase@12.8.0:
     resolution: {integrity: sha512-S1tCIR3ENecee0tY2cfTHfMkXqkitHfbsvqpCtvsT0Zi9vDB7A4CodAjHfHCjVvu/XtGy1LHLjOasVcF10rCVw==}
@@ -3387,6 +3398,11 @@ snapshots:
       yargs: 17.7.2
     optional: true
 
+  '@hono/firebase-auth@1.4.2(hono@4.12.1)':
+    dependencies:
+      firebase-auth-cloudflare-workers: 2.0.6
+      hono: 4.12.1
+
   '@img/colour@1.0.0': {}
 
   '@img/sharp-darwin-arm64@0.34.5':
@@ -4205,6 +4221,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  firebase-auth-cloudflare-workers@2.0.6: {}
 
   firebase@12.8.0:
     dependencies:

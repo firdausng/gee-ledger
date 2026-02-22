@@ -6,6 +6,8 @@ import { inviteUserHandler } from './inviteUserHandler';
 import { updateMemberRoleHandler } from './updateMemberRoleHandler';
 import { removeMemberHandler } from './removeMemberHandler';
 import { listInvitationsHandler } from './listInvitationsHandler';
+import { listBusinessInvitationsHandler } from './listBusinessInvitationsHandler';
+import { cancelInvitationHandler } from './cancelInvitationHandler';
 import { acceptInvitationHandler } from './acceptInvitationHandler';
 import { declineInvitationHandler } from './declineInvitationHandler';
 import { HTTPException } from 'hono/http-exception';
@@ -26,6 +28,23 @@ export const invitationsApi = new Hono<App.Api>()
 		if (!result.success) throw new HTTPException(400, { message: 'Invalid request body' });
 		const data = await inviteUserHandler(user, c.req.param('businessId'), result.output, c.env);
 		return c.json({ data }, 201);
+	})
+
+	.get('/businesses/:businessId/invitations', async (c) => {
+		const user = c.get('currentUser');
+		const data = await listBusinessInvitationsHandler(user, c.req.param('businessId'), c.env);
+		return c.json({ data });
+	})
+
+	.patch('/businesses/:businessId/invitations/:invitationId/cancel', async (c) => {
+		const user = c.get('currentUser');
+		const data = await cancelInvitationHandler(
+			user,
+			c.req.param('businessId'),
+			c.req.param('invitationId'),
+			c.env
+		);
+		return c.json({ data });
 	})
 
 	.patch('/businesses/:businessId/members/:userId/role', async (c) => {

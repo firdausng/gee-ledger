@@ -42,10 +42,10 @@
 				}
 			],
 			"vars": {
-				"PUBLIC_FIREBASE_AUTH_DOMAIN":"gee-ledger-dev.firebaseapp.com",
-				"PUBLIC_FIREBASE_PROJECT_ID":"gee-ledger-dev",
-				"PUBLIC_FIREBASE_STORAGE_BUCKET":"gee-ledger-dev.firebasestorage.app",
-				"PUBLIC_FIREBASE_MEASUREMENT_ID":"G-N68GXKM0PR"
+				"PUBLIC_FIREBASE_AUTH_DOMAIN":"gee-ledger.firebaseapp.com",
+				"PUBLIC_FIREBASE_PROJECT_ID":"gee-ledger",
+				"PUBLIC_FIREBASE_STORAGE_BUCKET":"gee-ledger.firebasestorage.app",
+				"PUBLIC_FIREBASE_MEASUREMENT_ID":"G-T162PGH0V6"
 			},
 			"d1_databases": [
 				{

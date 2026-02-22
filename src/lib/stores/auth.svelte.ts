@@ -39,6 +39,7 @@ export function initAuthListener() {
 
 export const authActions = {
 	async signInWithGoogle() {
+        console.log('signInWithGoogle', authState);
 		try {
 			authState.error = null;
 			const provider = new GoogleAuthProvider();
