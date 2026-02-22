@@ -9,14 +9,21 @@ declare global {
 			caches: CacheStorage;
 		}
 
+		interface User {
+			id: string;
+			email: string | null;
+			displayName: string | null;
+			photoURL: string | null;
+		}
+
 		interface Locals {
-			user?: {
-				id: string;
-				email: string | null;
-				displayName: string | null;
-				photoURL: string | null;
-				isAnonymous: boolean;
-				provider: string;
+			user: App.User | null;
+		}
+
+		interface Api {
+			Bindings: Cloudflare.Env;
+			Variables: {
+				currentUser: App.User;
 			};
 		}
 

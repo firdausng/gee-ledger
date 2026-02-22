@@ -3,9 +3,8 @@
 	import { goto } from '$app/navigation';
 
 	$effect(() => {
-		// Redirect if already logged in
 		if (authState.user) {
-			goto('/dashboard');
+			goto('/businesses');
 		}
 	});
 </script>
@@ -46,13 +45,6 @@
 					/>
 				</svg>
 				Continue with Google
-			</button>
-
-			<button
-				onclick={() => authActions.signInAnonymously()}
-				class="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50 transition-colors"
-			>
-				Continue as Guest
 			</button>
 		</div>
 	</div>
