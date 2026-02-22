@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api, parseToCents } from '$lib/client/api.svelte';
-	import { ArrowLeft, Loader2 } from '@lucide/svelte';
+	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText } from '@lucide/svelte';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
@@ -18,6 +18,13 @@
 		categoryId: string | null;
 		note: string | null;
 		referenceNo: string | null;
+	};
+	type Attachment = {
+		id: string;
+		fileName: string;
+		mimeType: string;
+		fileSize: number;
+		createdAt: string;
 	};
 
 	const businessId = $page.params.businessId;
@@ -44,21 +51,37 @@
 
 	let filteredCategories = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
 
+	// Attachments
+	let attachmentsList = $state<Attachment[]>([]);
+	let uploadingFile = $state(false);
+	let uploadError = $state<string | null>(null);
+	let deletingAttachmentId = $state<string | null>(null);
+	let fileInput = $state<HTMLInputElement | null>(null);
+
+	const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+	function formatFileSize(bytes: number): string {
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	}
+
 	async function loadMeta() {
 		try {
 			loadingMeta = true;
 			loadError = null;
-			const [locs, chans, cats, tx] = await Promise.all([
+			const [locs, chans, cats, tx, atts] = await Promise.all([
 				api.get<Location[]>(`/businesses/${businessId}/locations`),
 				api.get<Channel[]>(`/businesses/${businessId}/channels`),
 				api.get<Category[]>(`/businesses/${businessId}/categories`),
-				api.get<Transaction>(`/businesses/${businessId}/transactions/${transactionId}`)
+				api.get<Transaction>(`/businesses/${businessId}/transactions/${transactionId}`),
+				api.get<Attachment[]>(`/businesses/${businessId}/transactions/${transactionId}/attachments`)
 			]);
 			locations = locs;
 			channels = chans;
 			categories = cats;
+			attachmentsList = atts;
 
-			// Populate form with existing values
 			type = tx.type;
 			transactionDate = tx.transactionDate;
 			amountRaw = (tx.amount / 100).toFixed(2);
@@ -100,6 +123,52 @@
 		} finally {
 			submitting = false;
 		}
+	}
+
+	async function uploadFile(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		uploadError = null;
+
+		if (file.size > MAX_FILE_SIZE) {
+			uploadError = 'File exceeds the 10 MB limit.';
+			input.value = '';
+			return;
+		}
+
+		try {
+			uploadingFile = true;
+			const form = new FormData();
+			form.append('file', file);
+			const result = await api.upload<Attachment>(
+				`/businesses/${businessId}/transactions/${transactionId}/attachments`,
+				form
+			);
+			attachmentsList = [...attachmentsList, result];
+		} catch (e) {
+			uploadError = e instanceof Error ? e.message : 'Upload failed.';
+		} finally {
+			uploadingFile = false;
+			input.value = '';
+		}
+	}
+
+	async function deleteAttachment(id: string) {
+		try {
+			deletingAttachmentId = id;
+			await api.delete(`/businesses/${businessId}/attachments/${id}`);
+			attachmentsList = attachmentsList.filter((a) => a.id !== id);
+		} catch (e) {
+			uploadError = e instanceof Error ? e.message : 'Failed to delete attachment.';
+		} finally {
+			deletingAttachmentId = null;
+		}
+	}
+
+	function downloadUrl(attachmentId: string) {
+		return `/api/businesses/${businessId}/attachments/${attachmentId}/download`;
 	}
 
 	onMount(loadMeta);
@@ -269,6 +338,84 @@
 					Save Changes
 				</button>
 			</div>
+		</div>
+
+		<!-- ─── Attachments ─────────────────────────────────────────────── -->
+		<div class="mt-8 pt-6 border-t border-border">
+			<div class="flex items-center justify-between mb-3">
+				<div class="flex items-center gap-2">
+					<Paperclip class="size-4 text-muted-foreground" />
+					<span class="text-sm font-medium text-foreground">Attachments</span>
+					{#if attachmentsList.length > 0}
+						<span class="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+							{attachmentsList.length}
+						</span>
+					{/if}
+				</div>
+				<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-sm font-medium cursor-pointer transition-colors">
+					{#if uploadingFile}
+						<Loader2 class="size-3.5 animate-spin" />
+						Uploading…
+					{:else}
+						<Paperclip class="size-3.5" />
+						Attach file
+					{/if}
+					<input
+						bind:this={fileInput}
+						type="file"
+						accept="image/jpeg,image/png,application/pdf"
+						class="sr-only"
+						disabled={uploadingFile}
+						onchange={uploadFile}
+					/>
+				</label>
+			</div>
+
+			{#if uploadError}
+				<p class="text-destructive text-xs mb-3">{uploadError}</p>
+			{/if}
+
+			{#if attachmentsList.length === 0}
+				<p class="text-sm text-muted-foreground py-4 text-center">No attachments yet. Attach a receipt or invoice.</p>
+			{:else}
+				<div class="rounded-lg border border-border overflow-hidden">
+					{#each attachmentsList as att (att.id)}
+						<div class="flex items-center gap-3 px-3 py-2.5 border-b border-border last:border-0 bg-card">
+							{#if att.mimeType === 'application/pdf'}
+								<FileText class="size-4 text-red-500 shrink-0" />
+							{:else}
+								<FileImage class="size-4 text-blue-500 shrink-0" />
+							{/if}
+							<div class="flex-1 min-w-0">
+								<p class="text-sm text-foreground truncate">{att.fileName}</p>
+								<p class="text-xs text-muted-foreground">{formatFileSize(att.fileSize)}</p>
+							</div>
+							<a
+								href={downloadUrl(att.id)}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+								title="Download"
+							>
+								<Download class="size-3.5" />
+							</a>
+							<button
+								onclick={() => deleteAttachment(att.id)}
+								disabled={deletingAttachmentId === att.id}
+								class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 disabled:opacity-50"
+								title="Delete"
+							>
+								{#if deletingAttachmentId === att.id}
+									<Loader2 class="size-3.5 animate-spin" />
+								{:else}
+									<Trash2 class="size-3.5" />
+								{/if}
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+			<p class="text-xs text-muted-foreground mt-2">JPEG, PNG or PDF · max 10 MB per file · up to 10 files</p>
 		</div>
 	{/if}
 </div>

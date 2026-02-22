@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, gte, lte, gt } from 'drizzle-orm';
-import { transactions } from '$lib/server/db/schema';
+import { eq, and, isNull, gte, lte, gt, inArray, count } from 'drizzle-orm';
+import { transactions, transactionAttachments, attachments } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import type { TransactionFilters } from '$lib/schemas/transaction';
@@ -37,5 +37,29 @@ export async function getTransactionsHandler(
 	const data = hasMore ? rows.slice(0, limit) : rows;
 	const nextCursor = hasMore ? data[data.length - 1].transactionDate : null;
 
-	return { data, nextCursor, hasMore };
+	// Fetch attachment counts for the returned transactions
+	const attachmentCounts: Record<string, number> = {};
+	if (data.length > 0) {
+		const txIds = data.map((t) => t.id);
+		const counts = await db
+			.select({
+				transactionId: transactionAttachments.transactionId,
+				total: count()
+			})
+			.from(transactionAttachments)
+			.innerJoin(attachments, eq(attachments.id, transactionAttachments.attachmentId))
+			.where(and(inArray(transactionAttachments.transactionId, txIds), isNull(attachments.deletedAt)))
+			.groupBy(transactionAttachments.transactionId);
+
+		for (const row of counts) {
+			attachmentCounts[row.transactionId] = row.total;
+		}
+	}
+
+	const dataWithCounts = data.map((t) => ({
+		...t,
+		attachmentCount: attachmentCounts[t.id] ?? 0
+	}));
+
+	return { data: dataWithCounts, nextCursor, hasMore };
 }

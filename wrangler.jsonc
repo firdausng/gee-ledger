@@ -27,6 +27,13 @@
 			"migrations_dir": "migrations"
 		}
 	],
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "gee-ledger-attachments",
+			"preview_bucket_name": "gee-ledger-attachments-dev"
+		}
+	],
 	/**
 	 * Environment Variables (Public - bundled into client code)
 	 * For production, update these with your actual Firebase values
@@ -53,6 +60,12 @@
 					"database_id": "37515f68-0521-45fb-9d3b-408c6bfde45c",
 					"database_name": "gee-ledger",
 					"migrations_dir": "migrations"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "BUCKET",
+					"bucket_name": "gee-ledger-attachments"
 				}
 			]
 		}

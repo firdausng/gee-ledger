@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Pencil, Trash2, ShoppingBag } from '@lucide/svelte';
+	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
+	import { Plus, Loader2, Pencil, Trash2 } from '@lucide/svelte';
 
 	type Channel = {
 		id: string;
@@ -13,8 +14,6 @@
 
 	const businessId = $page.params.businessId;
 
-	const CHANNEL_TYPES = ['walk_in', 'shopee', 'lazada', 'tokopedia', 'tiktok', 'custom'] as const;
-
 	let channels = $state<Channel[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -22,14 +21,14 @@
 	// Create form
 	let showCreate = $state(false);
 	let createName = $state('');
-	let createType = $state<string>('custom');
+	let createType = $state<ChannelType>('custom');
 	let creating = $state(false);
 	let createError = $state<string | null>(null);
 
 	// Edit
 	let editId = $state<string | null>(null);
 	let editName = $state('');
-	let editType = $state('');
+	let editType = $state<ChannelType>('custom');
 	let editing = $state(false);
 	let editError = $state<string | null>(null);
 
@@ -72,7 +71,7 @@
 	function startEdit(ch: Channel) {
 		editId = ch.id;
 		editName = ch.name;
-		editType = ch.type;
+		editType = ch.type as ChannelType;
 		editError = null;
 	}
 
@@ -135,14 +134,24 @@
 					placeholder="Channel name"
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 				/>
-				<select
-					bind:value={createType}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				>
+				<!-- Type picker -->
+				<div class="grid grid-cols-5 gap-1.5">
 					{#each CHANNEL_TYPES as t}
-						<option value={t}>{t.replace('_', ' ')}</option>
+						{@const meta = channelMeta[t]}
+						<button
+							type="button"
+							onclick={() => (createType = t)}
+							class="flex flex-col items-center gap-1 px-1 py-2 rounded-md border text-xs font-medium transition-colors
+								{createType === t
+								? 'border-primary bg-primary/10 text-primary'
+								: 'border-input text-muted-foreground hover:border-muted-foreground hover:text-foreground'}"
+							title={meta.label}
+						>
+							<svelte:component this={meta.icon} class="size-4 shrink-0" />
+							<span class="truncate w-full text-center">{meta.label}</span>
+						</button>
 					{/each}
-				</select>
+				</div>
 				<div class="flex justify-end gap-2">
 					<button
 						onclick={() => { showCreate = false; createError = null; }}
@@ -173,12 +182,14 @@
 		</div>
 	{:else if channels.length === 0}
 		<div class="rounded-lg border border-border bg-card p-10 text-center">
-			<ShoppingBag class="size-8 text-muted-foreground mx-auto mb-2" />
+			{@const meta = channelMeta['custom']}
+			<svelte:component this={meta.icon} class="size-8 text-muted-foreground mx-auto mb-2" />
 			<p class="text-muted-foreground text-sm">No sales channels yet.</p>
 		</div>
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each channels as ch (ch.id)}
+				{@const meta = channelMeta[ch.type as ChannelType] ?? channelMeta['custom']}
 				{#if editId === ch.id}
 					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
 						{#if editError}
@@ -190,14 +201,24 @@
 								bind:value={editName}
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 							/>
-							<select
-								bind:value={editType}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-							>
+							<!-- Type picker -->
+							<div class="grid grid-cols-5 gap-1.5">
 								{#each CHANNEL_TYPES as t}
-									<option value={t}>{t.replace('_', ' ')}</option>
+									{@const m = channelMeta[t]}
+									<button
+										type="button"
+										onclick={() => (editType = t)}
+										class="flex flex-col items-center gap-1 px-1 py-2 rounded-md border text-xs font-medium transition-colors
+											{editType === t
+											? 'border-primary bg-primary/10 text-primary'
+											: 'border-input text-muted-foreground hover:border-muted-foreground hover:text-foreground'}"
+										title={m.label}
+									>
+										<svelte:component this={m.icon} class="size-4 shrink-0" />
+										<span class="truncate w-full text-center">{m.label}</span>
+									</button>
 								{/each}
-							</select>
+							</div>
 							<div class="flex justify-end gap-2">
 								<button
 									onclick={() => (editId = null)}
@@ -218,12 +239,12 @@
 					</div>
 				{:else}
 					<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
-						<ShoppingBag class="size-4 text-muted-foreground shrink-0" />
+						<svelte:component this={meta.icon} class="size-4 text-muted-foreground shrink-0" />
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground">{ch.name}</p>
 						</div>
 						<span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-							{ch.type.replace('_', ' ')}
+							{meta.label}
 						</span>
 						<div class="flex items-center gap-1 shrink-0">
 							<button

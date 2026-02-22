@@ -13,7 +13,9 @@ export const CreateTransactionSchema = v.pipe(
 		note: v.optional(v.pipe(v.string(), v.maxLength(500))),
 		referenceNo: v.optional(v.pipe(v.string(), v.maxLength(100))),
 		// YYYY-MM-DD
-		transactionDate: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))
+		transactionDate: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)),
+		// Pre-uploaded attachment IDs to link on creation
+		attachmentIds: v.optional(v.array(v.pipe(v.string(), v.minLength(1))), [])
 	}),
 	v.forward(
 		v.partialCheck(

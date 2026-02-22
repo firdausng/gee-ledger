@@ -6,6 +6,10 @@ const ChannelTypeSchema = v.picklist([
 	'lazada',
 	'tokopedia',
 	'tiktok',
+	'facebook',
+	'instagram',
+	'whatsapp',
+	'youtube',
 	'custom'
 ]);
 

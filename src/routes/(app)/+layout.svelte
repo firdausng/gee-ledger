@@ -15,7 +15,8 @@
 		Tag,
 		MapPin,
 		ShoppingBag,
-		Users
+		Users,
+		Paperclip
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
@@ -40,18 +41,20 @@
 	}
 
 	const bizTabs = [
-		{ href: '', label: 'Transactions', icon: ReceiptText },
+		{ href: '', label: 'Overview', icon: LayoutDashboard },
+		{ href: '/transactions', label: 'Transactions', icon: ReceiptText },
 		{ href: '/accounts', label: 'Accounts', icon: BookOpen },
 		{ href: '/categories', label: 'Categories', icon: Tag },
 		{ href: '/locations', label: 'Locations', icon: MapPin },
 		{ href: '/channels', label: 'Channels', icon: ShoppingBag },
-		{ href: '/members', label: 'Members', icon: Users }
+		{ href: '/members', label: 'Members', icon: Users },
+		{ href: '/attachments', label: 'Attachments', icon: Paperclip }
 	];
 
 	function isSubActive(bizId: string, tabHref: string): boolean {
 		const base = `/businesses/${bizId}`;
 		const path = $page.url.pathname;
-		if (tabHref === '') return path === base || path.startsWith(`${base}/transactions`);
+		if (tabHref === '') return path === base;
 		return path.startsWith(`${base}${tabHref}`);
 	}
 

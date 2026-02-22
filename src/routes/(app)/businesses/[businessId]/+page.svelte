@@ -120,9 +120,12 @@
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each transactions.slice(0, 10) as tx (tx.id)}
-				<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/50 transition-colors">
+				<a
+					href="/businesses/{businessId}/transactions/{tx.id}"
+					class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/50 transition-colors"
+				>
 					<span
-						class="text-xs font-medium px-2 py-0.5 rounded-full
+						class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0
 							{tx.type === 'income' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
 							 tx.type === 'expense' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
 							 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}"
@@ -140,7 +143,7 @@
 					>
 						{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.amount, data.business.currency)}
 					</span>
-				</div>
+				</a>
 			{/each}
 		</div>
 		{#if transactions.length > 10}

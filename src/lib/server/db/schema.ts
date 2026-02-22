@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index, uniqueIndex, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -202,6 +202,39 @@ export const transactions = sqliteTable(
 			t.deletedAt
 		),
 		categoryIdx: index('transactions_category_idx').on(t.categoryId)
+	})
+);
+
+// ─── Attachments ──────────────────────────────────────────────────────────────
+
+export const attachments = sqliteTable(
+	'attachments',
+	{
+		id: text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		fileName: text('file_name').notNull(),
+		mimeType: text('mime_type').notNull(),
+		fileSize: integer('file_size').notNull(), // bytes
+		r2Key: text('r2_key').notNull(),
+		createdAt: text('created_at').notNull(),
+		createdBy: text('created_by').notNull(),
+		deletedAt: text('deleted_at'),
+		deletedBy: text('deleted_by')
+	},
+	(t) => ({
+		businessDeletedIdx: index('attachments_business_deleted_idx').on(t.businessId, t.deletedAt)
+	})
+);
+
+export const transactionAttachments = sqliteTable(
+	'transaction_attachments',
+	{
+		transactionId: text('transaction_id').notNull(),
+		attachmentId: text('attachment_id').notNull()
+	},
+	(t) => ({
+		pk: primaryKey({ columns: [t.transactionId, t.attachmentId] }),
+		transactionIdx: index('tx_attachments_transaction_idx').on(t.transactionId)
 	})
 );
 

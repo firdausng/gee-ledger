@@ -3,6 +3,9 @@ export type Permission =
 	| 'transaction:edit'
 	| 'transaction:delete'
 	| 'transaction:view'
+	| 'attachment:upload'
+	| 'attachment:view'
+	| 'attachment:delete'
 	| 'account:manage'
 	| 'category:manage'
 	| 'business:manage'
@@ -16,6 +19,9 @@ export const POLICIES: Record<PolicyKey, Permission[]> = {
 		'transaction:edit',
 		'transaction:delete',
 		'transaction:view',
+		'attachment:upload',
+		'attachment:view',
+		'attachment:delete',
 		'account:manage',
 		'category:manage',
 		'business:manage',
@@ -26,10 +32,13 @@ export const POLICIES: Record<PolicyKey, Permission[]> = {
 		'transaction:edit',
 		'transaction:delete',
 		'transaction:view',
+		'attachment:upload',
+		'attachment:view',
+		'attachment:delete',
 		'account:manage',
 		'category:manage',
 		'user:invite'
 	],
-	cashier: ['transaction:create', 'transaction:view'],
-	viewer: ['transaction:view']
+	cashier: ['transaction:create', 'transaction:view', 'attachment:upload', 'attachment:view'],
+	viewer: ['transaction:view', 'attachment:view']
 };

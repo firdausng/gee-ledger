@@ -3,11 +3,13 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api, parseToCents } from '$lib/client/api.svelte';
-	import { ArrowLeft, Loader2 } from '@lucide/svelte';
+	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
+	import { ArrowLeft, Loader2, Paperclip, X, FileImage, FileText, Plus } from '@lucide/svelte';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
+	type PendingAttachment = { id: string; fileName: string; mimeType: string; fileSize: number };
 
 	const businessId = $page.params.businessId;
 
@@ -29,10 +31,126 @@
 	let submitting = $state(false);
 	let submitError = $state<string | null>(null);
 
+	// Attachments — uploaded immediately, linked on save
+	let pendingAttachments = $state<PendingAttachment[]>([]);
+	let uploadingFile = $state(false);
+	let uploadError = $state<string | null>(null);
+
+	const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 	let filteredCategories = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
+
+	// ── Location modal ────────────────────────────────────────────────
+	let showLocationModal = $state(false);
+	let newLocName = $state('');
+	let newLocType = $state<'hq' | 'branch' | 'warehouse' | 'online'>('branch');
+	let newLocAddress = $state('');
+	let savingLocation = $state(false);
+	let locationError = $state<string | null>(null);
+
+	function openLocationModal() {
+		newLocName = '';
+		newLocType = 'branch';
+		newLocAddress = '';
+		locationError = null;
+		showLocationModal = true;
+	}
+
+	async function saveLocation() {
+		if (!newLocName.trim()) return;
+		try {
+			savingLocation = true;
+			locationError = null;
+			const loc = await api.post<Location>(`/businesses/${businessId}/locations`, {
+				name: newLocName.trim(),
+				type: newLocType,
+				address: newLocAddress.trim() || undefined
+			});
+			locations = [...locations, loc];
+			locationId = loc.id;
+			showLocationModal = false;
+		} catch (e) {
+			locationError = e instanceof Error ? e.message : 'Failed to create location.';
+		} finally {
+			savingLocation = false;
+		}
+	}
+
+	// ── Category modal ────────────────────────────────────────────────
+	let showCategoryModal = $state(false);
+	let newCatName = $state('');
+	let newCatType = $derived<'income' | 'expense'>(type === 'expense' ? 'expense' : 'income');
+	let savingCategory = $state(false);
+	let categoryError = $state<string | null>(null);
+
+	function openCategoryModal() {
+		newCatName = '';
+		categoryError = null;
+		showCategoryModal = true;
+	}
+
+	async function saveCategory() {
+		if (!newCatName.trim()) return;
+		try {
+			savingCategory = true;
+			categoryError = null;
+			const cat = await api.post<Category>(`/businesses/${businessId}/categories`, {
+				name: newCatName.trim(),
+				type: newCatType
+			});
+			categories = [...categories, cat];
+			categoryId = cat.id;
+			showCategoryModal = false;
+		} catch (e) {
+			categoryError = e instanceof Error ? e.message : 'Failed to create category.';
+		} finally {
+			savingCategory = false;
+		}
+	}
+
+	// ── Channel modal ─────────────────────────────────────────────────
+	let showChannelModal = $state(false);
+	let newChName = $state('');
+	let newChType = $state<ChannelType>('walk_in');
+	let savingChannel = $state(false);
+	let channelError = $state<string | null>(null);
+
+	function openChannelModal() {
+		newChName = '';
+		newChType = 'walk_in';
+		channelError = null;
+		showChannelModal = true;
+	}
+
+	async function saveChannel() {
+		if (!newChName.trim()) return;
+		try {
+			savingChannel = true;
+			channelError = null;
+			const ch = await api.post<Channel>(`/businesses/${businessId}/channels`, {
+				name: newChName.trim(),
+				type: newChType
+			});
+			channels = [...channels, ch];
+			salesChannelId = ch.id;
+			showChannelModal = false;
+		} catch (e) {
+			channelError = e instanceof Error ? e.message : 'Failed to create channel.';
+		} finally {
+			savingChannel = false;
+		}
+	}
+
+	// ─────────────────────────────────────────────────────────────────
+
+	function formatFileSize(bytes: number): string {
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	}
 
 	async function loadMeta() {
 		try {
+			loadingMeta = true;
 			const [locs, chans, cats] = await Promise.all([
 				api.get<Location[]>(`/businesses/${businessId}/locations`),
 				api.get<Channel[]>(`/businesses/${businessId}/channels`),
@@ -47,6 +165,40 @@
 		} finally {
 			loadingMeta = false;
 		}
+	}
+
+	async function onFileChange(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		uploadError = null;
+
+		if (file.size > MAX_FILE_SIZE) {
+			uploadError = 'File exceeds the 10 MB limit.';
+			input.value = '';
+			return;
+		}
+
+		try {
+			uploadingFile = true;
+			const form = new FormData();
+			form.append('file', file);
+			const result = await api.upload<PendingAttachment>(
+				`/businesses/${businessId}/attachments`,
+				form
+			);
+			pendingAttachments = [...pendingAttachments, result];
+		} catch (e) {
+			uploadError = e instanceof Error ? e.message : 'Upload failed.';
+		} finally {
+			uploadingFile = false;
+			input.value = '';
+		}
+	}
+
+	function removePending(id: string) {
+		pendingAttachments = pendingAttachments.filter((a) => a.id !== id);
 	}
 
 	async function submit() {
@@ -67,7 +219,8 @@
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
 				note: note.trim() || undefined,
-				referenceNo: referenceNo.trim() || undefined
+				referenceNo: referenceNo.trim() || undefined,
+				attachmentIds: pendingAttachments.map((a) => a.id)
 			});
 			goto(`/businesses/${businessId}/transactions`);
 		} catch (e) {
@@ -149,17 +302,39 @@
 			</label>
 			{#if loadingMeta}
 				<div class="h-10 rounded-md border border-input bg-muted animate-pulse"></div>
+			{:else if locations.length === 0}
+				<div class="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2.5 flex items-center justify-between">
+					<span class="text-sm text-muted-foreground">No locations yet</span>
+					<button
+						type="button"
+						onclick={openLocationModal}
+						class="flex items-center gap-1 text-sm text-primary hover:underline font-medium"
+					>
+						<Plus class="size-3.5" />
+						Add location
+					</button>
+				</div>
 			{:else}
-				<select
-					id="tx-location"
-					bind:value={locationId}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				>
-					<option value="">Select location</option>
-					{#each locations as loc (loc.id)}
-						<option value={loc.id}>{loc.name}</option>
-					{/each}
-				</select>
+				<div class="flex gap-2">
+					<select
+						id="tx-location"
+						bind:value={locationId}
+						class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<option value="">Select location</option>
+						{#each locations as loc (loc.id)}
+							<option value={loc.id}>{loc.name}</option>
+						{/each}
+					</select>
+					<button
+						type="button"
+						onclick={openLocationModal}
+						class="px-2.5 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+						title="Add new location"
+					>
+						<Plus class="size-4" />
+					</button>
+				</div>
 			{/if}
 		</div>
 
@@ -167,35 +342,90 @@
 		{#if type !== 'transfer'}
 			<div>
 				<label class="text-sm font-medium block mb-1" for="tx-channel">
-					Sales Channel {type === 'income' ? '<span class="text-destructive">*</span>' : ''}
+					Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}
 				</label>
-				<select
-					id="tx-channel"
-					bind:value={salesChannelId}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				>
-					<option value="">Select channel</option>
-					{#each channels as ch (ch.id)}
-						<option value={ch.id}>{ch.name}</option>
-					{/each}
-				</select>
+				{#if channels.length === 0}
+					<div class="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2.5 flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">No channels yet</span>
+						<button
+							type="button"
+							onclick={openChannelModal}
+							class="flex items-center gap-1 text-sm text-primary hover:underline font-medium"
+						>
+							<Plus class="size-3.5" />
+							Add channel
+						</button>
+					</div>
+				{:else}
+					<div class="flex gap-2">
+						<div class="flex-1 rounded-md border border-input bg-background overflow-hidden">
+							{#each channels as ch (ch.id)}
+								{@const meta = channelMeta[ch.type as ChannelType] ?? channelMeta['custom']}
+								<button
+									type="button"
+									onclick={() => (salesChannelId = ch.id)}
+									class="w-full flex items-center gap-2.5 px-3 py-2 text-sm border-b border-input last:border-0 transition-colors
+										{salesChannelId === ch.id ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}"
+								>
+									<svelte:component this={meta.icon} class="size-4 shrink-0 {salesChannelId === ch.id ? 'text-primary' : 'text-muted-foreground'}" />
+									<span class="flex-1 text-left">{ch.name}</span>
+									<span class="text-xs text-muted-foreground font-normal">{meta.label}</span>
+								</button>
+							{/each}
+						</div>
+						<button
+							type="button"
+							onclick={openChannelModal}
+							class="px-2.5 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors self-start"
+							title="Add new channel"
+						>
+							<Plus class="size-4" />
+						</button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 
 		<!-- Category -->
-		<div>
-			<label class="text-sm font-medium block mb-1" for="tx-category">Category</label>
-			<select
-				id="tx-category"
-				bind:value={categoryId}
-				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-			>
-				<option value="">No category</option>
-				{#each filteredCategories as cat (cat.id)}
-					<option value={cat.id}>{cat.name}</option>
-				{/each}
-			</select>
-		</div>
+		{#if type !== 'transfer'}
+			<div>
+				<label class="text-sm font-medium block mb-1" for="tx-category">Category</label>
+				{#if filteredCategories.length === 0}
+					<div class="rounded-md border border-dashed border-input bg-muted/30 px-3 py-2.5 flex items-center justify-between">
+						<span class="text-sm text-muted-foreground">No categories yet</span>
+						<button
+							type="button"
+							onclick={openCategoryModal}
+							class="flex items-center gap-1 text-sm text-primary hover:underline font-medium"
+						>
+							<Plus class="size-3.5" />
+							Add category
+						</button>
+					</div>
+				{:else}
+					<div class="flex gap-2">
+						<select
+							id="tx-category"
+							bind:value={categoryId}
+							class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+						>
+							<option value="">No category</option>
+							{#each filteredCategories as cat (cat.id)}
+								<option value={cat.id}>{cat.name}</option>
+							{/each}
+						</select>
+						<button
+							type="button"
+							onclick={openCategoryModal}
+							class="px-2.5 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+							title="Add new category"
+						>
+							<Plus class="size-4" />
+						</button>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Note -->
 		<div>
@@ -221,6 +451,65 @@
 			/>
 		</div>
 
+		<!-- Attachments -->
+		<div>
+			<div class="flex items-center justify-between mb-2">
+				<label class="text-sm font-medium text-foreground">
+					Attachments
+					{#if pendingAttachments.length > 0}
+						<span class="text-xs text-muted-foreground font-normal ml-1">({pendingAttachments.length})</span>
+					{/if}
+				</label>
+				<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-sm font-medium cursor-pointer transition-colors">
+					{#if uploadingFile}
+						<Loader2 class="size-3.5 animate-spin" />
+						Uploading…
+					{:else}
+						<Paperclip class="size-3.5" />
+						Attach
+					{/if}
+					<input
+						type="file"
+						accept="image/jpeg,image/png,application/pdf"
+						class="sr-only"
+						disabled={uploadingFile}
+						onchange={onFileChange}
+					/>
+				</label>
+			</div>
+
+			{#if uploadError}
+				<p class="text-destructive text-xs mb-2">{uploadError}</p>
+			{/if}
+
+			{#if pendingAttachments.length > 0}
+				<div class="rounded-md border border-border overflow-hidden">
+					{#each pendingAttachments as att (att.id)}
+						<div class="flex items-center gap-2.5 px-3 py-2 border-b border-border last:border-0 bg-card">
+							{#if att.mimeType === 'application/pdf'}
+								<FileText class="size-4 text-red-500 shrink-0" />
+							{:else}
+								<FileImage class="size-4 text-blue-500 shrink-0" />
+							{/if}
+							<div class="flex-1 min-w-0">
+								<p class="text-sm text-foreground truncate">{att.fileName}</p>
+								<p class="text-xs text-muted-foreground">{formatFileSize(att.fileSize)}</p>
+							</div>
+							<button
+								type="button"
+								onclick={() => removePending(att.id)}
+								class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+								title="Remove"
+							>
+								<X class="size-3.5" />
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+			<p class="text-xs text-muted-foreground mt-1.5">JPEG, PNG or PDF · max 10 MB</p>
+		</div>
+
 		<!-- Actions -->
 		<div class="flex justify-end gap-2 pt-2">
 			<a
@@ -231,7 +520,7 @@
 			</a>
 			<button
 				onclick={submit}
-				disabled={submitting || !locationId || !amountRaw || !transactionDate}
+				disabled={submitting || !locationId || !amountRaw || !transactionDate || uploadingFile}
 				class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 			>
 				{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}
@@ -240,3 +529,238 @@
 		</div>
 	</div>
 </div>
+
+<!-- ── Location modal ──────────────────────────────────────────────── -->
+{#if showLocationModal}
+	<div
+		class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+		role="presentation"
+		onclick={(e) => { if (e.target === e.currentTarget) showLocationModal = false; }}
+	>
+		<div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm">
+			<div class="flex items-center justify-between px-5 py-4 border-b border-border">
+				<h3 class="font-semibold text-foreground">Add Location</h3>
+				<button
+					onclick={() => (showLocationModal = false)}
+					class="p-1 rounded text-muted-foreground hover:bg-muted"
+				>
+					<X class="size-4" />
+				</button>
+			</div>
+
+			<div class="px-5 py-4 flex flex-col gap-4">
+				{#if locationError}
+					<p class="text-sm text-destructive">{locationError}</p>
+				{/if}
+
+				<div>
+					<label class="text-sm font-medium block mb-1" for="loc-name">
+						Name <span class="text-destructive">*</span>
+					</label>
+					<input
+						id="loc-name"
+						type="text"
+						bind:value={newLocName}
+						placeholder="e.g. Main Store"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+
+				<div>
+					<label class="text-sm font-medium block mb-1" for="loc-type">Type</label>
+					<select
+						id="loc-type"
+						bind:value={newLocType}
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<option value="hq">HQ</option>
+						<option value="branch">Branch</option>
+						<option value="warehouse">Warehouse</option>
+						<option value="online">Online</option>
+					</select>
+				</div>
+
+				<div>
+					<label class="text-sm font-medium block mb-1" for="loc-address">Address</label>
+					<input
+						id="loc-address"
+						type="text"
+						bind:value={newLocAddress}
+						placeholder="Optional"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+			</div>
+
+			<div class="flex justify-end gap-2 px-5 py-4 border-t border-border">
+				<button
+					type="button"
+					onclick={() => (showLocationModal = false)}
+					class="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={saveLocation}
+					disabled={savingLocation || !newLocName.trim()}
+					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+				>
+					{#if savingLocation}<Loader2 class="size-3.5 animate-spin" />{/if}
+					Save
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- ── Category modal ─────────────────────────────────────────────── -->
+{#if showCategoryModal}
+	<div
+		class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+		role="presentation"
+		onclick={(e) => { if (e.target === e.currentTarget) showCategoryModal = false; }}
+	>
+		<div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm">
+			<div class="flex items-center justify-between px-5 py-4 border-b border-border">
+				<h3 class="font-semibold text-foreground">Add Category</h3>
+				<button
+					onclick={() => (showCategoryModal = false)}
+					class="p-1 rounded text-muted-foreground hover:bg-muted"
+				>
+					<X class="size-4" />
+				</button>
+			</div>
+
+			<div class="px-5 py-4 flex flex-col gap-4">
+				{#if categoryError}
+					<p class="text-sm text-destructive">{categoryError}</p>
+				{/if}
+
+				<div>
+					<label class="text-sm font-medium block mb-1" for="cat-name">
+						Name <span class="text-destructive">*</span>
+					</label>
+					<input
+						id="cat-name"
+						type="text"
+						bind:value={newCatName}
+						placeholder="e.g. Cost of Goods"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+
+				<div>
+					<label class="text-sm font-medium block mb-1" for="cat-type">Type</label>
+					<select
+						id="cat-type"
+						bind:value={newCatType}
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<option value="income">Income</option>
+						<option value="expense">Expense</option>
+					</select>
+				</div>
+			</div>
+
+			<div class="flex justify-end gap-2 px-5 py-4 border-t border-border">
+				<button
+					type="button"
+					onclick={() => (showCategoryModal = false)}
+					class="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={saveCategory}
+					disabled={savingCategory || !newCatName.trim()}
+					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+				>
+					{#if savingCategory}<Loader2 class="size-3.5 animate-spin" />{/if}
+					Save
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- ── Channel modal ───────────────────────────────────────────────── -->
+{#if showChannelModal}
+	<div
+		class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+		role="presentation"
+		onclick={(e) => { if (e.target === e.currentTarget) showChannelModal = false; }}
+	>
+		<div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm">
+			<div class="flex items-center justify-between px-5 py-4 border-b border-border">
+				<h3 class="font-semibold text-foreground">Add Sales Channel</h3>
+				<button
+					onclick={() => (showChannelModal = false)}
+					class="p-1 rounded text-muted-foreground hover:bg-muted"
+				>
+					<X class="size-4" />
+				</button>
+			</div>
+
+			<div class="px-5 py-4 flex flex-col gap-4">
+				{#if channelError}
+					<p class="text-sm text-destructive">{channelError}</p>
+				{/if}
+
+				<div>
+					<label class="text-sm font-medium block mb-1" for="ch-name">
+						Name <span class="text-destructive">*</span>
+					</label>
+					<input
+						id="ch-name"
+						type="text"
+						bind:value={newChName}
+						placeholder="e.g. Walk-in Sales"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+
+				<div>
+					<label class="text-sm font-medium block mb-1">Type</label>
+					<div class="grid grid-cols-5 gap-1.5">
+						{#each CHANNEL_TYPES as t}
+							{@const meta = channelMeta[t]}
+							<button
+								type="button"
+								onclick={() => (newChType = t)}
+								class="flex flex-col items-center gap-1 px-1 py-2 rounded-md border text-xs font-medium transition-colors
+									{newChType === t
+									? 'border-primary bg-primary/10 text-primary'
+									: 'border-input text-muted-foreground hover:border-muted-foreground hover:text-foreground'}"
+								title={meta.label}
+							>
+								<svelte:component this={meta.icon} class="size-4 shrink-0" />
+								<span class="truncate w-full text-center leading-tight">{meta.label}</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+			</div>
+
+			<div class="flex justify-end gap-2 px-5 py-4 border-t border-border">
+				<button
+					type="button"
+					onclick={() => (showChannelModal = false)}
+					class="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={saveChannel}
+					disabled={savingChannel || !newChName.trim()}
+					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+				>
+					{#if savingChannel}<Loader2 class="size-3.5 animate-spin" />{/if}
+					Save
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

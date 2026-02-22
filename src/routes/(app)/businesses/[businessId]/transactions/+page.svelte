@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Pencil, Trash2 } from '@lucide/svelte';
+	import { Plus, Loader2, Pencil, Trash2, Paperclip } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -16,6 +16,7 @@
 		salesChannelId: string | null;
 		locationId: string;
 		categoryId: string | null;
+		attachmentCount: number;
 	};
 
 	const businessId = $page.params.businessId;
@@ -132,36 +133,49 @@
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each transactions as tx (tx.id)}
-				<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
-					<span
-						class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0
-							{tx.type === 'income' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-							 tx.type === 'expense' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-							 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}"
+				<div class="flex items-center border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+					<a
+						href="/businesses/{businessId}/transactions/{tx.id}"
+						class="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
 					>
-						{tx.type}
-					</span>
-					<div class="flex-1 min-w-0">
-						<p class="text-sm font-medium text-foreground truncate">{tx.note ?? '—'}</p>
-						<p class="text-xs text-muted-foreground">{tx.transactionDate}</p>
-					</div>
-					<span
-						class="text-sm font-semibold shrink-0
-							{tx.type === 'income' ? 'text-green-600' :
-							 tx.type === 'expense' ? 'text-red-600' : 'text-foreground'}"
-					>
-						{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.amount, data.business.currency)}
-					</span>
-					<div class="flex items-center gap-1 shrink-0">
+						<span
+							class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0
+								{tx.type === 'income' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+								 tx.type === 'expense' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+								 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}"
+						>
+							{tx.type}
+						</span>
+						<div class="flex-1 min-w-0">
+							<p class="text-sm font-medium text-foreground truncate">{tx.note ?? '—'}</p>
+							<p class="text-xs text-muted-foreground">{tx.transactionDate}</p>
+						</div>
+						<span
+							class="text-sm font-semibold shrink-0
+								{tx.type === 'income' ? 'text-green-600' :
+								 tx.type === 'expense' ? 'text-red-600' : 'text-foreground'}"
+						>
+							{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.amount, data.business.currency)}
+						</span>
+						{#if tx.attachmentCount > 0}
+							<span class="flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
+								<Paperclip class="size-3" />
+								{tx.attachmentCount}
+							</span>
+						{/if}
+					</a>
+					<div class="flex items-center gap-1 px-2 shrink-0">
 						<a
 							href="/businesses/{businessId}/transactions/{tx.id}/edit"
 							class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+							title="Edit"
 						>
 							<Pencil class="size-3.5" />
 						</a>
 						<button
 							onclick={() => (deleteId = tx.id)}
 							class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+							title="Delete"
 						>
 							<Trash2 class="size-3.5" />
 						</button>
