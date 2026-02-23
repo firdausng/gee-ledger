@@ -39,6 +39,7 @@
 	 * For production, update these with your actual Firebase values
 	 */
 	"vars": {
+		"FROM_DOMAIN": "ledger.nurzerani.com"
 	},
 	"env": {
 		"production": {

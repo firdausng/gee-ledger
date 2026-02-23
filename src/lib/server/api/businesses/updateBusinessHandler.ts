@@ -20,9 +20,12 @@ export async function updateBusinessHandler(
 	const [updated] = await db
 		.update(businesses)
 		.set({
-			...(data.name !== undefined && { name: data.name }),
+			...(data.name        !== undefined && { name:        data.name        }),
 			...(data.description !== undefined && { description: data.description }),
-			...(data.currency !== undefined && { currency: data.currency }),
+			...(data.currency    !== undefined && { currency:    data.currency    }),
+			...(data.address     !== undefined && { address:     data.address     }),
+			...(data.phone       !== undefined && { phone:       data.phone       }),
+			...(data.taxId       !== undefined && { taxId:       data.taxId       }),
 			updatedAt: now,
 			updatedBy: user.id
 		})

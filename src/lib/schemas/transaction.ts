@@ -36,7 +36,11 @@ export const UpdateTransactionSchema = v.pipe(
 		amount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
 		note: v.optional(v.pipe(v.string(), v.maxLength(500))),
 		referenceNo: v.optional(v.pipe(v.string(), v.maxLength(100))),
-		transactionDate: v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)))
+		transactionDate: v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
+		featuredImageId: v.optional(v.nullable(v.string())),
+		invoiceNo:    v.optional(v.nullable(v.pipe(v.string(), v.maxLength(50)))),
+		receiptNo:    v.optional(v.nullable(v.pipe(v.string(), v.maxLength(50)))),
+		documentType: v.optional(v.nullable(v.picklist(['invoice', 'receipt']))),
 	}),
 	v.forward(
 		v.partialCheck(
@@ -59,6 +63,15 @@ export const TransactionFiltersSchema = v.object({
 	limit: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(100)), 50)
 });
 
+export const TransactionItemSchema = v.object({
+	description: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
+	quantity:    v.pipe(v.number(), v.integer(), v.minValue(1)),
+	unitPrice:   v.pipe(v.number(), v.integer(), v.minValue(0)),
+	sortOrder:   v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
+});
+export const SaveTransactionItemsSchema = v.array(TransactionItemSchema);
+
 export type CreateTransactionInput = v.InferOutput<typeof CreateTransactionSchema>;
 export type UpdateTransactionInput = v.InferOutput<typeof UpdateTransactionSchema>;
 export type TransactionFilters = v.InferOutput<typeof TransactionFiltersSchema>;
+export type TransactionItem = v.InferOutput<typeof TransactionItemSchema>;

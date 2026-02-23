@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api, parseToCents } from '$lib/client/api.svelte';
-	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText } from '@lucide/svelte';
+	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText, Plus, X, Star } from '@lucide/svelte';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
@@ -18,6 +18,8 @@
 		categoryId: string | null;
 		note: string | null;
 		referenceNo: string | null;
+		invoiceNo: string | null;
+		featuredImageId: string | null;
 	};
 	type Attachment = {
 		id: string;
@@ -26,6 +28,7 @@
 		fileSize: number;
 		createdAt: string;
 	};
+	type LineItem = { description: string; quantity: number; unitPrice: string };
 
 	const businessId = $page.params.businessId;
 	const transactionId = $page.params.transactionId;
@@ -44,6 +47,8 @@
 	let categoryId = $state('');
 	let note = $state('');
 	let referenceNo = $state('');
+	let invoiceNo = $state('');
+	let featuredImageId = $state<string | null>(null);
 
 	let submitting = $state(false);
 	let submitError = $state<string | null>(null);
@@ -60,22 +65,35 @@
 
 	const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+	// Line items
+	let items = $state<LineItem[]>([]);
+	let savingItems = $state(false);
+	let itemsError = $state<string | null>(null);
+	let hasItems = $derived(items.length > 0);
+
 	function formatFileSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;
 		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
 		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	}
 
+	function isImageMime(mime: string): boolean {
+		return mime.startsWith('image/');
+	}
+
 	async function loadMeta() {
 		try {
 			loadingMeta = true;
 			loadError = null;
-			const [locs, chans, cats, tx, atts] = await Promise.all([
+			const [locs, chans, cats, tx, atts, txItems] = await Promise.all([
 				api.get<Location[]>(`/businesses/${businessId}/locations`),
 				api.get<Channel[]>(`/businesses/${businessId}/channels`),
 				api.get<Category[]>(`/businesses/${businessId}/categories`),
 				api.get<Transaction>(`/businesses/${businessId}/transactions/${transactionId}`),
-				api.get<Attachment[]>(`/businesses/${businessId}/transactions/${transactionId}/attachments`)
+				api.get<Attachment[]>(`/businesses/${businessId}/transactions/${transactionId}/attachments`),
+				api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number }[]>(
+					`/businesses/${businessId}/transactions/${transactionId}/items`
+				)
 			]);
 			locations = locs;
 			channels = chans;
@@ -90,6 +108,14 @@
 			categoryId = tx.categoryId ?? '';
 			note = tx.note ?? '';
 			referenceNo = tx.referenceNo ?? '';
+			invoiceNo = tx.invoiceNo ?? '';
+			featuredImageId = tx.featuredImageId ?? null;
+
+			items = txItems.map((i) => ({
+				description: i.description,
+				quantity: i.quantity,
+				unitPrice: (i.unitPrice / 100).toFixed(2)
+			}));
 		} catch (e) {
 			loadError = e instanceof Error ? e.message : 'Failed to load transaction';
 		} finally {
@@ -98,7 +124,8 @@
 	}
 
 	async function submit() {
-		if (!locationId || !amountRaw || !transactionDate) return;
+		if (!locationId || !transactionDate) return;
+		if (!hasItems && !amountRaw) return;
 		if (type === 'income' && !salesChannelId) {
 			submitError = 'Sales channel is required for income transactions.';
 			return;
@@ -110,12 +137,14 @@
 			await api.patch(`/businesses/${businessId}/transactions/${transactionId}`, {
 				type,
 				transactionDate,
-				amount: parseToCents(amountRaw),
+				...(hasItems ? {} : { amount: parseToCents(amountRaw) }),
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
 				note: note.trim() || undefined,
-				referenceNo: referenceNo.trim() || undefined
+				referenceNo: referenceNo.trim() || undefined,
+				invoiceNo: invoiceNo.trim() || null,
+				featuredImageId: featuredImageId ?? null
 			});
 			goto(`/businesses/${businessId}/transactions`);
 		} catch (e) {
@@ -123,6 +152,36 @@
 		} finally {
 			submitting = false;
 		}
+	}
+
+	async function saveItems() {
+		try {
+			savingItems = true;
+			itemsError = null;
+			const payload = items.map((item, idx) => ({
+				description: item.description,
+				quantity: item.quantity,
+				unitPrice: Math.round(parseFloat(item.unitPrice) * 100) || 0,
+				sortOrder: idx
+			}));
+			const result = await api.put<{ items: unknown[]; total: number }>(
+				`/businesses/${businessId}/transactions/${transactionId}/items`,
+				payload
+			);
+			amountRaw = (result.total / 100).toFixed(2);
+		} catch (e) {
+			itemsError = e instanceof Error ? e.message : 'Failed to save items';
+		} finally {
+			savingItems = false;
+		}
+	}
+
+	function addItem() {
+		items = [...items, { description: '', quantity: 1, unitPrice: '0.00' }];
+	}
+
+	function removeItem(idx: number) {
+		items = items.filter((_, i) => i !== idx);
 	}
 
 	async function uploadFile(event: Event) {
@@ -160,10 +219,24 @@
 			deletingAttachmentId = id;
 			await api.delete(`/businesses/${businessId}/attachments/${id}`);
 			attachmentsList = attachmentsList.filter((a) => a.id !== id);
+			if (featuredImageId === id) {
+				featuredImageId = null;
+				await api.patch(`/businesses/${businessId}/transactions/${transactionId}`, { featuredImageId: null });
+			}
 		} catch (e) {
 			uploadError = e instanceof Error ? e.message : 'Failed to delete attachment.';
 		} finally {
 			deletingAttachmentId = null;
+		}
+	}
+
+	async function toggleFeatured(att: Attachment) {
+		const newId = featuredImageId === att.id ? null : att.id;
+		try {
+			await api.patch(`/businesses/${businessId}/transactions/${transactionId}`, { featuredImageId: newId });
+			featuredImageId = newId;
+		} catch (e) {
+			uploadError = e instanceof Error ? e.message : 'Failed to update featured image.';
 		}
 	}
 
@@ -227,10 +300,13 @@
 				/>
 			</div>
 
-			<!-- Amount -->
+			<!-- Amount (read-only when items present) -->
 			<div>
 				<label class="text-sm font-medium block mb-1" for="tx-amount">
 					Amount <span class="text-destructive">*</span>
+					{#if hasItems}
+						<span class="text-xs font-normal text-muted-foreground ml-1">(calculated from items)</span>
+					{/if}
 				</label>
 				<input
 					id="tx-amount"
@@ -239,7 +315,8 @@
 					min="0.01"
 					bind:value={amountRaw}
 					placeholder="0.00"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					readonly={hasItems}
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring {hasItems ? 'opacity-60 cursor-not-allowed' : ''}"
 				/>
 			</div>
 
@@ -321,6 +398,18 @@
 				/>
 			</div>
 
+			<!-- Invoice No -->
+			<div>
+				<label class="text-sm font-medium block mb-1" for="tx-invoice-no">Invoice No.</label>
+				<input
+					id="tx-invoice-no"
+					type="text"
+					bind:value={invoiceNo}
+					placeholder="e.g. INV-0001 (auto-assigned on print)"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+			</div>
+
 			<!-- Actions -->
 			<div class="flex justify-end gap-2 pt-2">
 				<a
@@ -331,13 +420,100 @@
 				</a>
 				<button
 					onclick={submit}
-					disabled={submitting || !locationId || !amountRaw || !transactionDate}
+					disabled={submitting || !locationId || !transactionDate || (!hasItems && !amountRaw)}
 					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 				>
 					{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}
 					Save Changes
 				</button>
 			</div>
+		</div>
+
+		<!-- ─── Line Items ────────────────────────────────────────────────── -->
+		<div class="mt-8 pt-6 border-t border-border">
+			<div class="flex items-center justify-between mb-3">
+				<span class="text-sm font-medium text-foreground">Line Items</span>
+				<button
+					type="button"
+					onclick={addItem}
+					class="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium transition-colors"
+				>
+					<Plus class="size-3" />
+					Add item
+				</button>
+			</div>
+
+			{#if items.length > 0}
+				<div class="rounded-lg border border-border overflow-hidden mb-3">
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="border-b border-border bg-muted/50">
+								<th class="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
+								<th class="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-16">Qty</th>
+								<th class="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-24">Unit Price</th>
+								<th class="w-8"></th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each items as item, idx (idx)}
+								<tr class="border-b border-border last:border-0">
+									<td class="px-3 py-2">
+										<input
+											type="text"
+											bind:value={item.description}
+											placeholder="Description"
+											class="w-full bg-transparent focus:outline-none text-sm"
+										/>
+									</td>
+									<td class="px-3 py-2">
+										<input
+											type="number"
+											bind:value={item.quantity}
+											min="1"
+											class="w-full bg-transparent focus:outline-none text-sm text-right"
+										/>
+									</td>
+									<td class="px-3 py-2">
+										<input
+											type="number"
+											bind:value={item.unitPrice}
+											step="0.01"
+											min="0"
+											class="w-full bg-transparent focus:outline-none text-sm text-right"
+										/>
+									</td>
+									<td class="px-2 py-2">
+										<button
+											type="button"
+											onclick={() => removeItem(idx)}
+											class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+										>
+											<X class="size-3" />
+										</button>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+
+				{#if itemsError}
+					<p class="text-destructive text-xs mb-2">{itemsError}</p>
+				{/if}
+
+				<div class="flex justify-end">
+					<button
+						onclick={saveItems}
+						disabled={savingItems}
+						class="flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 disabled:opacity-50"
+					>
+						{#if savingItems}<Loader2 class="size-3.5 animate-spin" />{/if}
+						Save items
+					</button>
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground py-3 text-center">No line items. Add items to auto-calculate the total.</p>
+			{/if}
 		</div>
 
 		<!-- ─── Attachments ─────────────────────────────────────────────── -->
@@ -390,6 +566,16 @@
 								<p class="text-sm text-foreground truncate">{att.fileName}</p>
 								<p class="text-xs text-muted-foreground">{formatFileSize(att.fileSize)}</p>
 							</div>
+							{#if isImageMime(att.mimeType)}
+								<button
+									type="button"
+									onclick={() => toggleFeatured(att)}
+									class="p-1.5 rounded transition-colors shrink-0 {featuredImageId === att.id ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-50'}"
+									title={featuredImageId === att.id ? 'Remove from invoice' : 'Feature on invoice'}
+								>
+									<Star class="size-3.5 {featuredImageId === att.id ? 'fill-current' : ''}" />
+								</button>
+							{/if}
 							<a
 								href={downloadUrl(att.id)}
 								target="_blank"
@@ -414,6 +600,11 @@
 						</div>
 					{/each}
 				</div>
+				{#if attachmentsList.some((a) => isImageMime(a.mimeType))}
+					<p class="text-xs text-muted-foreground mt-2">
+						<Star class="size-3 inline-block mr-0.5" /> Star an image to feature it on the invoice.
+					</p>
+				{/if}
 			{/if}
 			<p class="text-xs text-muted-foreground mt-2">JPEG, PNG or PDF · max 10 MB per file · up to 10 files</p>
 		</div>

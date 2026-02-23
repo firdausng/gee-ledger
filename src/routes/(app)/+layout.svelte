@@ -16,7 +16,8 @@
 		MapPin,
 		ShoppingBag,
 		Users,
-		Paperclip
+		Paperclip,
+		Settings2
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
@@ -48,7 +49,8 @@
 		{ href: '/locations', label: 'Locations', icon: MapPin },
 		{ href: '/channels', label: 'Channels', icon: ShoppingBag },
 		{ href: '/members', label: 'Members', icon: Users },
-		{ href: '/attachments', label: 'Attachments', icon: Paperclip }
+		{ href: '/attachments', label: 'Attachments', icon: Paperclip },
+		{ href: '/settings',    label: 'Settings',    icon: Settings2 }
 	];
 
 	function isSubActive(bizId: string, tabHref: string): boolean {

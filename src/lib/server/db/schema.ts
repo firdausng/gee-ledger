@@ -19,7 +19,13 @@ export const businesses = sqliteTable(
 		id: text('id').primaryKey(),
 		name: text('name').notNull(),
 		description: text('description'),
-		currency: text('currency').notNull().default('MYR'),
+		currency:   text('currency').notNull().default('MYR'),
+		address:    text('address'),
+		phone:      text('phone'),
+		taxId:      text('tax_id'),
+		logoR2Key:  text('logo_r2_key'),
+		nextInvoiceNo: integer('next_invoice_no').notNull().default(1),
+		nextReceiptNo: integer('next_receipt_no').notNull().default(1),
 		createdAt: text('created_at').notNull(),
 		createdBy: text('created_by').notNull(),
 		updatedAt: text('updated_at').notNull(),
@@ -171,6 +177,11 @@ export const transactions = sqliteTable(
 		amount: integer('amount').notNull(),
 		note: text('note'),
 		referenceNo: text('reference_no'),
+		invoiceNo:       text('invoice_no'),
+		receiptNo:       text('receipt_no'),
+		featuredImageId: text('featured_image_id'),
+		// 'invoice' | 'receipt' — overrides the default derived from type
+		documentType:    text('document_type'),
 		// ISO date string YYYY-MM-DD
 		transactionDate: text('transaction_date').notNull(),
 		createdAt: text('created_at').notNull(),
@@ -237,6 +248,19 @@ export const transactionAttachments = sqliteTable(
 		transactionIdx: index('tx_attachments_transaction_idx').on(t.transactionId)
 	})
 );
+
+// ─── Transaction Items ─────────────────────────────────────────────────────────
+
+export const transactionItems = sqliteTable('transaction_items', {
+	id:            text('id').primaryKey(),
+	transactionId: text('transaction_id').notNull(),
+	description:   text('description').notNull(),
+	quantity:      integer('quantity').notNull().default(1),   // whole units
+	unitPrice:     integer('unit_price').notNull(),            // cents
+	sortOrder:     integer('sort_order').notNull().default(0),
+}, (t) => ({
+	transactionIdx: index('transaction_items_transaction_idx').on(t.transactionId)
+}));
 
 // ─── Invitations ──────────────────────────────────────────────────────────────
 

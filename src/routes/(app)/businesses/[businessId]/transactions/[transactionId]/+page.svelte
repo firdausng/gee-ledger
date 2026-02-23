@@ -13,7 +13,9 @@
 		FileText,
 		MapPin,
 		Tag,
-		Hash
+		Hash,
+		Printer,
+		Mail
 	} from '@lucide/svelte';
 
 	let { data } = $props();
@@ -100,13 +102,31 @@
 			Back
 		</a>
 		{#if tx}
-			<a
-				href="/businesses/{businessId}/transactions/{transactionId}/edit"
-				class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
-			>
-				<Pencil class="size-3.5" />
-				Edit
-			</a>
+			<div class="flex items-center gap-2">
+				<a
+					href="/businesses/{businessId}/transactions/{transactionId}/email"
+					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+					title="Email invoice"
+				>
+					<Mail class="size-3.5" />
+					Email
+				</a>
+				<a
+					href="/businesses/{businessId}/transactions/{transactionId}/print"
+					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+					title="View / Print PDF"
+				>
+					<Printer class="size-3.5" />
+					PDF
+				</a>
+				<a
+					href="/businesses/{businessId}/transactions/{transactionId}/edit"
+					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+				>
+					<Pencil class="size-3.5" />
+					Edit
+				</a>
+			</div>
 		{/if}
 	</div>
 
@@ -232,3 +252,4 @@
 		{/if}
 	{/if}
 </div>
+
