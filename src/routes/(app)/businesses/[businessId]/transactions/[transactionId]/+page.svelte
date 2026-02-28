@@ -5,6 +5,7 @@
 	import { api } from '$lib/client/api.svelte';
 	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText, Star, Printer, Mail } from '@lucide/svelte';
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
+	import ServicesEditor from '$lib/components/ServicesEditor.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -19,6 +20,7 @@
 	type Transaction = {
 		id: string;
 		type: 'income' | 'expense' | 'transfer';
+		lineItemMode: 'items' | 'services';
 		transactionDate: string;
 		amount: number;
 		locationId: string;
@@ -38,6 +40,7 @@
 		createdAt: string;
 	};
 	type LineItem = { description: string; quantity: number; unitPrice: string };
+	type ServiceItem = { description: string; hours: number; rate: string };
 
 	const businessId = $page.params.businessId;
 	const transactionId = $page.params.transactionId;
@@ -80,8 +83,17 @@
 
 	const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-	// Line items
+	// Line items / services
+	let lineItemMode = $state<'items' | 'services'>('items');
 	let items = $state<LineItem[]>([]);
+	let serviceItems = $state<ServiceItem[]>([]);
+
+	function switchMode(m: 'items' | 'services') {
+		if (m === lineItemMode) return;
+		lineItemMode = m;
+		if (m === 'items') serviceItems = [];
+		else items = [];
+	}
 
 	function formatFileSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;
@@ -97,16 +109,13 @@
 		try {
 			loadingMeta = true;
 			loadError = null;
-			const [locs, chans, cats, conts, tx, atts, txItems] = await Promise.all([
-				api.get<Location[]>(`/businesses/${businessId}/locations`),
-				api.get<Channel[]>(`/businesses/${businessId}/channels`),
-				api.get<Category[]>(`/businesses/${businessId}/categories`),
-				api.get<Contact[]>(`/businesses/${businessId}/contacts`),
-				api.get<Transaction>(`/businesses/${businessId}/transactions/${transactionId}`),
-				api.get<Attachment[]>(`/businesses/${businessId}/transactions/${transactionId}/attachments`),
-				api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number }[]>(
-					`/businesses/${businessId}/transactions/${transactionId}/items`
-				)
+			const [locs, chans, cats, conts, tx, atts] = await Promise.all([
+				api.get(`/businesses/${businessId}/locations`),
+				api.get(`/businesses/${businessId}/channels`),
+				api.get(`/businesses/${businessId}/categories`),
+				api.get(`/businesses/${businessId}/contacts`),
+				api.get(`/businesses/${businessId}/transactions/${transactionId}`),
+				api.get(`/businesses/${businessId}/transactions/${transactionId}/attachments`),
 			]);
 			locations = locs;
 			channels = chans;
@@ -115,8 +124,9 @@
 			attachmentsList = atts;
 
 			type = tx.type;
+			lineItemMode = tx.lineItemMode ?? 'items';
 			transactionDate = tx.transactionDate;
-				locationId = tx.locationId;
+			locationId = tx.locationId;
 			salesChannelId = tx.salesChannelId ?? '';
 			categoryId = tx.categoryId ?? '';
 			contactId = tx.contactId ?? '';
@@ -125,11 +135,21 @@
 			invoiceNo = tx.invoiceNo ?? '';
 			featuredImageId = tx.featuredImageId ?? null;
 
-			items = txItems.map((i) => ({
-				description: i.description,
-				quantity: i.quantity,
-				unitPrice: (i.unitPrice / 100).toFixed(2)
-			}));
+			if (lineItemMode === 'items') {
+				const txItems = await api.get(`/businesses/${businessId}/transactions/${transactionId}/items`);
+				items = txItems.map((i) => ({
+					description: i.description,
+					quantity: i.quantity,
+					unitPrice: (i.unitPrice / 100).toFixed(2)
+				}));
+			} else {
+				const txServiceItems = await api.get(`/businesses/${businessId}/transactions/${transactionId}/service-items`);
+				serviceItems = txServiceItems.map((i) => ({
+					description: i.description,
+					hours: i.hours,
+					rate: (i.rate / 100).toFixed(2)
+				}));
+			}
 		} catch (e) {
 			loadError = e instanceof Error ? e.message : 'Failed to load transaction';
 		} finally {
@@ -143,19 +163,21 @@
 			submitError = 'Sales channel is required for income transactions.';
 			return;
 		}
-		if (items.length === 0) {
-			submitError = 'Add at least one line item.';
+		const hasItems = lineItemMode === 'items' ? items.length > 0 : serviceItems.length > 0;
+		if (!hasItems) {
+			submitError = lineItemMode === 'items' ? 'Add at least one line item.' : 'Add at least one service.';
 			return;
 		}
 
 		try {
 			submitting = true;
 			submitError = null;
-			const total = items.reduce(
-				(sum, i) => sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0
-			);
+			const total = lineItemMode === 'items'
+				? items.reduce((sum, i) => sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0)
+				: serviceItems.reduce((sum, i) => sum + Math.round(i.hours * Math.round(parseFloat(i.rate || '0') * 100)), 0);
 			await api.patch(`/businesses/${businessId}/transactions/${transactionId}`, {
 				type,
+				lineItemMode,
 				transactionDate,
 				amount: total,
 				locationId,
@@ -167,14 +189,25 @@
 				invoiceNo: invoiceNo.trim() || null,
 				featuredImageId: featuredImageId ?? null
 			});
-			await api.put(`/businesses/${businessId}/transactions/${transactionId}/items`,
-				items.map((item, idx) => ({
-					description: item.description,
-					quantity: item.quantity,
-					unitPrice: Math.round(parseFloat(item.unitPrice) * 100) || 0,
-					sortOrder: idx
-				}))
-			);
+			if (lineItemMode === 'items') {
+				await api.put(`/businesses/${businessId}/transactions/${transactionId}/items`,
+					items.map((item, idx) => ({
+						description: item.description,
+						quantity: item.quantity,
+						unitPrice: Math.round(parseFloat(item.unitPrice) * 100) || 0,
+						sortOrder: idx
+					}))
+				);
+			} else {
+				await api.put(`/businesses/${businessId}/transactions/${transactionId}/service-items`,
+					serviceItems.map((item, idx) => ({
+						description: item.description,
+						hours: item.hours,
+						rate: Math.round(parseFloat(item.rate) * 100) || 0,
+						sortOrder: idx
+					}))
+				);
+			}
 			goto(`/businesses/${businessId}/transactions`);
 		} catch (e) {
 			submitError = e instanceof Error ? e.message : 'Failed to update transaction';
@@ -319,10 +352,32 @@
 						</div>
 					</div>
 
-					<!-- Line Items -->
+					<!-- Mode toggle -->
 					<div class="space-y-1.5">
-						<Label>Line Items <span class="text-destructive">*</span></Label>
-						<LineItemsEditor bind:items />
+						<Label>Mode</Label>
+						<div class="flex gap-2">
+							{#each [['items', 'Line Items'], ['services', 'Services']] as [m, label]}
+								<Button
+									variant={lineItemMode === m ? 'default' : 'outline'}
+									class="flex-1"
+									onclick={() => switchMode(m as 'items' | 'services')}
+								>
+									{label}
+								</Button>
+							{/each}
+						</div>
+					</div>
+
+					<!-- Line Items / Services -->
+					<div class="space-y-1.5">
+						<Label>
+							{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
+						</Label>
+						{#if lineItemMode === 'items'}
+							<LineItemsEditor bind:items />
+						{:else}
+							<ServicesEditor bind:items={serviceItems} />
+						{/if}
 					</div>
 
 					<!-- Date -->

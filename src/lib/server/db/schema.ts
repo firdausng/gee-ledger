@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index, uniqueIndex, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, index, uniqueIndex, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -182,6 +182,8 @@ export const transactions = sqliteTable(
 		invoiceNo:       text('invoice_no'),
 		receiptNo:       text('receipt_no'),
 		featuredImageId: text('featured_image_id'),
+		// 'items' | 'services'
+		lineItemMode:    text('line_item_mode').notNull().default('items'),
 		// 'invoice' | 'receipt' — overrides the default derived from type
 		documentType:    text('document_type'),
 		// ISO date string YYYY-MM-DD
@@ -262,6 +264,19 @@ export const transactionItems = sqliteTable('transaction_items', {
 	sortOrder:     integer('sort_order').notNull().default(0),
 }, (t) => ({
 	transactionIdx: index('transaction_items_transaction_idx').on(t.transactionId)
+}));
+
+// ─── Transaction Service Items ─────────────────────────────────────────────────
+
+export const transactionServiceItems = sqliteTable('transaction_service_items', {
+	id:            text('id').primaryKey(),
+	transactionId: text('transaction_id').notNull(),
+	description:   text('description').notNull(),
+	hours:         real('hours').notNull(),          // e.g. 1.5
+	rate:          integer('rate').notNull(),         // cents/hr, e.g. 5000 = $50/hr
+	sortOrder:     integer('sort_order').notNull().default(0),
+}, (t) => ({
+	transactionIdx: index('tx_service_items_transaction_idx').on(t.transactionId)
 }));
 
 // ─── Contacts ─────────────────────────────────────────────────────────────────

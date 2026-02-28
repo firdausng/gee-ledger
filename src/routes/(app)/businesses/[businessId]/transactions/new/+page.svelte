@@ -6,6 +6,7 @@
 	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
 	import { ArrowLeft, Loader2, Paperclip, X, FileImage, FileText, Plus } from '@lucide/svelte';
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
+	import ServicesEditor from '$lib/components/ServicesEditor.svelte';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
@@ -13,6 +14,7 @@
 	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean };
 	type PendingAttachment = { id: string; fileName: string; mimeType: string; fileSize: number };
 	type LineItem = { description: string; quantity: number; unitPrice: string };
+	type ServiceItem = { description: string; hours: number; rate: string };
 
 	const businessId = $page.params.businessId;
 
@@ -46,11 +48,25 @@
 	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
 	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
 
-	// Line items
+	// Line items mode
+	let lineItemMode = $state<'items' | 'services'>('items');
 	let items = $state<LineItem[]>([]);
+	let serviceItems = $state<ServiceItem[]>([]);
+
+	function switchMode(m: 'items' | 'services') {
+		if (m === lineItemMode) return;
+		lineItemMode = m;
+		// Reset the other mode's data when switching
+		if (m === 'items') serviceItems = [];
+		else items = [];
+	}
+
 	let itemsTotal = $derived(
-		items.reduce((sum, i) =>
-			sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0)
+		lineItemMode === 'items'
+			? items.reduce((sum, i) =>
+					sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0)
+			: serviceItems.reduce((sum, i) =>
+					sum + Math.round(i.hours * Math.round(parseFloat(i.rate || '0') * 100)), 0)
 	);
 
 	// ── Location modal ────────────────────────────────────────────────
@@ -268,6 +284,7 @@
 			submitError = null;
 			const tx = await api.post<{ id: string }>(`/businesses/${businessId}/transactions`, {
 				type,
+				lineItemMode,
 				transactionDate,
 				amount: itemsTotal,
 				locationId,
@@ -278,14 +295,25 @@
 				referenceNo: referenceNo.trim() || undefined,
 				attachmentIds: pendingAttachments.map((a) => a.id)
 			});
-			await api.put(`/businesses/${businessId}/transactions/${tx.id}/items`,
-				items.map((i, idx) => ({
-					description: i.description,
-					quantity:    i.quantity,
-					unitPrice:   Math.round(parseFloat(i.unitPrice) * 100),
-					sortOrder:   idx,
-				}))
-			);
+			if (lineItemMode === 'items') {
+				await api.put(`/businesses/${businessId}/transactions/${tx.id}/items`,
+					items.map((i, idx) => ({
+						description: i.description,
+						quantity:    i.quantity,
+						unitPrice:   Math.round(parseFloat(i.unitPrice) * 100),
+						sortOrder:   idx,
+					}))
+				);
+			} else {
+				await api.put(`/businesses/${businessId}/transactions/${tx.id}/service-items`,
+					serviceItems.map((i, idx) => ({
+						description: i.description,
+						hours:       i.hours,
+						rate:        Math.round(parseFloat(i.rate) * 100),
+						sortOrder:   idx,
+					}))
+				);
+			}
 			goto(`/businesses/${businessId}/transactions`);
 		} catch (e) {
 			submitError = e instanceof Error ? e.message : 'Failed to create transaction';
@@ -332,10 +360,33 @@
 			</div>
 		</div>
 
-		<!-- Line Items -->
+		<!-- Mode toggle -->
 		<div>
-			<label class="text-sm font-medium block mb-1.5">Line Items <span class="text-destructive">*</span></label>
-			<LineItemsEditor bind:items />
+			<label class="text-sm font-medium block mb-1.5">Mode</label>
+			<div class="flex gap-2">
+				{#each [['items', 'Line Items'], ['services', 'Services']] as [m, label]}
+					<button
+						type="button"
+						onclick={() => switchMode(m as 'items' | 'services')}
+						class="flex-1 py-2 rounded-md border text-sm font-medium transition-colors
+							{lineItemMode === m ? 'border-primary bg-primary/10 text-primary' : 'border-input text-muted-foreground hover:border-muted-foreground'}"
+					>
+						{label}
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<!-- Line Items / Services -->
+		<div>
+			<label class="text-sm font-medium block mb-1.5">
+				{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
+			</label>
+			{#if lineItemMode === 'items'}
+				<LineItemsEditor bind:items />
+			{:else}
+				<ServicesEditor bind:items={serviceItems} />
+			{/if}
 		</div>
 
 		<!-- Date -->

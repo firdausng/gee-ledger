@@ -4,7 +4,8 @@ import {
 	CreateTransactionSchema,
 	UpdateTransactionSchema,
 	TransactionFiltersSchema,
-	SaveTransactionItemsSchema
+	SaveTransactionItemsSchema,
+	SaveServiceItemsSchema
 } from '$lib/schemas/transaction';
 import { getTransactionsHandler } from './getTransactionsHandler';
 import { getTransactionHandler } from './getTransactionHandler';
@@ -14,6 +15,8 @@ import { deleteTransactionHandler } from './deleteTransactionHandler';
 import { shareTransactionHandler } from './shareTransactionHandler';
 import { getTransactionItemsHandler } from './getTransactionItemsHandler';
 import { saveTransactionItemsHandler } from './saveTransactionItemsHandler';
+import { getServiceItemsHandler } from './getServiceItemsHandler';
+import { saveServiceItemsHandler } from './saveServiceItemsHandler';
 import { assignInvoiceNoHandler } from './assignInvoiceNoHandler';
 import { assignReceiptNoHandler } from './assignReceiptNoHandler';
 import { HTTPException } from 'hono/http-exception';
@@ -95,6 +98,32 @@ export const transactionsApi = new Hono<App.Api>()
 		const result = v.safeParse(SaveTransactionItemsSchema, body);
 		if (!result.success) throw new HTTPException(400, { message: 'Invalid items data' });
 		const data = await saveTransactionItemsHandler(
+			user,
+			c.req.param('businessId'),
+			c.req.param('transactionId'),
+			result.output,
+			c.env
+		);
+		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/transactions/:transactionId/service-items', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getServiceItemsHandler(
+			user,
+			c.req.param('businessId'),
+			c.req.param('transactionId'),
+			c.env
+		);
+		return c.json({ data });
+	})
+
+	.put('/businesses/:businessId/transactions/:transactionId/service-items', async (c) => {
+		const user = c.get('currentUser');
+		const body = await c.req.json();
+		const result = v.safeParse(SaveServiceItemsSchema, body);
+		if (!result.success) throw new HTTPException(400, { message: 'Invalid service items data' });
+		const data = await saveServiceItemsHandler(
 			user,
 			c.req.param('businessId'),
 			c.req.param('transactionId'),

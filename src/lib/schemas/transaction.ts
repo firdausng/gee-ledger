@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 
 const TransactionTypeSchema = v.picklist(['income', 'expense', 'transfer']);
+const LineItemModeSchema = v.optional(v.picklist(['items', 'services']), 'items');
 
 export const CreateTransactionSchema = v.pipe(
 	v.object({
@@ -9,6 +10,7 @@ export const CreateTransactionSchema = v.pipe(
 		categoryId: v.optional(v.string()),
 		contactId: v.optional(v.string()),
 		type: TransactionTypeSchema,
+		lineItemMode: LineItemModeSchema,
 		// Positive integer cents (e.g. 1000 = MYR 10.00)
 		amount: v.pipe(v.number(), v.integer(), v.minValue(1)),
 		note: v.optional(v.pipe(v.string(), v.maxLength(500))),
@@ -35,6 +37,7 @@ export const UpdateTransactionSchema = v.pipe(
 		categoryId: v.optional(v.nullable(v.string())),
 		contactId: v.optional(v.nullable(v.string())),
 		type: v.optional(TransactionTypeSchema),
+		lineItemMode: v.optional(v.picklist(['items', 'services'])),
 		amount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
 		note: v.optional(v.pipe(v.string(), v.maxLength(500))),
 		referenceNo: v.optional(v.pipe(v.string(), v.maxLength(100))),
@@ -73,7 +76,16 @@ export const TransactionItemSchema = v.object({
 });
 export const SaveTransactionItemsSchema = v.array(TransactionItemSchema);
 
+export const ServiceItemSchema = v.object({
+	description: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
+	hours:       v.pipe(v.number(), v.minValue(0.01)),
+	rate:        v.pipe(v.number(), v.integer(), v.minValue(0)),  // cents/hr
+	sortOrder:   v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
+});
+export const SaveServiceItemsSchema = v.array(ServiceItemSchema);
+
 export type CreateTransactionInput = v.InferOutput<typeof CreateTransactionSchema>;
 export type UpdateTransactionInput = v.InferOutput<typeof UpdateTransactionSchema>;
 export type TransactionFilters = v.InferOutput<typeof TransactionFiltersSchema>;
 export type TransactionItem = v.InferOutput<typeof TransactionItemSchema>;
+export type ServiceItem = v.InferOutput<typeof ServiceItemSchema>;
