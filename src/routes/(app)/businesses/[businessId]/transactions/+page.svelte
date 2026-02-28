@@ -110,7 +110,6 @@
 			<option value="">All types</option>
 			<option value="income">Income</option>
 			<option value="expense">Expense</option>
-			<option value="transfer">Transfer</option>
 		</select>
 		<input
 			type="date"

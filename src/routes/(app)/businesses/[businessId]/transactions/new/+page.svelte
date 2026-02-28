@@ -25,7 +25,7 @@
 	let loadingMeta = $state(true);
 
 	// Form fields
-	let type = $state<'income' | 'expense' | 'transfer'>('income');
+	let type = $state<'income' | 'expense'>('income');
 	let transactionDate = $state(new Date().toISOString().slice(0, 10));
 	let locationId = $state('');
 	let salesChannelId = $state('');
@@ -44,7 +44,7 @@
 
 	const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-	let filteredCategories = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
+	let filteredCategories = $derived(categories.filter((c) => c.type === type));
 	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
 	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
 
@@ -347,7 +347,7 @@
 		<div>
 			<label class="text-sm font-medium block mb-1.5">Type <span class="text-destructive">*</span></label>
 			<div class="flex gap-2">
-				{#each ['income', 'expense', 'transfer'] as t}
+				{#each ['income', 'expense'] as t}
 					<button
 						type="button"
 						onclick={() => { type = t as typeof type; salesChannelId = ''; categoryId = ''; }}
@@ -447,7 +447,6 @@
 		</div>
 
 		<!-- Sales Channel (required for income) -->
-		{#if type !== 'transfer'}
 			<div>
 				<label class="text-sm font-medium block mb-1" for="tx-channel">
 					Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}
@@ -492,10 +491,8 @@
 					</div>
 				{/if}
 			</div>
-		{/if}
 
 		<!-- Category -->
-		{#if type !== 'transfer'}
 			<div>
 				<label class="text-sm font-medium block mb-1" for="tx-category">Category</label>
 				{#if filteredCategories.length === 0}
@@ -533,10 +530,8 @@
 					</div>
 				{/if}
 			</div>
-		{/if}
 
 		<!-- Contact (client for income, supplier for expense) -->
-		{#if type === 'income' || type === 'expense'}
 			<div>
 				<label class="text-sm font-medium block mb-1" for="tx-contact">
 					{type === 'income' ? 'Client' : 'Supplier'}
@@ -562,7 +557,6 @@
 					</button>
 				</div>
 			</div>
-		{/if}
 
 		<!-- Note + Reference No -->
 		<div class="flex flex-col gap-3">

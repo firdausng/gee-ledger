@@ -57,9 +57,8 @@
 	function docTitle(type: string, override?: 'invoice' | 'receipt' | null): string {
 		if (override === 'invoice') return 'INVOICE';
 		if (override === 'receipt') return 'RECEIPT';
-		if (type === 'income')  return 'INVOICE';
 		if (type === 'expense') return 'RECEIPT';
-		return 'TRANSFER RECORD';
+		return 'INVOICE';
 	}
 
 	function formatAmount(cents: number, currency: string): string {

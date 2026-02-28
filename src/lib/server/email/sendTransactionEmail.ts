@@ -34,9 +34,8 @@ type NamedEntity = { name: string } | null;
 function docTitle(type: string, documentType?: 'invoice' | 'receipt' | null): string {
 	if (documentType === 'invoice') return 'INVOICE';
 	if (documentType === 'receipt') return 'RECEIPT';
-	if (type === 'income')   return 'INVOICE';
-	if (type === 'expense')  return 'RECEIPT';
-	return 'TRANSFER RECORD';
+	if (type === 'expense') return 'RECEIPT';
+	return 'INVOICE';
 }
 
 function formatAmount(cents: number, currency: string): string {

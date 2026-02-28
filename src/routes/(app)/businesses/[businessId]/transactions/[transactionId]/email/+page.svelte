@@ -139,8 +139,7 @@
 	<!-- Left: compose form -->
 	<div class="w-[420px] shrink-0 border-r border-border flex flex-col overflow-y-auto">
 		<div class="border-b border-border">
-			{#if tx.type !== 'transfer'}
-				<div class="px-5 py-3 border-b border-border">
+					<div class="px-5 py-3 border-b border-border">
 					<p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Document Type</p>
 					<div class="flex rounded-md border border-input overflow-hidden text-sm">
 						<button type="button" onclick={() => setDocumentType('invoice')}
@@ -153,8 +152,7 @@
 						</button>
 					</div>
 				</div>
-			{/if}
-			<div class="flex items-center gap-3 px-5 py-3 border-b border-border">
+				<div class="flex items-center gap-3 px-5 py-3 border-b border-border">
 				<span class="text-sm text-muted-foreground w-20 shrink-0">To</span>
 				<input type="email" bind:value={toEmail} placeholder="recipient@example.com"
 					class="flex-1 text-sm text-foreground bg-transparent focus:outline-none" />
@@ -227,7 +225,6 @@
 <div class="lg:hidden flex flex-col">
 
 	<!-- Document type toggle -->
-	{#if tx.type !== 'transfer'}
 		<div class="px-4 py-3 border-b border-border bg-card">
 			<p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Document Type</p>
 			<div class="flex rounded-md border border-input overflow-hidden text-sm">
@@ -241,7 +238,6 @@
 				</button>
 			</div>
 		</div>
-	{/if}
 
 	<!-- Compose fields -->
 	<div class="bg-card border-b border-border">

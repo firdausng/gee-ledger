@@ -168,12 +168,12 @@ export const transactions = sqliteTable(
 		id: text('id').primaryKey(),
 		businessId: text('business_id').notNull(),
 		locationId: text('location_id').notNull(),
-		// Required for income, optional for expense/transfer
+		// Required for income, optional for expense
 		salesChannelId: text('sales_channel_id'),
 		categoryId: text('category_id'),
 		// Optional link to contacts.id — no FK constraint (contacts is a separate domain)
 		contactId: text('contact_id'),
-		// 'income' | 'expense' | 'transfer'
+		// 'income' | 'expense'
 		type: text('type').notNull(),
 		// Stored as integer cents (e.g. 1000 = MYR 10.00)
 		amount: integer('amount').notNull(),

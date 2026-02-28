@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 
-const TransactionTypeSchema = v.picklist(['income', 'expense', 'transfer']);
+const TransactionTypeSchema = v.picklist(['income', 'expense']);
 const LineItemModeSchema = v.optional(v.picklist(['items', 'services']), 'items');
 
 export const CreateTransactionSchema = v.pipe(

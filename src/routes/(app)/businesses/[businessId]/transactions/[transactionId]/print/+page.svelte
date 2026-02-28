@@ -128,7 +128,6 @@
 
 	<!-- Left: controls -->
 	<div class="w-64 shrink-0 border-r border-border flex flex-col overflow-y-auto bg-card">
-		{#if tx.type !== 'transfer'}
 			<div class="px-4 py-3 border-b border-border">
 				<p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Document Type</p>
 				<div class="flex rounded-md border border-input overflow-hidden text-sm">
@@ -142,7 +141,6 @@
 					</button>
 				</div>
 			</div>
-		{/if}
 
 		{#if documentType === 'invoice'}
 			<div class="px-4 py-3 border-b border-border">
@@ -198,7 +196,6 @@
 
 	<!-- Controls card -->
 	<div class="bg-card border-b border-border">
-		{#if tx.type !== 'transfer'}
 			<div class="px-4 py-3 border-b border-border">
 				<p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Document Type</p>
 				<div class="flex rounded-md border border-input overflow-hidden text-sm">
@@ -212,7 +209,6 @@
 					</button>
 				</div>
 			</div>
-		{/if}
 
 		<div class="grid grid-cols-2 divide-x divide-border border-b border-border">
 			{#if documentType === 'invoice'}
@@ -228,7 +224,7 @@
 						class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 				</div>
 			{/if}
-			<div class="px-4 py-3 {documentType === 'transfer' ? 'col-span-2' : ''}">
+			<div class="px-4 py-3">
 				<p class="text-xs text-muted-foreground mb-1">Bill To (name)</p>
 				<input type="text" bind:value={billToName} placeholder="Recipient name"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />

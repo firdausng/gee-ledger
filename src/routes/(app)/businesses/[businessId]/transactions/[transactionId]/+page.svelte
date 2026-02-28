@@ -19,7 +19,7 @@
 	type Contact  = { id: string; name: string; isClient: boolean; isSupplier: boolean };
 	type Transaction = {
 		id: string;
-		type: 'income' | 'expense' | 'transfer';
+		type: 'income' | 'expense';
 		lineItemMode: 'items' | 'services';
 		transactionDate: string;
 		amount: number;
@@ -52,7 +52,7 @@
 	let loadingMeta = $state(true);
 
 	// Form fields
-	let type = $state<'income' | 'expense' | 'transfer'>('income');
+	let type = $state<'income' | 'expense'>('income');
 	let transactionDate = $state('');
 	let locationId = $state('');
 	let salesChannelId = $state('');
@@ -70,7 +70,7 @@
 	let showDeleteConfirm = $state(false);
 	let deleting = $state(false);
 
-	let filteredCategories  = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
+	let filteredCategories  = $derived(categories.filter((c) => c.type === type));
 	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
 	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
 
@@ -344,7 +344,7 @@
 					<div class="space-y-1.5">
 						<Label>Type <span class="text-destructive">*</span></Label>
 						<div class="flex gap-2">
-							{#each ['income', 'expense', 'transfer'] as t}
+							{#each ['income', 'expense'] as t}
 								<Button
 									variant={type === t ? 'default' : 'outline'}
 									class="flex-1 capitalize"
@@ -403,7 +403,7 @@
 					<Card.Content>
 						<div class="grid grid-cols-2 gap-3">
 							<!-- Location -->
-							<div class="{type === 'transfer' ? 'col-span-2' : ''} space-y-1.5">
+							<div class="space-y-1.5">
 								<Label>Location <span class="text-destructive">*</span></Label>
 								<Select.Root type="single" bind:value={locationId}>
 									<Select.Trigger class="w-full">
@@ -418,7 +418,6 @@
 							</div>
 
 							<!-- Sales Channel -->
-							{#if type !== 'transfer'}
 								<div class="space-y-1.5">
 									<Label>
 										Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}
@@ -434,10 +433,9 @@
 										</Select.Content>
 									</Select.Root>
 								</div>
-							{/if}
 
 							<!-- Category -->
-							<div class="{type === 'transfer' ? 'col-span-2' : ''} space-y-1.5">
+							<div class="space-y-1.5">
 								<Label>Category</Label>
 								<Select.Root type="single" bind:value={categoryId}>
 									<Select.Trigger class="w-full">
