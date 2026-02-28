@@ -320,7 +320,8 @@
 					Showing first 1,000 transactions. Narrow your date range to see all.
 				</p>
 			{/if}
-			<div class="print-paper bg-white shadow-md rounded-sm mx-auto max-w-lg">
+			<div class="overflow-x-auto">
+			<div class="print-paper bg-white shadow-md rounded-sm" style="min-width: min-content">
 				<StatementPreview
 					business={biz}
 					{businessId}
@@ -334,6 +335,7 @@
 					{showBalance}
 					compact={true}
 				/>
+			</div>
 			</div>
 		</div>
 	{:else if loading}
