@@ -117,7 +117,7 @@
 	onMount(load);
 </script>
 
-<div class="max-w-2xl">
+<div>
 	<div class="flex items-center justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Locations</h2>
 		<button

@@ -136,7 +136,7 @@
 	const sectionClass = 'rounded-lg border border-border bg-card p-5 mb-4';
 </script>
 
-<div class="max-w-xl">
+<div>
 	<div class="flex items-center gap-2 mb-6">
 		<Settings2 class="size-5 text-muted-foreground" />
 		<div>
@@ -145,6 +145,7 @@
 		</div>
 	</div>
 
+	<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 	<!-- Business Info -->
 	<div class={sectionClass}>
 		<h3 class="text-sm font-semibold text-foreground mb-4">Business Info</h3>
@@ -228,8 +229,10 @@
 		</div>
 	</div>
 
+	<!-- Right column: Contact & Legal + Logo -->
+	<div class="flex flex-col gap-4">
 	<!-- Contact & Legal -->
-	<div class={sectionClass}>
+	<div class={sectionClass} style="margin-bottom:0">
 		<h3 class="text-sm font-semibold text-foreground mb-4">Contact & Legal</h3>
 		<p class="text-xs text-muted-foreground mb-4">Shown on invoices and receipts sent to customers.</p>
 		<div class="flex flex-col gap-3">
@@ -323,4 +326,6 @@
 			</div>
 		</div>
 	</div>
+	</div><!-- end right column -->
+	</div><!-- end grid -->
 </div>

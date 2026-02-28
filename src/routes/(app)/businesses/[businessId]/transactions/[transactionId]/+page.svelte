@@ -3,8 +3,14 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/client/api.svelte';
-	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText, Plus, X, Star, Printer, Mail } from '@lucide/svelte';
+	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText, Star, Printer, Mail } from '@lucide/svelte';
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import * as Card from '$lib/components/ui/card';
+	import * as Select from '$lib/components/ui/select';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
@@ -251,42 +257,28 @@
 	onMount(loadMeta);
 </script>
 
-<div class="max-w-lg">
+<div>
+	<!-- Header -->
 	<div class="flex items-center justify-between mb-5">
-		<a
-			href="/businesses/{businessId}/transactions"
-			class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-		>
-			<ArrowLeft class="size-3.5" />
-			Back
-		</a>
+		<Button href="/businesses/{businessId}/transactions" variant="ghost" size="sm" class="-ml-2 gap-1.5 text-muted-foreground">
+			<ArrowLeft class="size-3.5" /> Back
+		</Button>
 		{#if !loadingMeta && !loadError}
 			<div class="flex items-center gap-2">
-				<a
-					href="/businesses/{businessId}/transactions/{transactionId}/email"
-					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
-					title="Email invoice"
-				>
-					<Mail class="size-3.5" />
-					Email
-				</a>
-				<a
-					href="/businesses/{businessId}/transactions/{transactionId}/print"
-					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
-					title="View / Print PDF"
-				>
-					<Printer class="size-3.5" />
-					PDF
-				</a>
-				<button
-					type="button"
+				<Button href="/businesses/{businessId}/transactions/{transactionId}/email" variant="outline" size="sm">
+					<Mail class="size-3.5" /> Email
+				</Button>
+				<Button href="/businesses/{businessId}/transactions/{transactionId}/print" variant="outline" size="sm">
+					<Printer class="size-3.5" /> PDF
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
 					onclick={() => (showDeleteConfirm = true)}
-					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
-					title="Delete transaction"
+					class="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
 				>
-					<Trash2 class="size-3.5" />
-					Delete
-				</button>
+					<Trash2 class="size-3.5" /> Delete
+				</Button>
 			</div>
 		{/if}
 	</div>
@@ -302,280 +294,296 @@
 			<div class="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{submitError}</div>
 		{/if}
 
-		<div class="flex flex-col gap-5">
-			<!-- Type -->
-			<div>
-				<label class="text-sm font-medium block mb-1.5">Type <span class="text-destructive">*</span></label>
-				<div class="flex gap-2">
-					{#each ['income', 'expense', 'transfer'] as t}
-						<button
-							type="button"
-							onclick={() => { type = t as typeof type; salesChannelId = ''; categoryId = ''; contactId = ''; }}
-							class="flex-1 py-2 rounded-md border text-sm font-medium capitalize transition-colors
-								{type === t ? 'border-primary bg-primary/10 text-primary' : 'border-input text-muted-foreground hover:border-muted-foreground'}"
-						>
-							{t}
-						</button>
-					{/each}
-				</div>
-			</div>
+		<!-- Two-column on desktop: Transaction left, Classification+Details right -->
+		<div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
 
-
-			<!-- Line Items -->
-			<div>
-				<label class="text-sm font-medium block mb-1.5">Line Items <span class="text-destructive">*</span></label>
-				<LineItemsEditor bind:items />
-			</div>
-			<!-- Date -->
-			<div>
-				<label class="text-sm font-medium block mb-1.5" for="tx-date">Date <span class="text-destructive">*</span></label>
-				<input
-					id="tx-date"
-					type="date"
-					bind:value={transactionDate}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
-			</div>
-
-			<!-- Classification: Location / Channel / Category / Contact -->
-			<div class="grid grid-cols-2 gap-3">
-				<div class="{type === 'transfer' ? 'col-span-2' : ''}">
-					<label class="text-sm font-medium block mb-1.5" for="tx-location">Location <span class="text-destructive">*</span></label>
-					<select
-						id="tx-location"
-						bind:value={locationId}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-					>
-						<option value="">Select location</option>
-						{#each locations as loc (loc.id)}
-							<option value={loc.id}>{loc.name}</option>
-						{/each}
-					</select>
-				</div>
-				{#if type !== 'transfer'}
-					<div>
-						<label class="text-sm font-medium block mb-1.5" for="tx-channel">
-							Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}
-						</label>
-						<select
-							id="tx-channel"
-							bind:value={salesChannelId}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-						>
-							<option value="">Select channel</option>
-							{#each channels as ch (ch.id)}
-								<option value={ch.id}>{ch.name}</option>
-							{/each}
-						</select>
-					</div>
-				{/if}
-				<div class="{type === 'transfer' ? 'col-span-2' : ''}">
-					<label class="text-sm font-medium block mb-1.5" for="tx-category">Category</label>
-					<select
-						id="tx-category"
-						bind:value={categoryId}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-					>
-						<option value="">No category</option>
-						{#each filteredCategories as cat (cat.id)}
-							<option value={cat.id}>{cat.name}</option>
-						{/each}
-					</select>
-				</div>
-				{#if type === 'income' || type === 'expense'}
-					<div>
-						<label class="text-sm font-medium block mb-1.5" for="tx-contact">
-							{type === 'income' ? 'Client' : 'Supplier'}
-						</label>
-						<select
-							id="tx-contact"
-							bind:value={contactId}
-							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-						>
-							<option value="">No {type === 'income' ? 'client' : 'supplier'}</option>
-							{#each (type === 'income' ? clientContacts : supplierContacts) as c (c.id)}
-								<option value={c.id}>{c.name}</option>
-							{/each}
-						</select>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Note + Reference + Invoice -->
-			<div class="grid grid-cols-2 gap-3">
-				<div class="col-span-2">
-					<label class="text-sm font-medium block mb-1.5" for="tx-note">Note</label>
-					<input
-						id="tx-note"
-						type="text"
-						bind:value={note}
-						placeholder="Optional note"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-					/>
-				</div>
-				<div>
-					<label class="text-sm font-medium block mb-1.5" for="tx-ref">Reference No.</label>
-					<input
-						id="tx-ref"
-						type="text"
-						bind:value={referenceNo}
-						placeholder="Optional"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-					/>
-				</div>
-				<div>
-					<label class="text-sm font-medium block mb-1.5" for="tx-invoice-no">Invoice No.</label>
-					<input
-						id="tx-invoice-no"
-						type="text"
-						bind:value={invoiceNo}
-						placeholder="e.g. INV-0001"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-					/>
-				</div>
-			</div>
-
-			<!-- Actions -->
-			<div class="flex justify-end gap-2">
-				<a
-					href="/businesses/{businessId}/transactions"
-					class="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted"
-				>
-					Cancel
-				</a>
-				<button
-					onclick={submit}
-					disabled={submitting || !locationId || !transactionDate}
-					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-				>
-					{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}
-					Save Changes
-				</button>
-			</div>
-		</div>
-		<!-- ─── Attachments ─────────────────────────────────────────────── -->
-		<div class="mt-8 pt-6 border-t border-border">
-			<div class="flex items-center justify-between mb-3">
-				<div class="flex items-center gap-2">
-					<Paperclip class="size-4 text-muted-foreground" />
-					<span class="text-sm font-medium text-foreground">Attachments</span>
-					{#if attachmentsList.length > 0}
-						<span class="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-							{attachmentsList.length}
-						</span>
-					{/if}
-				</div>
-				<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-sm font-medium cursor-pointer transition-colors">
-					{#if uploadingFile}
-						<Loader2 class="size-3.5 animate-spin" />
-						Uploading…
-					{:else}
-						<Paperclip class="size-3.5" />
-						Attach file
-					{/if}
-					<input
-						bind:this={fileInput}
-						type="file"
-						accept="image/jpeg,image/png,application/pdf"
-						class="sr-only"
-						disabled={uploadingFile}
-						onchange={uploadFile}
-					/>
-				</label>
-			</div>
-
-			{#if uploadError}
-				<p class="text-destructive text-xs mb-3">{uploadError}</p>
-			{/if}
-
-			{#if attachmentsList.length === 0}
-				<p class="text-sm text-muted-foreground py-4 text-center">No attachments yet. Attach a receipt or invoice.</p>
-			{:else}
-				<div class="rounded-lg border border-border overflow-hidden">
-					{#each attachmentsList as att (att.id)}
-						<div class="flex items-center gap-3 px-3 py-2.5 border-b border-border last:border-0 bg-card">
-							{#if att.mimeType === 'application/pdf'}
-								<FileText class="size-4 text-red-500 shrink-0" />
-							{:else if att.mimeType.startsWith('image/')}
-								<img
-									src={downloadUrl(att.id)}
-									alt={att.fileName}
-									class="h-10 w-10 rounded object-cover border border-border shrink-0"
-								/>
-							{:else}
-								<FileImage class="size-4 text-blue-500 shrink-0" />
-							{/if}
-							<div class="flex-1 min-w-0">
-								<p class="text-sm text-foreground truncate">{att.fileName}</p>
-								<p class="text-xs text-muted-foreground">{formatFileSize(att.fileSize)}</p>
-							</div>
-							{#if isImageMime(att.mimeType)}
-								<button
-									type="button"
-									onclick={() => toggleFeatured(att)}
-									class="p-1.5 rounded transition-colors shrink-0 {featuredImageId === att.id ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-50'}"
-									title={featuredImageId === att.id ? 'Remove from invoice' : 'Feature on invoice'}
+			<!-- Card: Transaction (left / full-width on mobile) -->
+			<Card.Root>
+				<Card.Header class="pb-3">
+					<Card.Title class="text-base">Transaction</Card.Title>
+				</Card.Header>
+				<Card.Content class="flex flex-col gap-4">
+					<!-- Type -->
+					<div class="space-y-1.5">
+						<Label>Type <span class="text-destructive">*</span></Label>
+						<div class="flex gap-2">
+							{#each ['income', 'expense', 'transfer'] as t}
+								<Button
+									variant={type === t ? 'default' : 'outline'}
+									class="flex-1 capitalize"
+									onclick={() => { type = t as typeof type; salesChannelId = ''; categoryId = ''; contactId = ''; }}
 								>
-									<Star class="size-3.5 {featuredImageId === att.id ? 'fill-current' : ''}" />
-								</button>
-							{/if}
-							<a
-								href={downloadUrl(att.id)}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
-								title="Download"
-							>
-								<Download class="size-3.5" />
-							</a>
-							<button
-								onclick={() => deleteAttachment(att.id)}
-								disabled={deletingAttachmentId === att.id}
-								class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 disabled:opacity-50"
-								title="Delete"
-							>
-								{#if deletingAttachmentId === att.id}
-									<Loader2 class="size-3.5 animate-spin" />
-								{:else}
-									<Trash2 class="size-3.5" />
-								{/if}
-							</button>
+									{t}
+								</Button>
+							{/each}
 						</div>
-					{/each}
-				</div>
-				{#if attachmentsList.some((a) => isImageMime(a.mimeType))}
-					<p class="text-xs text-muted-foreground mt-2">
-						<Star class="size-3 inline-block mr-0.5" /> Star an image to feature it on the invoice.
-					</p>
-				{/if}
-			{/if}
-			<p class="text-xs text-muted-foreground mt-2">JPEG, PNG or PDF · max 10 MB per file · up to 10 files</p>
+					</div>
+
+					<!-- Line Items -->
+					<div class="space-y-1.5">
+						<Label>Line Items <span class="text-destructive">*</span></Label>
+						<LineItemsEditor bind:items />
+					</div>
+
+					<!-- Date -->
+					<div class="space-y-1.5">
+						<Label for="tx-date">Date <span class="text-destructive">*</span></Label>
+						<Input id="tx-date" type="date" bind:value={transactionDate} />
+					</div>
+				</Card.Content>
+			</Card.Root>
+
+			<!-- Right column: Classification + Details -->
+			<div class="flex flex-col gap-4">
+
+				<!-- Card: Classification -->
+				<Card.Root>
+					<Card.Header class="pb-3">
+						<Card.Title class="text-base">Classification</Card.Title>
+					</Card.Header>
+					<Card.Content>
+						<div class="grid grid-cols-2 gap-3">
+							<!-- Location -->
+							<div class="{type === 'transfer' ? 'col-span-2' : ''} space-y-1.5">
+								<Label>Location <span class="text-destructive">*</span></Label>
+								<Select.Root type="single" bind:value={locationId}>
+									<Select.Trigger class="w-full">
+										{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}
+									</Select.Trigger>
+									<Select.Content>
+										{#each locations as loc (loc.id)}
+											<Select.Item value={loc.id}>{loc.name}</Select.Item>
+										{/each}
+									</Select.Content>
+								</Select.Root>
+							</div>
+
+							<!-- Sales Channel -->
+							{#if type !== 'transfer'}
+								<div class="space-y-1.5">
+									<Label>
+										Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}
+									</Label>
+									<Select.Root type="single" bind:value={salesChannelId}>
+										<Select.Trigger class="w-full">
+											{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'Select channel'}
+										</Select.Trigger>
+										<Select.Content>
+											{#each channels as ch (ch.id)}
+												<Select.Item value={ch.id}>{ch.name}</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
+								</div>
+							{/if}
+
+							<!-- Category -->
+							<div class="{type === 'transfer' ? 'col-span-2' : ''} space-y-1.5">
+								<Label>Category</Label>
+								<Select.Root type="single" bind:value={categoryId}>
+									<Select.Trigger class="w-full">
+										{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}
+									</Select.Trigger>
+									<Select.Content>
+										<Select.Item value="">No category</Select.Item>
+										{#each filteredCategories as cat (cat.id)}
+											<Select.Item value={cat.id}>{cat.name}</Select.Item>
+										{/each}
+									</Select.Content>
+								</Select.Root>
+							</div>
+
+							<!-- Contact -->
+							{#if type === 'income'}
+								<div class="space-y-1.5">
+									<Label>Client</Label>
+									<Select.Root type="single" bind:value={contactId}>
+										<Select.Trigger class="w-full">
+											{contactId ? clientContacts.find((c) => c.id === contactId)?.name : 'No client'}
+										</Select.Trigger>
+										<Select.Content>
+											<Select.Item value="">No client</Select.Item>
+											{#each clientContacts as c (c.id)}
+												<Select.Item value={c.id}>{c.name}</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
+								</div>
+							{:else if type === 'expense'}
+								<div class="space-y-1.5">
+									<Label>Supplier</Label>
+									<Select.Root type="single" bind:value={contactId}>
+										<Select.Trigger class="w-full">
+											{contactId ? supplierContacts.find((c) => c.id === contactId)?.name : 'No supplier'}
+										</Select.Trigger>
+										<Select.Content>
+											<Select.Item value="">No supplier</Select.Item>
+											{#each supplierContacts as c (c.id)}
+												<Select.Item value={c.id}>{c.name}</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
+								</div>
+							{/if}
+						</div>
+					</Card.Content>
+				</Card.Root>
+
+				<!-- Card: Details -->
+				<Card.Root>
+					<Card.Header class="pb-3">
+						<Card.Title class="text-base">Details</Card.Title>
+					</Card.Header>
+					<Card.Content class="flex flex-col gap-4">
+						<div class="space-y-1.5">
+							<Label for="tx-note">Note</Label>
+							<Input id="tx-note" type="text" bind:value={note} placeholder="Optional note" />
+						</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="space-y-1.5">
+								<Label for="tx-ref">Reference No.</Label>
+								<Input id="tx-ref" type="text" bind:value={referenceNo} placeholder="Optional" />
+							</div>
+							<div class="space-y-1.5">
+								<Label for="tx-invoice-no">Invoice No.</Label>
+								<Input id="tx-invoice-no" type="text" bind:value={invoiceNo} placeholder="e.g. INV-0001" />
+							</div>
+						</div>
+					</Card.Content>
+				</Card.Root>
+
+			</div><!-- end right column -->
+		</div><!-- end grid -->
+
+		<!-- Actions -->
+		<div class="flex justify-end gap-2 mt-4">
+			<Button href="/businesses/{businessId}/transactions" variant="ghost">Cancel</Button>
+			<Button onclick={submit} disabled={submitting || !locationId || !transactionDate}>
+				{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}
+				Save Changes
+			</Button>
 		</div>
+
+		<!-- Card: Attachments -->
+		<Card.Root class="mt-4">
+			<Card.Header class="pb-3">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-2">
+						<Paperclip class="size-4 text-muted-foreground" />
+						<Card.Title class="text-base">Attachments</Card.Title>
+						{#if attachmentsList.length > 0}
+							<span class="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+								{attachmentsList.length}
+							</span>
+						{/if}
+					</div>
+					<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-sm font-medium cursor-pointer transition-colors">
+						{#if uploadingFile}
+							<Loader2 class="size-3.5 animate-spin" />
+							Uploading…
+						{:else}
+							<Paperclip class="size-3.5" />
+							Attach file
+						{/if}
+						<input
+							bind:this={fileInput}
+							type="file"
+							accept="image/jpeg,image/png,application/pdf"
+							class="sr-only"
+							disabled={uploadingFile}
+							onchange={uploadFile}
+						/>
+					</label>
+				</div>
+			</Card.Header>
+			<Card.Content>
+				{#if uploadError}
+					<p class="text-destructive text-xs mb-3">{uploadError}</p>
+				{/if}
+
+				{#if attachmentsList.length === 0}
+					<p class="text-sm text-muted-foreground py-4 text-center">No attachments yet. Attach a receipt or invoice.</p>
+				{:else}
+					<div class="rounded-lg border border-border overflow-hidden">
+						{#each attachmentsList as att (att.id)}
+							<div class="flex items-center gap-3 px-3 py-2.5 border-b border-border last:border-0 bg-card">
+								{#if att.mimeType === 'application/pdf'}
+									<FileText class="size-4 text-red-500 shrink-0" />
+								{:else if att.mimeType.startsWith('image/')}
+									<img
+										src={downloadUrl(att.id)}
+										alt={att.fileName}
+										class="h-10 w-10 rounded object-cover border border-border shrink-0"
+									/>
+								{:else}
+									<FileImage class="size-4 text-blue-500 shrink-0" />
+								{/if}
+								<div class="flex-1 min-w-0">
+									<p class="text-sm text-foreground truncate">{att.fileName}</p>
+									<p class="text-xs text-muted-foreground">{formatFileSize(att.fileSize)}</p>
+								</div>
+								{#if isImageMime(att.mimeType)}
+									<button
+										type="button"
+										onclick={() => toggleFeatured(att)}
+										class="p-1.5 rounded transition-colors shrink-0 {featuredImageId === att.id ? 'text-yellow-500 hover:text-yellow-600' : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-50'}"
+										title={featuredImageId === att.id ? 'Remove from invoice' : 'Feature on invoice'}
+									>
+										<Star class="size-3.5 {featuredImageId === att.id ? 'fill-current' : ''}" />
+									</button>
+								{/if}
+								<a
+									href={downloadUrl(att.id)}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+									title="Download"
+								>
+									<Download class="size-3.5" />
+								</a>
+								<button
+									onclick={() => deleteAttachment(att.id)}
+									disabled={deletingAttachmentId === att.id}
+									class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 disabled:opacity-50"
+									title="Delete"
+								>
+									{#if deletingAttachmentId === att.id}
+										<Loader2 class="size-3.5 animate-spin" />
+									{:else}
+										<Trash2 class="size-3.5" />
+									{/if}
+								</button>
+							</div>
+						{/each}
+					</div>
+					{#if attachmentsList.some((a) => isImageMime(a.mimeType))}
+						<p class="text-xs text-muted-foreground mt-2">
+							<Star class="size-3 inline-block mr-0.5" /> Star an image to feature it on the invoice.
+						</p>
+					{/if}
+				{/if}
+				<p class="text-xs text-muted-foreground mt-2">JPEG, PNG or PDF · max 10 MB per file · up to 10 files</p>
+			</Card.Content>
+		</Card.Root>
 	{/if}
 </div>
 
-<!-- Delete confirmation modal -->
-{#if showDeleteConfirm}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-		<div class="bg-card rounded-lg border border-border p-6 max-w-sm w-full shadow-lg">
-			<h3 class="font-semibold text-foreground mb-2">Delete Transaction?</h3>
-			<p class="text-sm text-muted-foreground mb-5">This action cannot be undone.</p>
-			<div class="flex justify-end gap-2">
-				<button
-					onclick={() => (showDeleteConfirm = false)}
-					class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={deleteTransaction}
-					disabled={deleting}
-					class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
-				>
-					{#if deleting}<Loader2 class="size-4 animate-spin" />{/if}
-					Delete
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<!-- Delete confirmation -->
+<AlertDialog.Root bind:open={showDeleteConfirm}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Delete Transaction?</AlertDialog.Title>
+			<AlertDialog.Description>This action cannot be undone.</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action
+				onclick={deleteTransaction}
+				disabled={deleting}
+				class="bg-destructive text-white hover:bg-destructive/90 disabled:opacity-50"
+			>
+				{#if deleting}<Loader2 class="size-4 animate-spin mr-1" />{/if}Delete
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

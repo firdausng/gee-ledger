@@ -297,7 +297,7 @@
 	onMount(loadMeta);
 </script>
 
-<div class="max-w-lg">
+<div>
 	<a
 		href="/businesses/{businessId}/transactions"
 		class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5 transition-colors"
@@ -312,7 +312,9 @@
 		<div class="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{submitError}</div>
 	{/if}
 
-	<div class="flex flex-col gap-5">
+	<div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
+		<!-- Left: Type + Line Items + Date -->
+		<div class="flex flex-col gap-5">
 		<!-- Type -->
 		<div>
 			<label class="text-sm font-medium block mb-1.5">Type <span class="text-destructive">*</span></label>
@@ -346,7 +348,10 @@
 				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 			/>
 		</div>
+		</div><!-- end left column -->
 
+		<!-- Right: Location + Channel + Category + Contact + Note + Ref -->
+		<div class="flex flex-col gap-5">
 		<!-- Location -->
 		<div>
 			<label class="text-sm font-medium block mb-1" for="tx-location">
@@ -509,8 +514,8 @@
 		{/if}
 
 		<!-- Note + Reference No -->
-		<div class="grid grid-cols-2 gap-3">
-			<div class="col-span-2">
+		<div class="flex flex-col gap-3">
+			<div>
 				<label class="text-sm font-medium block mb-1.5" for="tx-note">Note</label>
 				<input
 					id="tx-note"
@@ -520,7 +525,7 @@
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 				/>
 			</div>
-			<div class="col-span-2">
+			<div>
 				<label class="text-sm font-medium block mb-1.5" for="tx-ref">Reference No.</label>
 				<input
 					id="tx-ref"
@@ -531,10 +536,11 @@
 				/>
 			</div>
 		</div>
+		</div><!-- end right column -->
+	</div><!-- end grid -->
 
-
-		<!-- Attachments -->
-		<div>
+	<!-- Attachments -->
+	<div>
 			<div class="flex items-center justify-between mb-2">
 				<label class="text-sm font-medium text-foreground">
 					Attachments
@@ -609,7 +615,6 @@
 				Save Transaction
 			</button>
 		</div>
-	</div>
 </div>
 
 <!-- ── Location modal ──────────────────────────────────────────────── -->
