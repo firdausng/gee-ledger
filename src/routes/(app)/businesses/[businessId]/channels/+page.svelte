@@ -147,7 +147,7 @@
 								: 'border-input text-muted-foreground hover:border-muted-foreground hover:text-foreground'}"
 							title={meta.label}
 						>
-							<svelte:component this={meta.icon} class="size-4 shrink-0" />
+							<meta.icon class="size-4 shrink-0" />
 							<span class="truncate w-full text-center">{meta.label}</span>
 						</button>
 					{/each}
@@ -183,7 +183,7 @@
 	{:else if channels.length === 0}
 		{@const meta = channelMeta['custom']}
 		<div class="rounded-lg border border-border bg-card p-10 text-center">
-			<svelte:component this={meta.icon} class="size-8 text-muted-foreground mx-auto mb-2" />
+			<meta.icon class="size-8 text-muted-foreground mx-auto mb-2" />
 			<p class="text-muted-foreground text-sm">No sales channels yet.</p>
 		</div>
 	{:else}
@@ -214,7 +214,7 @@
 											: 'border-input text-muted-foreground hover:border-muted-foreground hover:text-foreground'}"
 										title={m.label}
 									>
-										<svelte:component this={m.icon} class="size-4 shrink-0" />
+										<m.icon class="size-4 shrink-0" />
 										<span class="truncate w-full text-center">{m.label}</span>
 									</button>
 								{/each}

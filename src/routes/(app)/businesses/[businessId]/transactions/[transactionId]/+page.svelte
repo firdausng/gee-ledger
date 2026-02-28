@@ -50,7 +50,10 @@
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
 	);
-	const canEmail = canUploadAttachment;
+	const canEmail = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	let locations = $state<Location[]>([]);
 	let channels = $state<Channel[]>([]);

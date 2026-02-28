@@ -65,8 +65,8 @@
 		return new Intl.NumberFormat('en-MY', { style: 'currency', currency }).format(cents / 100);
 	}
 
-	const title  = docTitle(tx.type, documentType);
-	const amount = formatAmount(tx.amount, biz.currency);
+	const title  = $derived(docTitle(tx.type, documentType));
+	const amount = $derived(formatAmount(tx.amount, biz.currency));
 
 	const hasItems = $derived(items.length > 0);
 

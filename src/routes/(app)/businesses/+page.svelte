@@ -45,7 +45,7 @@
 	// Currency combobox for create form
 	let createCurrencyOpen      = $state(false);
 	let createCurrencySearch    = $state('');
-	let createCurrencyContainer: HTMLDivElement;
+	let createCurrencyContainer = $state<HTMLDivElement>();
 
 	const createFilteredCurrencies = $derived(
 		createCurrencySearch.trim()

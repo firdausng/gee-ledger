@@ -1,15 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { ArrowLeft, Printer, Mail } from '@lucide/svelte';
+	import { ArrowLeft, Printer, Mail, Crown } from '@lucide/svelte';
 	import InvoicePreview from '$lib/components/InvoicePreview.svelte';
 	import { api } from '$lib/client/api.svelte';
+	import { PLAN_KEY } from '$lib/configurations/plans';
 
 	let { data } = $props();
 
-	const { transaction: tx, business: biz, location, category, items: loadedItems } = data;
+	const tx          = $derived(data.transaction);
+	const biz         = $derived(data.business);
+	const location    = $derived(data.location);
+	const category    = $derived(data.category);
+	const loadedItems = $derived(data.items);
 	const businessId    = $page.params.businessId!;
 	const transactionId = $page.params.transactionId!;
+	const canEmail = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	type DocType = 'invoice' | 'receipt';
 
@@ -21,7 +30,7 @@
 		return dt === 'invoice' ? 'Invoice' : 'Receipt';
 	}
 
-	let documentType = $state<DocType>((tx.documentType as DocType | null) ?? defaultDocType(tx.type));
+	let documentType = $state<DocType>((data.transaction.documentType as DocType | null) ?? defaultDocType(data.transaction.type));
 	let billToName  = $state(data.contact?.name ?? '');
 	let billToAddr  = $state(data.contact?.address ?? '');
 	let billToEmail = $state('');
@@ -104,14 +113,25 @@
 		<span class="hidden sm:inline">{biz.name} / </span><span class="text-muted-foreground">{title}</span>
 	</span>
 
-	<a
-		href="/businesses/{businessId}/transactions/{transactionId}/email"
-		class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors shrink-0"
-		title="Email"
-	>
-		<Mail class="size-3.5" />
-		<span class="hidden sm:inline">Email</span>
-	</a>
+	{#if canEmail}
+		<a
+			href="/businesses/{businessId}/transactions/{transactionId}/email"
+			class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors shrink-0"
+			title="Email"
+		>
+			<Mail class="size-3.5" />
+			<span class="hidden sm:inline">Email</span>
+		</a>
+	{:else}
+		<span
+			class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md border border-input bg-muted text-sm font-medium text-muted-foreground cursor-not-allowed shrink-0"
+			title="Email — Pro plan"
+		>
+			<Crown class="size-3.5 text-amber-500" />
+			<span class="hidden sm:inline">Email</span>
+			<span class="text-[10px] font-semibold text-amber-600 bg-amber-100 px-1 rounded">Pro</span>
+		</span>
+	{/if}
 
 	<button
 		onclick={() => window.print()}
@@ -162,18 +182,18 @@
 		</div>
 		<div class="divide-y divide-border">
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Name</label>
-				<input type="text" bind:value={billToName} placeholder="Recipient or company name"
+				<label for="print-billto-name" class="block text-xs text-muted-foreground mb-1">Name</label>
+				<input id="print-billto-name" type="text" bind:value={billToName} placeholder="Recipient or company name"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Address</label>
-				<textarea bind:value={billToAddr} placeholder="Street, city, postcode…" rows="3"
+				<label for="print-billto-addr" class="block text-xs text-muted-foreground mb-1">Address</label>
+				<textarea id="print-billto-addr" bind:value={billToAddr} placeholder="Street, city, postcode…" rows="3"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none resize-none"></textarea>
 			</div>
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Email</label>
-				<input type="email" bind:value={billToEmail} placeholder="recipient@example.com"
+				<label for="print-billto-email" class="block text-xs text-muted-foreground mb-1">Email</label>
+				<input id="print-billto-email" type="email" bind:value={billToEmail} placeholder="recipient@example.com"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 		</div>

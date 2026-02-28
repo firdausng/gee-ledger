@@ -35,7 +35,7 @@
 	);
 
 	// Which business sub-menu is expanded — auto-syncs when navigating
-	let expandedBusinessId = $state<string | null>(currentBusinessId);
+	let expandedBusinessId = $state<string | null>(null);
 	$effect(() => {
 		expandedBusinessId = currentBusinessId;
 	});
@@ -126,7 +126,7 @@
 									? 'bg-primary/10 text-primary font-medium'
 									: 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
 							>
-								<svelte:component this={tab.icon} class="size-3.5 shrink-0" />
+								<tab.icon class="size-3.5 shrink-0" />
 								{tab.label}
 							</a>
 						{/each}
@@ -265,7 +265,7 @@
 									: 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
 								onclick={closeDrawer}
 							>
-								<svelte:component this={tab.icon} class="size-3.5 shrink-0" />
+								<tab.icon class="size-3.5 shrink-0" />
 								{tab.label}
 							</a>
 						{/each}

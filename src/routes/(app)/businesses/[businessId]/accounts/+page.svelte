@@ -182,8 +182,9 @@
 				/>
 				<div class="grid grid-cols-2 gap-2">
 					<div>
-						<label class="text-xs text-muted-foreground mb-1 block">Type</label>
+						<label for="acct-create-type" class="text-xs text-muted-foreground mb-1 block">Type</label>
 						<select
+							id="acct-create-type"
 							bind:value={createType}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 						>
@@ -193,8 +194,9 @@
 						</select>
 					</div>
 					<div>
-						<label class="text-xs text-muted-foreground mb-1 block">Parent (optional)</label>
+						<label for="acct-create-parent" class="text-xs text-muted-foreground mb-1 block">Parent (optional)</label>
 						<select
+							id="acct-create-parent"
 							bind:value={createParentId}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 						>

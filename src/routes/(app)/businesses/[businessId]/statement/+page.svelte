@@ -6,7 +6,8 @@
 
 	let { data } = $props();
 
-	const { business: biz, locations } = data;
+	const biz = $derived(data.business);
+	const locations = $derived(data.locations);
 	const businessId = $page.params.businessId!;
 
 	type Transaction = {
@@ -132,13 +133,13 @@
 			<p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Date Range</p>
 			<div class="flex flex-col gap-2">
 				<div>
-					<label class="block text-xs text-muted-foreground mb-1">From</label>
-					<input type="date" bind:value={filterFrom}
+					<label for="stmt-from" class="block text-xs text-muted-foreground mb-1">From</label>
+					<input id="stmt-from" type="date" bind:value={filterFrom}
 						class="w-full text-sm text-foreground bg-background border border-input rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring" />
 				</div>
 				<div>
-					<label class="block text-xs text-muted-foreground mb-1">To</label>
-					<input type="date" bind:value={filterTo}
+					<label for="stmt-to" class="block text-xs text-muted-foreground mb-1">To</label>
+					<input id="stmt-to" type="date" bind:value={filterTo}
 						class="w-full text-sm text-foreground bg-background border border-input rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring" />
 				</div>
 			</div>
@@ -146,8 +147,8 @@
 
 		{#if locations.length > 0}
 			<div class="px-4 py-3 border-b border-border">
-				<label class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Location</label>
-				<select bind:value={filterLocationId}
+				<label for="stmt-location" class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Location</label>
+				<select id="stmt-location" bind:value={filterLocationId}
 					class="w-full text-sm text-foreground bg-background border border-input rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring">
 					<option value="">All locations</option>
 					{#each locations as loc (loc.id)}
@@ -158,14 +159,14 @@
 		{/if}
 
 		<div class="px-4 py-3 border-b border-border">
-			<label class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Statement Title</label>
-			<input type="text" bind:value={statementTitle} placeholder="Statement"
+			<label for="stmt-title" class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Statement Title</label>
+			<input id="stmt-title" type="text" bind:value={statementTitle} placeholder="Statement"
 				class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 		</div>
 
 		<div class="px-4 py-3 border-b border-border">
-			<label class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Reference No</label>
-			<input type="text" bind:value={referenceNo} placeholder="Optional"
+			<label for="stmt-refno" class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Reference No</label>
+			<input id="stmt-refno" type="text" bind:value={referenceNo} placeholder="Optional"
 				class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 		</div>
 
@@ -182,13 +183,13 @@
 		</div>
 		<div class="divide-y divide-border">
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Name</label>
-				<input type="text" bind:value={billToName} placeholder="Recipient or company"
+				<label for="stmt-billto-name" class="block text-xs text-muted-foreground mb-1">Name</label>
+				<input id="stmt-billto-name" type="text" bind:value={billToName} placeholder="Recipient or company"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Address</label>
-				<textarea bind:value={billToAddress} placeholder="Street, city, postcode…" rows="3"
+				<label for="stmt-billto-addr" class="block text-xs text-muted-foreground mb-1">Address</label>
+				<textarea id="stmt-billto-addr" bind:value={billToAddress} placeholder="Street, city, postcode…" rows="3"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none resize-none"></textarea>
 			</div>
 		</div>
@@ -250,21 +251,21 @@
 	<div class="bg-card border-b border-border">
 		<div class="grid grid-cols-2 divide-x divide-border border-b border-border">
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">From</label>
-				<input type="date" bind:value={filterFrom}
+				<label for="stmt-m-from" class="block text-xs text-muted-foreground mb-1">From</label>
+				<input id="stmt-m-from" type="date" bind:value={filterFrom}
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">To</label>
-				<input type="date" bind:value={filterTo}
+				<label for="stmt-m-to" class="block text-xs text-muted-foreground mb-1">To</label>
+				<input id="stmt-m-to" type="date" bind:value={filterTo}
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 		</div>
 
 		{#if locations.length > 0}
 			<div class="px-4 py-3 border-b border-border">
-				<label class="block text-xs text-muted-foreground mb-1">Location</label>
-				<select bind:value={filterLocationId}
+				<label for="stmt-m-location" class="block text-xs text-muted-foreground mb-1">Location</label>
+				<select id="stmt-m-location" bind:value={filterLocationId}
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none">
 					<option value="">All locations</option>
 					{#each locations as loc (loc.id)}
@@ -276,26 +277,26 @@
 
 		<div class="grid grid-cols-2 divide-x divide-border border-b border-border">
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Title</label>
-				<input type="text" bind:value={statementTitle} placeholder="Statement"
+				<label for="stmt-m-title" class="block text-xs text-muted-foreground mb-1">Title</label>
+				<input id="stmt-m-title" type="text" bind:value={statementTitle} placeholder="Statement"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Reference No</label>
-				<input type="text" bind:value={referenceNo} placeholder="Optional"
+				<label for="stmt-m-refno" class="block text-xs text-muted-foreground mb-1">Reference No</label>
+				<input id="stmt-m-refno" type="text" bind:value={referenceNo} placeholder="Optional"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 		</div>
 
 		<div class="grid grid-cols-2 divide-x divide-border border-b border-border">
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Prepared For</label>
-				<input type="text" bind:value={billToName} placeholder="Name"
+				<label for="stmt-m-billto" class="block text-xs text-muted-foreground mb-1">Prepared For</label>
+				<input id="stmt-m-billto" type="text" bind:value={billToName} placeholder="Name"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
 			</div>
 			<div class="px-4 py-3">
-				<label class="block text-xs text-muted-foreground mb-1">Address</label>
-				<textarea bind:value={billToAddress} placeholder="Address" rows="2"
+				<label for="stmt-m-addr" class="block text-xs text-muted-foreground mb-1">Address</label>
+				<textarea id="stmt-m-addr" bind:value={billToAddress} placeholder="Address" rows="2"
 					class="w-full text-sm text-foreground bg-transparent focus:outline-none resize-none"></textarea>
 			</div>
 		</div>

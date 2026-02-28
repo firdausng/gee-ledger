@@ -8,7 +8,7 @@
 	let { data } = $props();
 
 	const businessId = $page.params.businessId!;
-	const biz = data.business;
+	const biz = $derived(data.business);
 
 	// ── Business Info ──────────────────────────────────────────────
 	let infoName        = $state(biz.name ?? '');

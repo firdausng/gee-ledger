@@ -7,7 +7,11 @@
 
 	let { data } = $props();
 
-	const { transaction: tx, business: biz, location, category, items: loadedItems } = data;
+	const tx          = $derived(data.transaction);
+	const biz         = $derived(data.business);
+	const location    = $derived(data.location);
+	const category    = $derived(data.category);
+	const loadedItems = $derived(data.items);
 	const businessId    = $page.params.businessId!;
 	const transactionId = $page.params.transactionId!;
 
@@ -21,9 +25,9 @@
 		return new Intl.NumberFormat('en-MY', { style: 'currency', currency }).format(cents / 100);
 	}
 
-	const amount = formatAmount(tx.amount, biz.currency);
+	const amount = $derived(formatAmount(tx.amount, biz.currency));
 
-	let documentType = $state<DocType>((tx.documentType as DocType | null) ?? defaultDocType(tx.type));
+	let documentType = $state<DocType>((data.transaction.documentType as DocType | null) ?? defaultDocType(data.transaction.type));
 	let toEmail      = $state(data.contact?.email ?? '');
 	let billToName   = $state(data.contact?.name ?? '');
 	let billToAddr   = $state(data.contact?.address ?? '');
