@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Pencil, Trash2, Paperclip, ScrollText } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2, Paperclip, ScrollText } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -178,13 +178,6 @@
 						{/if}
 					</a>
 					<div class="flex items-center gap-1 px-2 shrink-0">
-						<a
-							href="/businesses/{businessId}/transactions/{tx.id}/edit"
-							class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-							title="Edit"
-						>
-							<Pencil class="size-3.5" />
-						</a>
 						<button
 							onclick={() => (deleteId = tx.id)}
 							class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"

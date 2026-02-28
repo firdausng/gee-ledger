@@ -5,12 +5,14 @@
 	import { api, parseToCents } from '$lib/client/api.svelte';
 	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
 	import { ArrowLeft, Loader2, Paperclip, X, FileImage, FileText, Plus } from '@lucide/svelte';
+	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
 	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean };
 	type PendingAttachment = { id: string; fileName: string; mimeType: string; fileSize: number };
+	type LineItem = { description: string; quantity: number; unitPrice: string };
 
 	const businessId = $page.params.businessId;
 
@@ -44,6 +46,14 @@
 	let filteredCategories = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
 	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
 	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
+
+	// Line items
+	let items = $state<LineItem[]>([]);
+	let hasItems   = $derived(items.length > 0);
+	let itemsTotal = $derived(
+		items.reduce((sum, i) =>
+			sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0)
+	);
 
 	// ── Location modal ────────────────────────────────────────────────
 	let showLocationModal = $state(false);
@@ -245,19 +255,26 @@
 	}
 
 	async function submit() {
-		if (!locationId || !amountRaw || !transactionDate) return;
+		if (!locationId || !transactionDate) return;
+		if (!hasItems && !amountRaw) return;
 		if (type === 'income' && !salesChannelId) {
 			submitError = 'Sales channel is required for income transactions.';
+			return;
+		}
+
+		const amount = hasItems ? itemsTotal : parseToCents(amountRaw);
+		if (amount <= 0) {
+			submitError = 'Amount must be greater than zero.';
 			return;
 		}
 
 		try {
 			submitting = true;
 			submitError = null;
-			await api.post(`/businesses/${businessId}/transactions`, {
+			const tx = await api.post<{ id: string }>(`/businesses/${businessId}/transactions`, {
 				type,
 				transactionDate,
-				amount: parseToCents(amountRaw),
+				amount,
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
@@ -266,6 +283,16 @@
 				referenceNo: referenceNo.trim() || undefined,
 				attachmentIds: pendingAttachments.map((a) => a.id)
 			});
+			if (hasItems) {
+				await api.put(`/businesses/${businessId}/transactions/${tx.id}/items`,
+					items.map((i, idx) => ({
+						description: i.description,
+						quantity:    i.quantity,
+						unitPrice:   Math.round(parseFloat(i.unitPrice) * 100),
+						sortOrder:   idx,
+					}))
+				);
+			}
 			goto(`/businesses/${businessId}/transactions`);
 		} catch (e) {
 			submitError = e instanceof Error ? e.message : 'Failed to create transaction';
@@ -328,15 +355,21 @@
 			<label class="text-sm font-medium block mb-1" for="tx-amount">
 				Amount <span class="text-destructive">*</span>
 			</label>
-			<input
-				id="tx-amount"
-				type="number"
-				step="0.01"
-				min="0.01"
-				bind:value={amountRaw}
-				placeholder="0.00"
-				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-			/>
+			{#if hasItems}
+				<div class="rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+					Calculated from items &middot; <span class="font-medium text-foreground">{(itemsTotal / 100).toFixed(2)}</span>
+				</div>
+			{:else}
+				<input
+					id="tx-amount"
+					type="number"
+					step="0.01"
+					min="0.01"
+					bind:value={amountRaw}
+					placeholder="0.00"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+			{/if}
 		</div>
 
 		<!-- Location -->
@@ -524,6 +557,15 @@
 			/>
 		</div>
 
+		<!-- Line Items -->
+		<div class="pt-2 border-t border-border">
+			<p class="text-sm font-medium mb-2">Line Items</p>
+			<LineItemsEditor bind:items />
+			{#if hasItems}
+				<p class="text-xs text-muted-foreground mt-1">Transaction amount will be set to the total above.</p>
+			{/if}
+		</div>
+
 		<!-- Attachments -->
 		<div>
 			<div class="flex items-center justify-between mb-2">
@@ -593,7 +635,7 @@
 			</a>
 			<button
 				onclick={submit}
-				disabled={submitting || !locationId || !amountRaw || !transactionDate || uploadingFile}
+				disabled={submitting || !locationId || (!hasItems && !amountRaw) || !transactionDate || uploadingFile}
 				class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 			>
 				{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}

@@ -170,7 +170,7 @@
 							</div>
 							<!-- Linked transaction info -->
 							<a
-								href="/businesses/{businessId}/transactions/{att.transactionId}/edit"
+								href="/businesses/{businessId}/transactions/{att.transactionId}"
 								class="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
 							>
 								<span class="px-1.5 py-0.5 rounded-full
