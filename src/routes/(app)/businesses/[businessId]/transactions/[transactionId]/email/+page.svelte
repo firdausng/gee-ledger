@@ -8,8 +8,8 @@
 	let { data } = $props();
 
 	const { transaction: tx, business: biz, location, category, items: loadedItems } = data;
-	const businessId    = $page.params.businessId;
-	const transactionId = $page.params.transactionId;
+	const businessId    = $page.params.businessId!;
+	const transactionId = $page.params.transactionId!;
 
 	type DocType = 'invoice' | 'receipt';
 

@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals, params, platform }) => {
 	const { businessId, transactionId } = params;
 	const env = platform!.env;
 
-	const allowed = await checkBusinessPermission(locals.user.id, businessId, 'transaction:view', env);
+	const allowed = await checkBusinessPermission(locals.user.id, businessId, 'transaction:email', env);
 	if (!allowed) throw redirect(307, `/businesses/${businessId}`);
 
 	const db = drizzle(env.DB, { schema });

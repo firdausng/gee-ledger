@@ -19,7 +19,7 @@
 	};
 
 	let { data } = $props();
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 	const canUploadAttachment = $derived(
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO

@@ -7,7 +7,7 @@
 	let { data } = $props();
 
 	const { business: biz, locations } = data;
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	type Transaction = {
 		id: string;

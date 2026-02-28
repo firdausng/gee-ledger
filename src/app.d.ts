@@ -1,16 +1,14 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
-import type { VerifyFirebaseAuthEnv } from '@hono/firebase-auth';
-
-// Extend auto-generated Cloudflare.Env with secrets/vars not tracked by wrangler types
-declare namespace Cloudflare {
-	interface Env {
-		RESEND_API_KEY: string;
-		FROM_DOMAIN: string;
-	}
-}
-
 declare global {
+	// Extend auto-generated Cloudflare.Env with secrets/vars not tracked by wrangler types
+	namespace Cloudflare {
+		interface Env {
+			RESEND_API_KEY: string;
+			FROM_DOMAIN: string;
+		}
+	}
+
 	namespace App {
 		interface Platform {
 			env: Env;
@@ -31,7 +29,7 @@ declare global {
 		}
 
 		interface Api {
-			Bindings: Cloudflare.Env & VerifyFirebaseAuthEnv;
+			Bindings: Cloudflare.Env;
 			Variables: {
 				currentUser: App.User;
 			};

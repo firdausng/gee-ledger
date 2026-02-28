@@ -23,7 +23,7 @@
 	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[] };
 	type ServiceItem = { description: string; hours: number; rate: string; attachments: ItemAttachment[] };
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 	const canUploadAttachment = $derived(
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO

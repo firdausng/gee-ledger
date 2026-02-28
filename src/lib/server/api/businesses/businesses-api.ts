@@ -12,7 +12,6 @@ import { requireBusinessPermission } from '$lib/server/utils/businessPermissions
 import { businesses } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { HTTPException } from 'hono/http-exception';
-import {getFirebaseToken} from "@hono/firebase-auth";
 
 const LOGO_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 const LOGO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png']);

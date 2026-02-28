@@ -15,5 +15,10 @@
 			"./src/worker-configuration.d.ts",
 			"./worker-configuration.d.ts"
 		]
-	}
+	},
+	"exclude": [
+		"node_modules",
+		".svelte-kit/output",
+		".svelte-kit/cloudflare"
+	]
 }

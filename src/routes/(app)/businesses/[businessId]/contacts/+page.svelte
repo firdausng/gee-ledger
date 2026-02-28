@@ -16,7 +16,7 @@
 		isSupplier: boolean;
 	};
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	let contacts   = $state<Contact[]>([]);
 	let loading    = $state(true);

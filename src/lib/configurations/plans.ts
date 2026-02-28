@@ -48,7 +48,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
 	},
 	[PLAN_KEY.PRO]: {
 		name: 'Pro',
-		features: ['attachment:upload', 'attachment:delete'],
+		features: ['attachment:upload', 'attachment:delete', 'transaction:email', 'user:invite'],
 		limits: { maxBusinesses: 5, maxAttachmentSizeMb: 10 },
 	},
 };

@@ -13,7 +13,7 @@
 		isSystem: boolean;
 	};
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'income', 'expense'] as const;
 

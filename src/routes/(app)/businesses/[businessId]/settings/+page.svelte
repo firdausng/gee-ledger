@@ -7,7 +7,7 @@
 
 	let { data } = $props();
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 	const biz = data.business;
 
 	// ── Business Info ──────────────────────────────────────────────

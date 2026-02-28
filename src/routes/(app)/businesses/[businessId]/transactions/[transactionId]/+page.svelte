@@ -44,12 +44,13 @@
 	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[] };
 	type ServiceItem = { description: string; hours: number; rate: string; attachments: ItemAttachment[] };
 
-	const businessId = $page.params.businessId;
-	const transactionId = $page.params.transactionId;
+	const businessId = $page.params.businessId!;
+	const transactionId = $page.params.transactionId!;
 	const canUploadAttachment = $derived(
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
 	);
+	const canEmail = canUploadAttachment;
 
 	let locations = $state<Location[]>([]);
 	let channels = $state<Channel[]>([]);
@@ -312,9 +313,16 @@
 		</Button>
 		{#if !loadingMeta && !loadError}
 			<div class="flex items-center gap-2">
+				{#if canEmail}
 				<Button href="/businesses/{businessId}/transactions/{transactionId}/email" variant="outline" size="sm">
 					<Mail class="size-3.5" /> Email
 				</Button>
+				{:else}
+					<Button variant="outline" size="sm" disabled class="gap-1.5 opacity-60">
+						<Mail class="size-3.5" /> Email
+						<Crown class="size-3 text-amber-500" />
+					</Button>
+				{/if}
 				<Button href="/businesses/{businessId}/transactions/{transactionId}/print" variant="outline" size="sm">
 					<Printer class="size-3.5" /> PDF
 				</Button>

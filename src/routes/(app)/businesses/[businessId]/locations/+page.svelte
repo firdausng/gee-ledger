@@ -12,7 +12,7 @@
 		isActive: boolean;
 	};
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	const LOCATION_TYPES = ['hq', 'branch', 'warehouse', 'online'] as const;
 

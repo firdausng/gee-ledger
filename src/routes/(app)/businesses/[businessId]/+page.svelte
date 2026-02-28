@@ -29,7 +29,7 @@
 	);
 	let balance = $derived(totalIncome - totalExpense);
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	async function load() {
 		try {

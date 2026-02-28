@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Trash2, Users, Mail } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2, Users, Mail, Crown } from '@lucide/svelte';
+	import { PLAN_KEY } from '$lib/configurations/plans';
 
 	type Member = {
 		userId: string;
@@ -23,8 +24,12 @@
 		expiresAt: string;
 	};
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 	let { data } = $props();
+	const canInvite = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	const ROLES = ['owner', 'manager', 'cashier', 'viewer'] as const;
 
@@ -148,6 +153,7 @@
 <div>
 	<div class="flex items-center justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Members</h2>
+		{#if canInvite}
 		<button
 			onclick={() => { showInvite = !showInvite; inviteError = null; inviteSuccess = null; }}
 			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
@@ -155,8 +161,15 @@
 			<Plus class="size-4" />
 			Invite Member
 		</button>
+		{:else}
+			<span class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium">
+				<Crown class="size-4" />
+				Pro
+			</span>
+		{/if}
 	</div>
 
+	{#if canInvite}
 	{#if inviteSuccess}
 		<div class="mb-4 p-3 rounded-md bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm">{inviteSuccess}</div>
 	{/if}
@@ -199,6 +212,14 @@
 					</button>
 				</div>
 			</div>
+		</div>
+	{/if}
+	{:else}
+		<div class="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-sm mb-4">
+			<Crown class="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+			<span class="text-amber-700 dark:text-amber-300">
+				Team invitations are available on the <a href="/organizations" class="underline font-medium">Pro plan</a>.
+			</span>
 		</div>
 	{/if}
 

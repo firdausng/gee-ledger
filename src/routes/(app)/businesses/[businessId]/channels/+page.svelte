@@ -12,7 +12,7 @@
 		isActive: boolean;
 	};
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	let channels = $state<Channel[]>([]);
 	let loading = $state(true);

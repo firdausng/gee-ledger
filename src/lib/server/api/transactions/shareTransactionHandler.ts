@@ -19,7 +19,7 @@ export async function shareTransactionHandler(
 	documentTypeOverride: 'invoice' | 'receipt' | null = null,
 	receiptNoOverride: string | null = null
 ) {
-	await requireBusinessPermission(user, businessId, 'transaction:view', env);
+	await requireBusinessPermission(user, businessId, 'transaction:email', env);
 
 	const db = drizzle(env.DB, { schema });
 

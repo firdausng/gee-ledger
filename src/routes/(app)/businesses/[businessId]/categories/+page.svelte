@@ -12,7 +12,7 @@
 		icon: string | null;
 	};
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	let categories = $state<Category[]>([]);
 	let loading = $state(true);

@@ -16,7 +16,7 @@ export async function createContactHandler(
 	const now = new Date().toISOString();
 	const contactId = crypto.randomUUID();
 
-	const inserts: Parameters<typeof db.batch>[0] = [
+	const inserts: Parameters<typeof db.batch>[0][number][] = [
 		db.insert(contacts).values({
 			id:         contactId,
 			businessId,

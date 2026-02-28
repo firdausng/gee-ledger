@@ -21,7 +21,7 @@
 		attachmentCount: number;
 	};
 
-	const businessId = $page.params.businessId;
+	const businessId = $page.params.businessId!;
 
 	let transactions = $state<Transaction[]>([]);
 	let loading = $state(true);

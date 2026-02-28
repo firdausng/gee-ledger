@@ -14,26 +14,8 @@ import { transactionsApi } from './transactions/transactions-api';
 import { invitationsApi } from './invitations/invitations-api';
 import { attachmentsApi } from './attachments/attachments-api';
 import { organizationsApi } from './organizations/organizations-api';
-import {
-	type VerifyFirebaseAuthConfig ,
-	verifyFirebaseAuth
-} from '@hono/firebase-auth'
-import { createMiddleware } from "hono/factory";
-
-const config: VerifyFirebaseAuthConfig  = {
-	projectId: 'gee-ledger',
-}
-
-const authMiddleware = createMiddleware(async (c, next) => {
-	const verifyAuth = verifyFirebaseAuth(config);
-	return verifyAuth(c, next);
-});
 
 const router = new Hono<App.Api>()
-	// .use('*', authMiddleware)
-	// .use('*', async (c, next) => {
-	// 	return verifyFirebaseAuth(config)
-	// })
 	// Verify Firebase token and resolve user on every request
 	.use('*', async (c, next) => {
 		const authHeader = c.req.header('Authorization');
