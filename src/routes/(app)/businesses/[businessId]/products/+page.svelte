@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Pencil, Trash2, Package } from '@lucide/svelte';
+	import { PLAN_KEY } from '$lib/configurations/plans';
+	import { Plus, Loader2, Pencil, Trash2, Package, Paperclip, FileText, Download, Crown, X } from '@lucide/svelte';
 
 	type Product = {
 		id: string;
@@ -14,7 +15,19 @@
 		isActive: boolean;
 	};
 
+	type Attachment = {
+		id: string;
+		fileName: string;
+		mimeType: string;
+		fileSize: number;
+	};
+
 	const businessId = $page.params.businessId!;
+
+	const canUploadAttachment = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	let products = $state<Product[]>([]);
 	let loading = $state(true);
@@ -29,6 +42,8 @@
 	let createQty = $state(1);
 	let creating = $state(false);
 	let createError = $state<string | null>(null);
+	let createAttachments = $state<Attachment[]>([]);
+	let createUploading = $state(false);
 
 	// Edit
 	let editId = $state<string | null>(null);
@@ -40,6 +55,9 @@
 	let editActive = $state(true);
 	let editing = $state(false);
 	let editError = $state<string | null>(null);
+	let editAttachments = $state<Attachment[]>([]);
+	let editUploading = $state(false);
+	let editAttachmentsLoading = $state(false);
 
 	// Delete
 	let deleteId = $state<string | null>(null);
@@ -47,6 +65,12 @@
 
 	function formatPrice(cents: number): string {
 		return (cents / 100).toFixed(2);
+	}
+
+	function formatFileSize(bytes: number): string {
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	}
 
 	async function load() {
@@ -68,7 +92,31 @@
 		createPrice = '';
 		createQty = 1;
 		createError = null;
+		createAttachments = [];
 		showCreate = true;
+	}
+
+	async function uploadCreateFile(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		input.value = '';
+
+		const fd = new FormData();
+		fd.append('file', file);
+		try {
+			createUploading = true;
+			const result = await api.upload<Attachment>(`/businesses/${businessId}/attachments`, fd);
+			createAttachments = [...createAttachments, result];
+		} catch (err) {
+			createError = err instanceof Error ? err.message : 'Upload failed';
+		} finally {
+			createUploading = false;
+		}
+	}
+
+	function removeCreateAttachment(id: string) {
+		createAttachments = createAttachments.filter((a) => a.id !== id);
 	}
 
 	async function create() {
@@ -82,7 +130,8 @@
 				sku: createSku.trim() || undefined,
 				description: createDescription.trim() || undefined,
 				defaultPrice: priceVal,
-				defaultQty: createQty
+				defaultQty: createQty,
+				attachmentIds: createAttachments.map((a) => a.id)
 			});
 			products = [...products, product];
 			showCreate = false;
@@ -93,7 +142,7 @@
 		}
 	}
 
-	function startEdit(p: Product) {
+	async function startEdit(p: Product) {
 		editId = p.id;
 		editName = p.name;
 		editSku = p.sku ?? '';
@@ -102,6 +151,41 @@
 		editQty = p.defaultQty;
 		editActive = p.isActive;
 		editError = null;
+		editAttachments = [];
+
+		if (canUploadAttachment) {
+			try {
+				editAttachmentsLoading = true;
+				editAttachments = await api.get<Attachment[]>(`/businesses/${businessId}/products/${p.id}/attachments`);
+			} catch {
+				// Non-critical — just show empty
+			} finally {
+				editAttachmentsLoading = false;
+			}
+		}
+	}
+
+	async function uploadEditFile(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		input.value = '';
+
+		const fd = new FormData();
+		fd.append('file', file);
+		try {
+			editUploading = true;
+			const result = await api.upload<Attachment>(`/businesses/${businessId}/attachments`, fd);
+			editAttachments = [...editAttachments, result];
+		} catch (err) {
+			editError = err instanceof Error ? err.message : 'Upload failed';
+		} finally {
+			editUploading = false;
+		}
+	}
+
+	function removeEditAttachment(id: string) {
+		editAttachments = editAttachments.filter((a) => a.id !== id);
 	}
 
 	async function saveEdit() {
@@ -110,14 +194,18 @@
 		try {
 			editing = true;
 			editError = null;
-			const updated = await api.patch<Product>(`/businesses/${businessId}/products/${editId}`, {
+			const payload: Record<string, unknown> = {
 				name: editName.trim(),
 				sku: editSku.trim() || null,
 				description: editDescription.trim() || null,
 				defaultPrice: priceVal,
 				defaultQty: editQty,
 				isActive: editActive
-			});
+			};
+			if (canUploadAttachment) {
+				payload.attachmentIds = editAttachments.map((a) => a.id);
+			}
+			const updated = await api.patch<Product>(`/businesses/${businessId}/products/${editId}`, payload);
 			products = products.map((p) => (p.id === editId ? updated : p));
 			editId = null;
 		} catch (e) {
@@ -142,6 +230,73 @@
 
 	onMount(load);
 </script>
+
+{#snippet attachmentSection(attachments: Attachment[], uploading: boolean, onUpload: (e: Event) => void, onRemove: (id: string) => void)}
+	{#if canUploadAttachment}
+		<div>
+			<div class="flex items-center justify-between mb-1">
+				<span class="text-sm font-medium">Attachments</span>
+				<label class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium cursor-pointer transition-colors">
+					{#if uploading}
+						<Loader2 class="size-3 animate-spin" />
+						Uploading...
+					{:else}
+						<Paperclip class="size-3" />
+						Attach file
+					{/if}
+					<input
+						type="file"
+						accept="image/jpeg,image/png,application/pdf"
+						class="sr-only"
+						disabled={uploading}
+						onchange={onUpload}
+					/>
+				</label>
+			</div>
+			{#if attachments.length > 0}
+				<div class="flex flex-col gap-1.5">
+					{#each attachments as att (att.id)}
+						<div class="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50 text-sm">
+							{#if att.mimeType.startsWith('image/')}
+								<img
+									src="/api/businesses/{businessId}/attachments/{att.id}/download"
+									alt={att.fileName}
+									class="size-8 rounded object-cover shrink-0"
+								/>
+							{:else}
+								<FileText class="size-4 text-muted-foreground shrink-0" />
+							{/if}
+							<span class="flex-1 truncate text-xs">{att.fileName}</span>
+							<span class="text-xs text-muted-foreground shrink-0">{formatFileSize(att.fileSize)}</span>
+							<a
+								href="/api/businesses/{businessId}/attachments/{att.id}/download"
+								target="_blank"
+								class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+							>
+								<Download class="size-3" />
+							</a>
+							<button
+								onclick={() => onRemove(att.id)}
+								class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+							>
+								<X class="size-3" />
+							</button>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-xs text-muted-foreground">No attachments yet.</p>
+			{/if}
+		</div>
+	{:else}
+		<div class="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-sm">
+			<Crown class="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+			<span class="text-amber-700 dark:text-amber-300">
+				File attachments are available on the <a href="/organizations" class="underline font-medium">Pro plan</a>.
+			</span>
+		</div>
+	{/if}
+{/snippet}
 
 <div>
 	<div class="flex items-center justify-between mb-4">
@@ -221,6 +376,9 @@
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 					/>
 				</div>
+
+				{@render attachmentSection(createAttachments, createUploading, uploadCreateFile, removeCreateAttachment)}
+
 				<div class="flex justify-end gap-2">
 					<button
 						onclick={() => { showCreate = false; createError = null; }}
@@ -320,6 +478,16 @@
 								<input type="checkbox" bind:checked={editActive} class="accent-primary" />
 								Active
 							</label>
+
+							{#if editAttachmentsLoading}
+								<div class="flex items-center gap-2 text-xs text-muted-foreground">
+									<Loader2 class="size-3 animate-spin" />
+									Loading attachments...
+								</div>
+							{:else}
+								{@render attachmentSection(editAttachments, editUploading, uploadEditFile, removeEditAttachment)}
+							{/if}
+
 							<div class="flex justify-end gap-2">
 								<button
 									onclick={() => (editId = null)}

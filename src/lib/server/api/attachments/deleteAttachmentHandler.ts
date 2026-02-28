@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { attachments, transactionAttachments } from '$lib/server/db/schema';
+import { attachments, transactionAttachments, productAttachments } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import { HTTPException } from 'hono/http-exception';
@@ -39,10 +39,13 @@ export async function deleteAttachmentHandler(
 		.set({ deletedAt: now, deletedBy: user.id })
 		.where(eq(attachments.id, attachmentId));
 
-	// Remove the junction row
+	// Remove junction rows
 	await db
 		.delete(transactionAttachments)
 		.where(eq(transactionAttachments.attachmentId, attachmentId));
+	await db
+		.delete(productAttachments)
+		.where(eq(productAttachments.attachmentId, attachmentId));
 
 	// Hard-delete from R2
 	await env.BUCKET.delete(attachment.r2Key);

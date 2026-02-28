@@ -5,9 +5,21 @@ import { getProductsHandler } from './getProductsHandler';
 import { createProductHandler } from './createProductHandler';
 import { updateProductHandler } from './updateProductHandler';
 import { deleteProductHandler } from './deleteProductHandler';
+import { getProductAttachmentsHandler } from './getProductAttachmentsHandler';
 import { HTTPException } from 'hono/http-exception';
 
 export const productsApi = new Hono<App.Api>()
+
+	.get('/businesses/:businessId/products/:productId/attachments', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getProductAttachmentsHandler(
+			user,
+			c.req.param('businessId'),
+			c.req.param('productId'),
+			c.env
+		);
+		return c.json({ data });
+	})
 
 	.get('/businesses/:businessId/products', async (c) => {
 		const user = c.get('currentUser');

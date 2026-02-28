@@ -6,6 +6,7 @@ export const CreateProductSchema = v.object({
 	description: v.optional(v.pipe(v.string(), v.maxLength(500))),
 	defaultPrice: v.pipe(v.number(), v.integer(), v.minValue(0)),
 	defaultQty: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), 1),
+	attachmentIds: v.optional(v.array(v.string()), []),
 });
 
 export const UpdateProductSchema = v.object({
@@ -15,6 +16,7 @@ export const UpdateProductSchema = v.object({
 	defaultPrice: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))),
 	defaultQty: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
 	isActive: v.optional(v.boolean()),
+	attachmentIds: v.optional(v.array(v.string())),
 });
 
 export type CreateProductInput = v.InferOutput<typeof CreateProductSchema>;

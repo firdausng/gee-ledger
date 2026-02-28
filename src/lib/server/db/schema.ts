@@ -241,6 +241,18 @@ export const products = sqliteTable(
 	})
 );
 
+export const productAttachments = sqliteTable(
+	'product_attachments',
+	{
+		productId: text('product_id').notNull(),
+		attachmentId: text('attachment_id').notNull()
+	},
+	(t) => ({
+		pk: primaryKey({ columns: [t.productId, t.attachmentId] }),
+		productIdx: index('product_attachments_product_idx').on(t.productId)
+	})
+);
+
 // ─── Transactions ─────────────────────────────────────────────────────────────
 
 export const transactions = sqliteTable(
