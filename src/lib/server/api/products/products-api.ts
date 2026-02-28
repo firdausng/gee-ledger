@@ -23,7 +23,8 @@ export const productsApi = new Hono<App.Api>()
 
 	.get('/businesses/:businessId/products', async (c) => {
 		const user = c.get('currentUser');
-		const data = await getProductsHandler(user, c.req.param('businessId'), c.env);
+		const includeInactive = c.req.query('includeInactive') === 'true';
+		const data = await getProductsHandler(user, c.req.param('businessId'), c.env, includeInactive);
 		return c.json({ data });
 	})
 

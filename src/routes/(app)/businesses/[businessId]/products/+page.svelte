@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
-	import { Plus, Loader2, Pencil, Trash2, Package, Paperclip, FileText, Download, Crown, X } from '@lucide/svelte';
+	import { Plus, Loader2, Pencil, Archive, ArchiveRestore, Package, Paperclip, FileText, Download, Crown, X } from '@lucide/svelte';
 
 	type Product = {
 		id: string;
@@ -32,6 +32,11 @@
 	let products = $state<Product[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let showArchived = $state(false);
+
+	const displayProducts = $derived(
+		showArchived ? products : products.filter((p) => p.isActive)
+	);
 
 	// Create form
 	let showCreate = $state(false);
@@ -52,16 +57,13 @@
 	let editDescription = $state('');
 	let editPrice = $state('');
 	let editQty = $state(1);
-	let editActive = $state(true);
 	let editing = $state(false);
 	let editError = $state<string | null>(null);
 	let editAttachments = $state<Attachment[]>([]);
 	let editUploading = $state(false);
 	let editAttachmentsLoading = $state(false);
 
-	// Delete
-	let deleteId = $state<string | null>(null);
-	let deleting = $state(false);
+	let archiving = $state<string | null>(null);
 
 	function formatPrice(cents: number): string {
 		return (cents / 100).toFixed(2);
@@ -77,7 +79,7 @@
 		try {
 			loading = true;
 			error = null;
-			products = await api.get<Product[]>(`/businesses/${businessId}/products`);
+			products = await api.get<Product[]>(`/businesses/${businessId}/products?includeInactive=true`);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load';
 		} finally {
@@ -149,7 +151,6 @@
 		editDescription = p.description ?? '';
 		editPrice = formatPrice(p.defaultPrice);
 		editQty = p.defaultQty;
-		editActive = p.isActive;
 		editError = null;
 		editAttachments = [];
 
@@ -199,8 +200,7 @@
 				sku: editSku.trim() || null,
 				description: editDescription.trim() || null,
 				defaultPrice: priceVal,
-				defaultQty: editQty,
-				isActive: editActive
+				defaultQty: editQty
 			};
 			if (canUploadAttachment) {
 				payload.attachmentIds = editAttachments.map((a) => a.id);
@@ -215,16 +215,17 @@
 		}
 	}
 
-	async function deleteProduct(id: string) {
+	async function toggleArchive(product: Product) {
 		try {
-			deleting = true;
-			await api.delete(`/businesses/${businessId}/products/${id}`);
-			products = products.filter((p) => p.id !== id);
-			deleteId = null;
+			archiving = product.id;
+			const updated = await api.patch<Product>(`/businesses/${businessId}/products/${product.id}`, {
+				isActive: !product.isActive
+			});
+			products = products.map((p) => (p.id === product.id ? updated : p));
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to delete';
+			error = e instanceof Error ? e.message : 'Failed to update';
 		} finally {
-			deleting = false;
+			archiving = null;
 		}
 	}
 
@@ -309,6 +310,11 @@
 			Add Product
 		</button>
 	</div>
+
+	<label class="flex items-center gap-2 text-sm mb-4 cursor-pointer">
+		<input type="checkbox" bind:checked={showArchived} class="accent-primary" />
+		Show archived products
+	</label>
 
 	{#if showCreate}
 		<div class="rounded-lg border border-border bg-card p-4 mb-4">
@@ -407,14 +413,14 @@
 		<div class="flex justify-center py-12">
 			<Loader2 class="size-7 animate-spin text-muted-foreground" />
 		</div>
-	{:else if products.length === 0}
+	{:else if displayProducts.length === 0}
 		<div class="rounded-lg border border-border bg-card p-10 text-center">
 			<Package class="size-8 text-muted-foreground mx-auto mb-2" />
-			<p class="text-muted-foreground text-sm">No products yet.</p>
+			<p class="text-muted-foreground text-sm">{showArchived ? 'No products yet.' : 'No active products.'}</p>
 		</div>
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
-			{#each products as product (product.id)}
+			{#each displayProducts as product (product.id)}
 				{#if editId === product.id}
 					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
 						{#if editError}
@@ -474,11 +480,6 @@
 									class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 								/>
 							</div>
-							<label class="flex items-center gap-2 text-sm cursor-pointer">
-								<input type="checkbox" bind:checked={editActive} class="accent-primary" />
-								Active
-							</label>
-
 							{#if editAttachmentsLoading}
 								<div class="flex items-center gap-2 text-xs text-muted-foreground">
 									<Loader2 class="size-3 animate-spin" />
@@ -530,14 +531,23 @@
 							<button
 								onclick={() => startEdit(product)}
 								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+								title="Edit"
 							>
 								<Pencil class="size-3.5" />
 							</button>
 							<button
-								onclick={() => (deleteId = product.id)}
-								class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+								onclick={() => toggleArchive(product)}
+								disabled={archiving === product.id}
+								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50"
+								title={product.isActive ? 'Archive' : 'Unarchive'}
 							>
-								<Trash2 class="size-3.5" />
+								{#if archiving === product.id}
+									<Loader2 class="size-3.5 animate-spin" />
+								{:else if product.isActive}
+									<Archive class="size-3.5" />
+								{:else}
+									<ArchiveRestore class="size-3.5" />
+								{/if}
 							</button>
 						</div>
 					</div>
@@ -547,28 +557,3 @@
 	{/if}
 </div>
 
-<!-- Delete confirmation -->
-{#if deleteId}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-		<div class="bg-card rounded-lg border border-border p-6 max-w-sm w-full shadow-lg">
-			<h3 class="font-semibold text-foreground mb-2">Delete Product?</h3>
-			<p class="text-sm text-muted-foreground mb-5">This action cannot be undone.</p>
-			<div class="flex justify-end gap-2">
-				<button
-					onclick={() => (deleteId = null)}
-					class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={() => deleteProduct(deleteId!)}
-					disabled={deleting}
-					class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
-				>
-					{#if deleting}<Loader2 class="size-4 animate-spin" />{/if}
-					Delete
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
