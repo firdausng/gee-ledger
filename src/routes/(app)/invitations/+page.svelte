@@ -58,7 +58,7 @@
 	onMount(load);
 </script>
 
-<div class="max-w-2xl">
+<div>
 	<h2 class="font-semibold text-foreground mb-4">Pending Invitations</h2>
 
 	{#if error}

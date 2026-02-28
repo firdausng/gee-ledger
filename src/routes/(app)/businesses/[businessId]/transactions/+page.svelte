@@ -79,7 +79,7 @@
 	onMount(() => loadTransactions());
 </script>
 
-<div class="max-w-3xl">
+<div>
 	<div class="flex items-center justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Transactions</h2>
 		<div class="flex items-center gap-2">
