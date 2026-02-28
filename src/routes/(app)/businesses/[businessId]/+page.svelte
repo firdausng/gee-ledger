@@ -53,9 +53,9 @@
 	onMount(load);
 </script>
 
-<div class="max-w-3xl">
+<div>
 	<!-- Summary cards -->
-	<div class="grid grid-cols-3 gap-2 mb-6">
+	<div class="grid grid-cols-3 gap-2 mb-6 max-w-2xl">
 		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
 			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
 				<TrendingUp class="size-3.5 sm:size-4 text-success-fg shrink-0" />
@@ -126,9 +126,7 @@
 				>
 					<span
 						class="text-xs font-medium px-2 py-0.5 rounded-full shrink-0
-							{tx.type === 'income' ? 'bg-success-bg text-success-fg' :
-							 tx.type === 'expense' ? 'bg-destructive/15 text-destructive' :
-							 'bg-info-bg text-info-fg'}"
+							{tx.type === 'income' ? 'bg-success-bg text-success-fg' : 'bg-destructive/15 text-destructive'}"
 					>
 						{tx.type}
 					</span>
