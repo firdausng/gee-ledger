@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Pencil, Trash2, Paperclip } from '@lucide/svelte';
+	import { Plus, Loader2, Pencil, Trash2, Paperclip, ScrollText } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -80,13 +80,22 @@
 <div class="max-w-3xl">
 	<div class="flex items-center justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Transactions</h2>
-		<a
-			href="/businesses/{businessId}/transactions/new"
-			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
-		>
-			<Plus class="size-4" />
-			Add
-		</a>
+		<div class="flex items-center gap-2">
+			<a
+				href="/businesses/{businessId}/statement"
+				class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+			>
+				<ScrollText class="size-4" />
+				Statement
+			</a>
+			<a
+				href="/businesses/{businessId}/transactions/new"
+				class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+			>
+				<Plus class="size-4" />
+				Add
+			</a>
+		</div>
 	</div>
 
 	<!-- Filters -->

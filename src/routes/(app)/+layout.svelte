@@ -17,7 +17,8 @@
 		ShoppingBag,
 		Users,
 		Paperclip,
-		Settings2
+		Settings2,
+		ScrollText
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
@@ -50,6 +51,7 @@
 		{ href: '/channels', label: 'Channels', icon: ShoppingBag },
 		{ href: '/members', label: 'Members', icon: Users },
 		{ href: '/attachments', label: 'Attachments', icon: Paperclip },
+		{ href: '/statement',   label: 'Statement',   icon: ScrollText },
 		{ href: '/settings',    label: 'Settings',    icon: Settings2 }
 	];
 
