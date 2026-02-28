@@ -19,6 +19,8 @@ import { getServiceItemsHandler } from './getServiceItemsHandler';
 import { saveServiceItemsHandler } from './saveServiceItemsHandler';
 import { assignInvoiceNoHandler } from './assignInvoiceNoHandler';
 import { assignReceiptNoHandler } from './assignReceiptNoHandler';
+import { exportTransactionsHandler } from './exportTransactionsHandler';
+import { csvResponse } from '$lib/server/utils/csv';
 import { HTTPException } from 'hono/http-exception';
 
 export const transactionsApi = new Hono<App.Api>()
@@ -33,6 +35,20 @@ export const transactionsApi = new Hono<App.Api>()
 		if (!filtersResult.success) throw new HTTPException(400, { message: 'Invalid query parameters' });
 		const data = await getTransactionsHandler(user, c.req.param('businessId'), filtersResult.output, c.env);
 		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/transactions/export', async (c) => {
+		const user = c.get('currentUser');
+		const query = c.req.query();
+		const filtersResult = v.safeParse(TransactionFiltersSchema, {
+			...query,
+			limit: query.limit ? Number(query.limit) : undefined
+		});
+		if (!filtersResult.success) throw new HTTPException(400, { message: 'Invalid query parameters' });
+		const currency = query.currency ?? 'USD';
+		const csv = await exportTransactionsHandler(user, c.req.param('businessId'), filtersResult.output, currency, c.env);
+		const today = new Date().toISOString().slice(0, 10);
+		return csvResponse(csv, `transactions-${today}.csv`);
 	})
 
 	.post('/businesses/:businessId/transactions', async (c) => {

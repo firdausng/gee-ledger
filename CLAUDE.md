@@ -35,8 +35,6 @@ pnpm preview           # Build and preview with Wrangler
 ### Building
 ```bash
 pnpm build             # Build for production
-pnpm check             # Type-check with svelte-check
-pnpm check:watch       # Type-check in watch mode
 ```
 
 ### Database Operations

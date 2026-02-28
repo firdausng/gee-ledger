@@ -3,7 +3,8 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
-	import { Plus, Loader2, Pencil, Trash2, UsersRound } from '@lucide/svelte';
+	import { Plus, Loader2, Pencil, Trash2, UsersRound, Download, Crown } from '@lucide/svelte';
+	import { PLAN_KEY } from '$lib/configurations/plans';
 
 	type Contact = {
 		id: string;
@@ -17,6 +18,10 @@
 	};
 
 	const businessId = $page.params.businessId!;
+	const canExport = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	let contacts   = $state<Contact[]>([]);
 	let loading    = $state(true);
@@ -167,13 +172,34 @@
 <div>
 	<div class="flex items-center justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Contacts</h2>
-		<button
-			onclick={() => { showCreate = !showCreate; createError = null; }}
-			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
-		>
-			<Plus class="size-4" />
-			Add Contact
-		</button>
+		<div class="flex items-center gap-2">
+			{#if canExport}
+				<a
+					href="/api/businesses/{businessId}/contacts/export"
+					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+				>
+					<Download class="size-4" />
+					Export
+				</a>
+			{:else}
+				<button
+					disabled
+					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+					title="Upgrade to Pro to export data"
+				>
+					<Download class="size-4" />
+					Export
+					<Crown class="size-3 text-amber-500" />
+				</button>
+			{/if}
+			<button
+				onclick={() => { showCreate = !showCreate; createError = null; }}
+				class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+			>
+				<Plus class="size-4" />
+				Add Contact
+			</button>
+		</div>
 	</div>
 
 	<!-- Tabs -->

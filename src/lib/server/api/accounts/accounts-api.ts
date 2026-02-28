@@ -5,6 +5,8 @@ import { getAccountsHandler } from './getAccountsHandler';
 import { createAccountHandler } from './createAccountHandler';
 import { updateAccountHandler } from './updateAccountHandler';
 import { deleteAccountHandler } from './deleteAccountHandler';
+import { exportAccountsHandler } from './exportAccountsHandler';
+import { csvResponse } from '$lib/server/utils/csv';
 import { HTTPException } from 'hono/http-exception';
 
 export const accountsApi = new Hono<App.Api>()
@@ -13,6 +15,13 @@ export const accountsApi = new Hono<App.Api>()
 		const user = c.get('currentUser');
 		const data = await getAccountsHandler(user, c.req.param('businessId'), c.env);
 		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/accounts/export', async (c) => {
+		const user = c.get('currentUser');
+		const csv = await exportAccountsHandler(user, c.req.param('businessId'), c.env);
+		const today = new Date().toISOString().slice(0, 10);
+		return csvResponse(csv, `accounts-${today}.csv`);
 	})
 
 	.post('/businesses/:businessId/accounts', async (c) => {

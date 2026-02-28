@@ -6,6 +6,8 @@ import { getContactHandler } from './getContactHandler';
 import { createContactHandler } from './createContactHandler';
 import { updateContactHandler } from './updateContactHandler';
 import { deleteContactHandler } from './deleteContactHandler';
+import { exportContactsHandler } from './exportContactsHandler';
+import { csvResponse } from '$lib/server/utils/csv';
 import { HTTPException } from 'hono/http-exception';
 
 export const contactsApi = new Hono<App.Api>()
@@ -15,6 +17,13 @@ export const contactsApi = new Hono<App.Api>()
 		const role = c.req.query('role') as 'client' | 'supplier' | undefined;
 		const data = await getContactsHandler(user, c.req.param('businessId'), role, c.env);
 		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/contacts/export', async (c) => {
+		const user = c.get('currentUser');
+		const csv = await exportContactsHandler(user, c.req.param('businessId'), c.env);
+		const today = new Date().toISOString().slice(0, 10);
+		return csvResponse(csv, `contacts-${today}.csv`);
 	})
 
 	.get('/businesses/:businessId/contacts/:contactId', async (c) => {

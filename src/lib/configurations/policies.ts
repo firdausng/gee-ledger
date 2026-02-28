@@ -4,6 +4,7 @@ export type Permission =
 	| 'transaction:delete'
 	| 'transaction:view'
 	| 'transaction:email'
+	| 'transaction:export'
 	| 'attachment:upload'
 	| 'attachment:view'
 	| 'attachment:delete'
@@ -22,6 +23,7 @@ export const POLICIES: Record<PolicyKey, Permission[]> = {
 		'transaction:delete',
 		'transaction:view',
 		'transaction:email',
+		'transaction:export',
 		'attachment:upload',
 		'attachment:view',
 		'attachment:delete',
@@ -37,6 +39,7 @@ export const POLICIES: Record<PolicyKey, Permission[]> = {
 		'transaction:delete',
 		'transaction:view',
 		'transaction:email',
+		'transaction:export',
 		'attachment:upload',
 		'attachment:view',
 		'attachment:delete',

@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Trash2, Paperclip, ScrollText } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2, Paperclip, ScrollText, Download, Crown } from '@lucide/svelte';
+	import { PLAN_KEY } from '$lib/configurations/plans';
 
 	let { data } = $props();
 
@@ -22,6 +23,10 @@
 	};
 
 	const businessId = $page.params.businessId!;
+	const canExport = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	let transactions = $state<Transaction[]>([]);
 	let loading = $state(true);
@@ -36,6 +41,15 @@
 
 	let deleteId = $state<string | null>(null);
 	let deleting = $state(false);
+
+	function exportUrl() {
+		const q = new URLSearchParams();
+		if (filterType) q.set('type', filterType);
+		if (filterFrom) q.set('from', filterFrom);
+		if (filterTo) q.set('to', filterTo);
+		q.set('currency', data.business?.currency ?? 'USD');
+		return `/api/businesses/${businessId}/transactions/export?${q}`;
+	}
 
 	function buildQuery() {
 		const q = new URLSearchParams();
@@ -83,6 +97,25 @@
 	<div class="flex items-center justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Transactions</h2>
 		<div class="flex items-center gap-2">
+			{#if canExport}
+				<a
+					href={exportUrl()}
+					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+				>
+					<Download class="size-4" />
+					Export
+				</a>
+			{:else}
+				<button
+					disabled
+					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+					title="Upgrade to Pro to export data"
+				>
+					<Download class="size-4" />
+					Export
+					<Crown class="size-3 text-amber-500" />
+				</button>
+			{/if}
 			<a
 				href="/businesses/{businessId}/statement"
 				class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
