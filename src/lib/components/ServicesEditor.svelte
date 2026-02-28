@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, Plus, GripVertical, Pencil, Paperclip, FileText, Loader2, Crown } from '@lucide/svelte';
+	import { X, Plus, Pencil, Paperclip, FileText, Loader2, Crown, ChevronUp, ChevronDown } from '@lucide/svelte';
 	import { api } from '$lib/client/api.svelte';
 
 	type ItemAttachment = { id: string; fileName: string; mimeType: string };
@@ -95,6 +95,20 @@
 		modalItem = { ...modalItem, attachments: modalItem.attachments.filter((a) => a.id !== id) };
 	}
 
+	function moveUp(idx: number) {
+		if (idx <= 0) return;
+		const arr = [...items];
+		[arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+		items = arr;
+	}
+
+	function moveDown(idx: number) {
+		if (idx >= items.length - 1) return;
+		const arr = [...items];
+		[arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+		items = arr;
+	}
+
 	function onDragStart(e: DragEvent, idx: number) {
 		dragIndex = idx;
 		e.dataTransfer!.effectAllowed = 'move';
@@ -116,75 +130,71 @@
 </script>
 
 {#if items.length > 0}
-	<div class="rounded-lg border border-border overflow-hidden mb-3">
-		<table class="w-full text-sm">
-			<thead>
-				<tr class="border-b border-border bg-muted/50">
-					<th class="w-7 px-2"></th>
-					<th class="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
-					<th class="text-right px-2 py-2 text-xs font-medium text-muted-foreground w-28">Hrs × Rate</th>
-					<th class="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-20">Amount</th>
-					<th class="w-16"></th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each items as item, idx (idx)}
-					<tr
-						class="border-b border-border last:border-0 transition-opacity {dragIndex === idx ? 'opacity-40' : ''}"
-						draggable="true"
-						ondragstart={(e) => onDragStart(e, idx)}
-						ondragover={(e) => onDragOver(e, idx)}
-						ondragend={onDragEnd}
+	<div class="rounded-lg border border-border overflow-hidden mb-3" role="list">
+		{#each items as item, idx (idx)}
+			<div
+				role="listitem"
+				class="flex items-center gap-2 px-3 py-2 border-b border-border last:border-0 transition-opacity {dragIndex === idx ? 'opacity-40' : ''}"
+				draggable="true"
+				ondragstart={(e) => onDragStart(e, idx)}
+				ondragover={(e) => onDragOver(e, idx)}
+				ondragend={onDragEnd}
+			>
+				<div class="flex-1 min-w-0">
+					<p class="text-sm text-foreground break-words">{item.description || '—'}</p>
+					<div class="flex items-center gap-2 mt-0.5">
+						<span class="text-xs text-muted-foreground tabular-nums">{item.hours} × {item.rate}</span>
+						<span class="text-xs font-medium tabular-nums">{rowAmount(item).toFixed(2)}</span>
+						{#if item.attachments?.length > 0}
+							<span class="inline-flex items-center gap-1 text-xs text-muted-foreground">
+								<Paperclip class="size-3" />
+								{item.attachments.length}
+							</span>
+						{/if}
+					</div>
+				</div>
+				<div class="flex items-center gap-0.5 shrink-0">
+					<button
+						type="button"
+						onclick={() => moveUp(idx)}
+						disabled={idx === 0}
+						class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+						title="Move up"
 					>
-						<td class="px-2 py-2 text-center">
-							<GripVertical class="size-3.5 text-muted-foreground cursor-grab active:cursor-grabbing mx-auto" />
-						</td>
-						<td class="px-3 py-2">
-							<p class="text-sm text-foreground truncate">{item.description || '—'}</p>
-							{#if item.attachments?.length > 0}
-								<span class="inline-flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-									<Paperclip class="size-3" />
-									{item.attachments.length} file{item.attachments.length > 1 ? 's' : ''}
-								</span>
-							{/if}
-						</td>
-						<td class="px-2 py-2 text-right text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-							{item.hours} × {item.rate}
-						</td>
-						<td class="px-3 py-2 text-right text-sm tabular-nums">
-							{rowAmount(item).toFixed(2)}
-						</td>
-						<td class="px-2 py-2">
-							<div class="flex items-center gap-1 justify-end">
-								<button
-									type="button"
-									onclick={() => openEdit(idx)}
-									class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-									title="Edit service"
-								>
-									<Pencil class="size-3" />
-								</button>
-								<button
-									type="button"
-									onclick={() => removeItem(idx)}
-									class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-									title="Remove service"
-								>
-									<X class="size-3" />
-								</button>
-							</div>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-			<tfoot>
-				<tr class="border-t border-border bg-muted/30">
-					<td colspan="3" class="px-3 py-2 text-xs font-medium text-muted-foreground text-right">Total</td>
-					<td class="px-3 py-2 text-sm font-semibold text-right tabular-nums">{grandTotal.toFixed(2)}</td>
-					<td></td>
-				</tr>
-			</tfoot>
-		</table>
+						<ChevronUp class="size-3" />
+					</button>
+					<button
+						type="button"
+						onclick={() => moveDown(idx)}
+						disabled={idx === items.length - 1}
+						class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+						title="Move down"
+					>
+						<ChevronDown class="size-3" />
+					</button>
+					<button
+						type="button"
+						onclick={() => openEdit(idx)}
+						class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+						title="Edit service"
+					>
+						<Pencil class="size-3" />
+					</button>
+					<button
+						type="button"
+						onclick={() => removeItem(idx)}
+						class="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+						title="Remove service"
+					>
+						<X class="size-3" />
+					</button>
+				</div>
+			</div>
+		{/each}
+		<div class="flex items-center justify-between px-3 py-2 bg-muted/30">
+			<span class="text-xs font-medium text-muted-foreground">Total</span>
+			<span class="text-sm font-semibold tabular-nums">{grandTotal.toFixed(2)}</span>
+		</div>
 	</div>
 {/if}
 

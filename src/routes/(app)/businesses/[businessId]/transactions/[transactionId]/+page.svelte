@@ -382,6 +382,7 @@
 							{#each ['income', 'expense'] as t}
 								<Button
 									variant={type === t ? 'default' : 'outline'}
+									size="sm"
 									class="flex-1 capitalize"
 									onclick={() => { type = t as typeof type; salesChannelId = ''; categoryId = ''; contactId = ''; }}
 								>
@@ -398,6 +399,7 @@
 							{#each [['items', 'Line Items'], ['services', 'Services']] as [m, label]}
 								<Button
 									variant={lineItemMode === m ? 'default' : 'outline'}
+									size="sm"
 									class="flex-1"
 									onclick={() => switchMode(m as 'items' | 'services')}
 								>
@@ -549,8 +551,8 @@
 
 		<!-- Actions -->
 		<div class="flex justify-end gap-2 mt-4">
-			<Button href="/businesses/{businessId}/transactions" variant="ghost">Cancel</Button>
-			<Button onclick={submit} disabled={submitting || !locationId || !transactionDate}>
+			<Button href="/businesses/{businessId}/transactions" variant="ghost" size="sm">Cancel</Button>
+			<Button size="sm" onclick={submit} disabled={submitting || !locationId || !transactionDate}>
 				{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}
 				Save Changes
 			</Button>

@@ -266,8 +266,8 @@
 	</div>
 
 	<!-- Document preview -->
-	<div class="bg-gray-100 px-3 py-5">
-		<div class="print-paper bg-white shadow-md rounded-sm mx-auto max-w-lg">
+	<div class="bg-gray-100 px-2 py-4">
+		<div class="print-paper bg-white shadow-md rounded-sm mx-auto">
 			<InvoicePreview transaction={tx} business={biz} {location} {category} {businessId}
 				billTo={billTo} items={loadedItems}
 				invoiceNo={documentType === 'invoice' ? (invoiceNo || null) : null}

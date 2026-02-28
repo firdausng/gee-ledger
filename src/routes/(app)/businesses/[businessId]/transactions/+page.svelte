@@ -94,40 +94,40 @@
 </script>
 
 <div>
-	<div class="flex items-center justify-between mb-4">
+	<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Transactions</h2>
 		<div class="flex items-center gap-2">
 			{#if canExport}
 				<a
 					href={exportUrl()}
-					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+					class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
 				>
-					<Download class="size-4" />
-					Export
+					<Download class="size-3.5" />
+					<span class="hidden sm:inline">Export</span>
 				</a>
 			{:else}
 				<button
 					disabled
-					class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+					class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
 					title="Upgrade to Pro to export data"
 				>
-					<Download class="size-4" />
-					Export
+					<Download class="size-3.5" />
+					<span class="hidden sm:inline">Export</span>
 					<Crown class="size-3 text-amber-500" />
 				</button>
 			{/if}
 			<a
 				href="/businesses/{businessId}/statement"
-				class="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
+				class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors"
 			>
-				<ScrollText class="size-4" />
-				Statement
+				<ScrollText class="size-3.5" />
+				<span class="hidden sm:inline">Statement</span>
 			</a>
 			<a
 				href="/businesses/{businessId}/transactions/new"
-				class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+				class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
 			>
-				<Plus class="size-4" />
+				<Plus class="size-3.5" />
 				Add
 			</a>
 		</div>
