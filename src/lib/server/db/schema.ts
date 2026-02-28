@@ -279,6 +279,32 @@ export const transactionServiceItems = sqliteTable('transaction_service_items', 
 	transactionIdx: index('tx_service_items_transaction_idx').on(t.transactionId)
 }));
 
+// ─── Item Attachments ──────────────────────────────────────────────────────────
+
+export const transactionItemAttachments = sqliteTable(
+	'transaction_item_attachments',
+	{
+		itemId:       text('item_id').notNull(),
+		attachmentId: text('attachment_id').notNull(),
+	},
+	(t) => ({
+		pk:      primaryKey({ columns: [t.itemId, t.attachmentId] }),
+		itemIdx: index('tx_item_attachments_item_idx').on(t.itemId),
+	})
+);
+
+export const transactionServiceItemAttachments = sqliteTable(
+	'transaction_service_item_attachments',
+	{
+		serviceItemId: text('service_item_id').notNull(),
+		attachmentId:  text('attachment_id').notNull(),
+	},
+	(t) => ({
+		pk:             primaryKey({ columns: [t.serviceItemId, t.attachmentId] }),
+		serviceItemIdx: index('tx_svc_item_attachments_svc_item_idx').on(t.serviceItemId),
+	})
+);
+
 // ─── Contacts ─────────────────────────────────────────────────────────────────
 
 export const contacts = sqliteTable(

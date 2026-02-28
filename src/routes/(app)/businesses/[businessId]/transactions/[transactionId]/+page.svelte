@@ -39,8 +39,9 @@
 		fileSize: number;
 		createdAt: string;
 	};
-	type LineItem = { description: string; quantity: number; unitPrice: string };
-	type ServiceItem = { description: string; hours: number; rate: string };
+	type ItemAttachment = { id: string; fileName: string; mimeType: string };
+	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[] };
+	type ServiceItem = { description: string; hours: number; rate: string; attachments: ItemAttachment[] };
 
 	const businessId = $page.params.businessId;
 	const transactionId = $page.params.transactionId;
@@ -136,22 +137,24 @@
 			featuredImageId = tx.featuredImageId ?? null;
 
 			if (lineItemMode === 'items') {
-				const txItems = await api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number }[]>(
+				const txItems = await api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number; attachments: ItemAttachment[] }[]>(
 					`/businesses/${businessId}/transactions/${transactionId}/items`
 				);
 				items = txItems.map((i) => ({
 					description: i.description,
 					quantity: i.quantity,
-					unitPrice: (i.unitPrice / 100).toFixed(2)
+					unitPrice: (i.unitPrice / 100).toFixed(2),
+					attachments: i.attachments ?? []
 				}));
 			} else {
-				const txServiceItems = await api.get<{ id: string; description: string; hours: number; rate: number; sortOrder: number }[]>(
+				const txServiceItems = await api.get<{ id: string; description: string; hours: number; rate: number; sortOrder: number; attachments: ItemAttachment[] }[]>(
 					`/businesses/${businessId}/transactions/${transactionId}/service-items`
 				);
 				serviceItems = txServiceItems.map((i) => ({
 					description: i.description,
 					hours: i.hours,
-					rate: (i.rate / 100).toFixed(2)
+					rate: (i.rate / 100).toFixed(2),
+					attachments: i.attachments ?? []
 				}));
 			}
 		} catch (e) {
@@ -198,8 +201,9 @@
 					items.map((item, idx) => ({
 						description: item.description,
 						quantity: item.quantity,
-						unitPrice: Math.round(parseFloat(item.unitPrice) * 100) || 0,
-						sortOrder: idx
+						unitPrice:     Math.round(parseFloat(item.unitPrice) * 100) || 0,
+						sortOrder:     idx,
+						attachmentIds: item.attachments.map((a) => a.id)
 					}))
 				);
 			} else {
@@ -207,8 +211,9 @@
 					serviceItems.map((item, idx) => ({
 						description: item.description,
 						hours: item.hours,
-						rate: Math.round(parseFloat(item.rate) * 100) || 0,
-						sortOrder: idx
+						rate:          Math.round(parseFloat(item.rate) * 100) || 0,
+						sortOrder:     idx,
+						attachmentIds: item.attachments.map((a) => a.id)
 					}))
 				);
 			}
@@ -378,9 +383,9 @@
 							{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
 						</Label>
 						{#if lineItemMode === 'items'}
-							<LineItemsEditor bind:items />
+							<LineItemsEditor bind:items {businessId} />
 						{:else}
-							<ServicesEditor bind:items={serviceItems} />
+							<ServicesEditor bind:items={serviceItems} {businessId} />
 						{/if}
 					</div>
 

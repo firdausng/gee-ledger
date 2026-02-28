@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/client/api.svelte';
 	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
-	import { ArrowLeft, Loader2, Paperclip, X, FileImage, FileText, Plus } from '@lucide/svelte';
+	import { ArrowLeft, Loader2, Paperclip, X, FileText, Plus } from '@lucide/svelte';
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
 	import ServicesEditor from '$lib/components/ServicesEditor.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -18,8 +18,9 @@
 	type Category = { id: string; name: string; type: string };
 	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean };
 	type PendingAttachment = { id: string; fileName: string; mimeType: string; fileSize: number };
-	type LineItem = { description: string; quantity: number; unitPrice: string };
-	type ServiceItem = { description: string; hours: number; rate: string };
+	type ItemAttachment = { id: string; fileName: string; mimeType: string };
+	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[] };
+	type ServiceItem = { description: string; hours: number; rate: string; attachments: ItemAttachment[] };
 
 	const businessId = $page.params.businessId;
 
@@ -303,19 +304,21 @@
 			if (lineItemMode === 'items') {
 				await api.put(`/businesses/${businessId}/transactions/${tx.id}/items`,
 					items.map((i, idx) => ({
-						description: i.description,
-						quantity:    i.quantity,
-						unitPrice:   Math.round(parseFloat(i.unitPrice) * 100),
-						sortOrder:   idx,
+						description:   i.description,
+						quantity:      i.quantity,
+						unitPrice:     Math.round(parseFloat(i.unitPrice) * 100),
+						sortOrder:     idx,
+						attachmentIds: i.attachments.map((a) => a.id),
 					}))
 				);
 			} else {
 				await api.put(`/businesses/${businessId}/transactions/${tx.id}/service-items`,
 					serviceItems.map((i, idx) => ({
-						description: i.description,
-						hours:       i.hours,
-						rate:        Math.round(parseFloat(i.rate) * 100),
-						sortOrder:   idx,
+						description:   i.description,
+						hours:         i.hours,
+						rate:          Math.round(parseFloat(i.rate) * 100),
+						sortOrder:     idx,
+						attachmentIds: i.attachments.map((a) => a.id),
 					}))
 				);
 			}
@@ -391,9 +394,9 @@
 						{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
 					</Label>
 					{#if lineItemMode === 'items'}
-						<LineItemsEditor bind:items />
+						<LineItemsEditor bind:items {businessId} />
 					{:else}
-						<ServicesEditor bind:items={serviceItems} />
+						<ServicesEditor bind:items={serviceItems} {businessId} />
 					{/if}
 				</div>
 
@@ -620,26 +623,33 @@
 			{#if pendingAttachments.length === 0}
 				<p class="text-sm text-muted-foreground py-4 text-center">No attachments yet. Attach a receipt or invoice.</p>
 			{:else}
-				<div class="rounded-lg border border-border overflow-hidden">
+				<div class="flex flex-col gap-2">
 					{#each pendingAttachments as att (att.id)}
-						<div class="flex items-center gap-3 px-3 py-2.5 border-b border-border last:border-0 bg-card">
-							{#if att.mimeType === 'application/pdf'}
-								<FileText class="size-4 text-red-500 shrink-0" />
-							{:else}
-								<FileImage class="size-4 text-blue-500 shrink-0" />
+						<div class="rounded-md border border-border bg-card overflow-hidden">
+							{#if att.mimeType.startsWith('image/')}
+								<img
+									src={"/api/businesses/" + businessId + "/attachments/" + att.id + "/download"}
+									alt={att.fileName}
+									class="w-full h-36 object-cover"
+								/>
 							{/if}
-							<div class="flex-1 min-w-0">
-								<p class="text-sm text-foreground truncate">{att.fileName}</p>
-								<p class="text-xs text-muted-foreground">{formatFileSize(att.fileSize)}</p>
+							<div class="flex items-center gap-3 px-3 py-2.5">
+								{#if !att.mimeType.startsWith('image/')}
+									<FileText class="size-4 text-red-500 shrink-0" />
+								{/if}
+								<div class="flex-1 min-w-0">
+									<p class="text-sm text-foreground truncate">{att.fileName}</p>
+									<p class="text-xs text-muted-foreground">{formatFileSize(att.fileSize)}</p>
+								</div>
+								<button
+									type="button"
+									onclick={() => removePending(att.id)}
+									class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+									title="Remove"
+								>
+									<X class="size-3.5" />
+								</button>
 							</div>
-							<button
-								type="button"
-								onclick={() => removePending(att.id)}
-								class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-								title="Remove"
-							>
-								<X class="size-3.5" />
-							</button>
 						</div>
 					{/each}
 				</div>

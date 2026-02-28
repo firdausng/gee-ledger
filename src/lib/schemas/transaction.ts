@@ -69,18 +69,20 @@ export const TransactionFiltersSchema = v.object({
 });
 
 export const TransactionItemSchema = v.object({
-	description: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
-	quantity:    v.pipe(v.number(), v.integer(), v.minValue(1)),
-	unitPrice:   v.pipe(v.number(), v.integer(), v.minValue(0)),
-	sortOrder:   v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
+	description:   v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
+	quantity:      v.pipe(v.number(), v.integer(), v.minValue(1)),
+	unitPrice:     v.pipe(v.number(), v.integer(), v.minValue(0)),
+	sortOrder:     v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
+	attachmentIds: v.optional(v.array(v.string()), []),
 });
 export const SaveTransactionItemsSchema = v.array(TransactionItemSchema);
 
 export const ServiceItemSchema = v.object({
-	description: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
-	hours:       v.pipe(v.number(), v.minValue(0.01)),
-	rate:        v.pipe(v.number(), v.integer(), v.minValue(0)),  // cents/hr
-	sortOrder:   v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
+	description:   v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
+	hours:         v.pipe(v.number(), v.minValue(0.01)),
+	rate:          v.pipe(v.number(), v.integer(), v.minValue(0)),  // cents/hr
+	sortOrder:     v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
+	attachmentIds: v.optional(v.array(v.string()), []),
 });
 export const SaveServiceItemsSchema = v.array(ServiceItemSchema);
 

@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull } from 'drizzle-orm';
-import { transactionItems, transactions } from '$lib/server/db/schema';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { transactionItems, transactionItemAttachments, transactions } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import { HTTPException } from 'hono/http-exception';
@@ -33,7 +33,20 @@ export async function saveTransactionItemsHandler(
 
 	if (!tx) throw new HTTPException(404, { message: 'Transaction not found' });
 
-	// Delete all existing items
+	// Get old item IDs
+	const oldItems = await db
+		.select({ id: transactionItems.id })
+		.from(transactionItems)
+		.where(eq(transactionItems.transactionId, transactionId));
+	const oldIds = oldItems.map((i) => i.id);
+
+	// Delete old junction records
+	if (oldIds.length > 0) {
+		await db.delete(transactionItemAttachments)
+			.where(inArray(transactionItemAttachments.itemId, oldIds));
+	}
+
+	// Delete old items
 	await db.delete(transactionItems).where(eq(transactionItems.transactionId, transactionId));
 
 	// Insert new items
@@ -52,6 +65,17 @@ export async function saveTransactionItemsHandler(
 				}))
 			)
 			.returning();
+	}
+
+	// Insert junction records
+	const junctionRows = savedItems.flatMap((newItem, idx) =>
+		(items[idx].attachmentIds ?? []).map((attachmentId) => ({
+			itemId: newItem.id,
+			attachmentId,
+		}))
+	);
+	if (junctionRows.length > 0) {
+		await db.insert(transactionItemAttachments).values(junctionRows);
 	}
 
 	// Calculate total
