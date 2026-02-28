@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/client/api.svelte';
-	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText, Star, Printer, Mail } from '@lucide/svelte';
+	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText, Star, Printer, Mail, Crown } from '@lucide/svelte';
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
 	import ServicesEditor from '$lib/components/ServicesEditor.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -12,6 +12,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Select from '$lib/components/ui/select';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import { PLAN_KEY } from '$lib/configurations/plans';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
@@ -45,6 +46,10 @@
 
 	const businessId = $page.params.businessId;
 	const transactionId = $page.params.transactionId;
+	const canUploadAttachment = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	let locations = $state<Location[]>([]);
 	let channels = $state<Channel[]>([]);
@@ -383,9 +388,9 @@
 							{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
 						</Label>
 						{#if lineItemMode === 'items'}
-							<LineItemsEditor bind:items {businessId} />
+							<LineItemsEditor bind:items {businessId} {canUploadAttachment} />
 						{:else}
-							<ServicesEditor bind:items={serviceItems} {businessId} />
+							<ServicesEditor bind:items={serviceItems} {businessId} {canUploadAttachment} />
 						{/if}
 					</div>
 
@@ -539,6 +544,7 @@
 							</span>
 						{/if}
 					</div>
+					{#if canUploadAttachment}
 					<label class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-sm font-medium cursor-pointer transition-colors">
 						{#if uploadingFile}
 							<Loader2 class="size-3.5 animate-spin" />
@@ -556,14 +562,22 @@
 							onchange={uploadFile}
 						/>
 					</label>
+					{/if}
 				</div>
 			</Card.Header>
 			<Card.Content>
-				{#if uploadError}
+				{#if canUploadAttachment && uploadError}
 					<p class="text-destructive text-xs mb-3">{uploadError}</p>
 				{/if}
 
-				{#if attachmentsList.length === 0}
+				{#if !canUploadAttachment && attachmentsList.length === 0}
+					<div class="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-sm">
+						<Crown class="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+						<span class="text-amber-700 dark:text-amber-300">
+							File attachments are available on the <a href="/organizations" class="underline font-medium">Pro plan</a>.
+						</span>
+					</div>
+				{:else if attachmentsList.length === 0}
 					<p class="text-sm text-muted-foreground py-4 text-center">No attachments yet. Attach a receipt or invoice.</p>
 				{:else}
 					<div class="rounded-lg border border-border overflow-hidden">
@@ -603,6 +617,7 @@
 								>
 									<Download class="size-3.5" />
 								</a>
+								{#if canUploadAttachment}
 								<button
 									onclick={() => deleteAttachment(att.id)}
 									disabled={deletingAttachmentId === att.id}
@@ -615,6 +630,7 @@
 										<Trash2 class="size-3.5" />
 									{/if}
 								</button>
+								{/if}
 							</div>
 						{/each}
 					</div>
@@ -624,7 +640,9 @@
 						</p>
 					{/if}
 				{/if}
+				{#if canUploadAttachment}
 				<p class="text-xs text-muted-foreground mt-2">JPEG, PNG or PDF · max 10 MB per file · up to 10 files</p>
+				{/if}
 			</Card.Content>
 		</Card.Root>
 	{/if}

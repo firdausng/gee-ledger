@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, Plus, GripVertical, Pencil, Paperclip, FileText, Loader2 } from '@lucide/svelte';
+	import { X, Plus, GripVertical, Pencil, Paperclip, FileText, Loader2, Crown } from '@lucide/svelte';
 	import { api } from '$lib/client/api.svelte';
 
 	type ItemAttachment = { id: string; fileName: string; mimeType: string };
@@ -12,8 +12,9 @@
 
 	let {
 		items = $bindable<ServiceItem[]>([]),
-		businessId
-	}: { items: ServiceItem[]; businessId: string } = $props();
+		businessId,
+		canUploadAttachment = true
+	}: { items: ServiceItem[]; businessId: string; canUploadAttachment?: boolean } = $props();
 
 	let dragIndex = $state<number | null>(null);
 
@@ -278,44 +279,55 @@
 											<FileText class="size-3.5 text-muted-foreground shrink-0" />
 										{/if}
 										<span class="flex-1 text-xs text-foreground truncate">{att.fileName}</span>
-										<button
-											type="button"
-											onclick={() => removeAttachment(att.id)}
-											class="p-0.5 rounded text-muted-foreground hover:text-destructive shrink-0"
-										>
-											<X class="size-3" />
-										</button>
+										{#if canUploadAttachment}
+											<button
+												type="button"
+												onclick={() => removeAttachment(att.id)}
+												class="p-0.5 rounded text-muted-foreground hover:text-destructive shrink-0"
+											>
+												<X class="size-3" />
+											</button>
+										{/if}
 									</div>
 								</div>
 							{/each}
 						</div>
 					{/if}
 
-					{#if uploadError}
-						<p class="text-xs text-destructive">{uploadError}</p>
-					{/if}
-
-					<input
-						bind:this={fileInputEl}
-						type="file"
-						accept="image/jpeg,image/png,application/pdf"
-						class="hidden"
-						onchange={(e) => uploadAttachment(e.currentTarget.files)}
-					/>
-					<button
-						type="button"
-						onclick={() => fileInputEl?.click()}
-						disabled={uploading}
-						class="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-border bg-muted/20 hover:bg-muted/40 text-sm text-muted-foreground transition-colors disabled:opacity-50"
-					>
-						{#if uploading}
-							<Loader2 class="size-3.5 animate-spin" />
-							Uploading…
-						{:else}
-							<Paperclip class="size-3.5" />
-							Attach file
+					{#if canUploadAttachment}
+						{#if uploadError}
+							<p class="text-xs text-destructive">{uploadError}</p>
 						{/if}
-					</button>
+
+						<input
+							bind:this={fileInputEl}
+							type="file"
+							accept="image/jpeg,image/png,application/pdf"
+							class="hidden"
+							onchange={(e) => uploadAttachment(e.currentTarget.files)}
+						/>
+						<button
+							type="button"
+							onclick={() => fileInputEl?.click()}
+							disabled={uploading}
+							class="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-border bg-muted/20 hover:bg-muted/40 text-sm text-muted-foreground transition-colors disabled:opacity-50"
+						>
+							{#if uploading}
+								<Loader2 class="size-3.5 animate-spin" />
+								Uploading…
+							{:else}
+								<Paperclip class="size-3.5" />
+								Attach file
+							{/if}
+						</button>
+					{:else}
+						<div class="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-sm">
+							<Crown class="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+							<span class="text-amber-700 dark:text-amber-300">
+								File attachments are available on the <a href="/organizations" class="underline font-medium">Pro plan</a>.
+							</span>
+						</div>
+					{/if}
 				</div>
 			</div>
 

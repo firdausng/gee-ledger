@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Loader2, Paperclip, FileImage, FileText, Download, Trash2, AlertTriangle } from '@lucide/svelte';
+	import { Loader2, Paperclip, FileImage, FileText, Download, Trash2, AlertTriangle, Crown } from '@lucide/svelte';
+	import { PLAN_KEY } from '$lib/configurations/plans';
 
 	type Attachment = {
 		id: string;
@@ -19,6 +20,10 @@
 
 	let { data } = $props();
 	const businessId = $page.params.businessId;
+	const canUploadAttachment = $derived(
+		($page.data.navBusinesses as { id: string; planKey: string }[])
+			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
+	);
 
 	let all = $state<Attachment[]>([]);
 	let loading = $state(true);
@@ -125,6 +130,7 @@
 							>
 								<Download class="size-3.5" />
 							</a>
+							{#if canUploadAttachment}
 							<button
 								onclick={() => deleteAttachment(att.id)}
 								disabled={deletingId === att.id}
@@ -137,6 +143,7 @@
 									<Trash2 class="size-3.5" />
 								{/if}
 							</button>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -193,6 +200,7 @@
 							>
 								<Download class="size-3.5" />
 							</a>
+							{#if canUploadAttachment}
 							<button
 								onclick={() => deleteAttachment(att.id)}
 								disabled={deletingId === att.id}
@@ -205,6 +213,7 @@
 									<Trash2 class="size-3.5" />
 								{/if}
 							</button>
+							{/if}
 						</div>
 					{/each}
 				</div>
