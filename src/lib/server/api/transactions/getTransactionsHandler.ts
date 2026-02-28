@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, isNull, gte, lte, gt, inArray, count } from 'drizzle-orm';
-import { transactions, transactionAttachments, attachments } from '$lib/server/db/schema';
+import { transactions, transactionAttachments, attachments, contacts } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import type { TransactionFilters } from '$lib/schemas/transaction';
@@ -56,9 +56,23 @@ export async function getTransactionsHandler(
 		}
 	}
 
+	// Resolve contact names — separate query, no JOIN (service-extraction boundary)
+	const contactNames: Record<string, string> = {};
+	const contactIds = [...new Set(data.map((t) => t.contactId).filter(Boolean) as string[])];
+	if (contactIds.length > 0) {
+		const contactRows = await db
+			.select({ id: contacts.id, name: contacts.name })
+			.from(contacts)
+			.where(and(inArray(contacts.id, contactIds), isNull(contacts.deletedAt)));
+		for (const row of contactRows) {
+			contactNames[row.id] = row.name;
+		}
+	}
+
 	const dataWithCounts = data.map((t) => ({
 		...t,
-		attachmentCount: attachmentCounts[t.id] ?? 0
+		attachmentCount: attachmentCounts[t.id] ?? 0,
+		contactName: t.contactId ? (contactNames[t.contactId] ?? null) : null
 	}));
 
 	return { data: dataWithCounts, nextCursor, hasMore };

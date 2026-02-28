@@ -18,7 +18,8 @@
 		Users,
 		Paperclip,
 		Settings2,
-		ScrollText
+		ScrollText,
+		UsersRound
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
@@ -45,6 +46,7 @@
 	const bizTabs = [
 		{ href: '', label: 'Overview', icon: LayoutDashboard },
 		{ href: '/transactions', label: 'Transactions', icon: ReceiptText },
+		{ href: '/contacts',    label: 'Contacts',     icon: UsersRound },
 		{ href: '/accounts', label: 'Accounts', icon: BookOpen },
 		{ href: '/categories', label: 'Categories', icon: Tag },
 		{ href: '/locations', label: 'Locations', icon: MapPin },

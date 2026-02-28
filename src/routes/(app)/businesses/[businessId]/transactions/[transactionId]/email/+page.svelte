@@ -24,9 +24,9 @@
 	const amount = formatAmount(tx.amount, biz.currency);
 
 	let documentType = $state<DocType>((tx.documentType as DocType | null) ?? defaultDocType(tx.type));
-	let toEmail      = $state('');
-	let billToName   = $state('');
-	let billToAddr   = $state('');
+	let toEmail      = $state(data.contact?.email ?? '');
+	let billToName   = $state(data.contact?.name ?? '');
+	let billToAddr   = $state(data.contact?.address ?? '');
 	let subject      = $state('');
 	let sending      = $state(false);
 	let sent         = $state(false);

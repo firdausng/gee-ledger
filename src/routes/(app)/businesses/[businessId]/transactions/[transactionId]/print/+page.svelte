@@ -22,8 +22,8 @@
 	}
 
 	let documentType = $state<DocType>((tx.documentType as DocType | null) ?? defaultDocType(tx.type));
-	let billToName  = $state('');
-	let billToAddr  = $state('');
+	let billToName  = $state(data.contact?.name ?? '');
+	let billToAddr  = $state(data.contact?.address ?? '');
 	let billToEmail = $state('');
 	let invoiceNo   = $state(tx.invoiceNo ?? '');
 	let receiptNo   = $state(tx.receiptNo ?? '');

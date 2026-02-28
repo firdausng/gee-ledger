@@ -8,6 +8,7 @@ export type Permission =
 	| 'attachment:delete'
 	| 'account:manage'
 	| 'category:manage'
+	| 'contact:manage'
 	| 'business:manage'
 	| 'user:invite';
 
@@ -24,6 +25,7 @@ export const POLICIES: Record<PolicyKey, Permission[]> = {
 		'attachment:delete',
 		'account:manage',
 		'category:manage',
+		'contact:manage',
 		'business:manage',
 		'user:invite'
 	],
@@ -37,6 +39,7 @@ export const POLICIES: Record<PolicyKey, Permission[]> = {
 		'attachment:delete',
 		'account:manage',
 		'category:manage',
+		'contact:manage',
 		'user:invite'
 	],
 	cashier: ['transaction:create', 'transaction:view', 'attachment:upload', 'attachment:view'],

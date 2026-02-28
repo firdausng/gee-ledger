@@ -16,6 +16,8 @@
 		salesChannelId: string | null;
 		locationId: string;
 		categoryId: string | null;
+		contactId: string | null;
+		contactName: string | null;
 		attachmentCount: number;
 	};
 
@@ -157,7 +159,9 @@
 						</span>
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground truncate">{tx.note ?? '—'}</p>
-							<p class="text-xs text-muted-foreground">{tx.transactionDate}</p>
+							<p class="text-xs text-muted-foreground">
+							{tx.transactionDate}{#if tx.contactName} · {tx.contactName}{/if}
+						</p>
 						</div>
 						<span
 							class="text-sm font-semibold shrink-0

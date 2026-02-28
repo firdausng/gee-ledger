@@ -24,6 +24,7 @@ export async function updateTransactionHandler(
 			...(data.locationId !== undefined && { locationId: data.locationId }),
 			...(data.salesChannelId !== undefined && { salesChannelId: data.salesChannelId }),
 			...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+			...(data.contactId  !== undefined && { contactId:  data.contactId  }),
 			...(data.type !== undefined && { type: data.type }),
 			...(data.amount !== undefined && { amount: data.amount }),
 			...(data.note !== undefined && { note: data.note }),

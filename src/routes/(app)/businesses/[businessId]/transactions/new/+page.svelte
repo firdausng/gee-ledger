@@ -9,6 +9,7 @@
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
+	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean };
 	type PendingAttachment = { id: string; fileName: string; mimeType: string; fileSize: number };
 
 	const businessId = $page.params.businessId;
@@ -16,6 +17,7 @@
 	let locations = $state<Location[]>([]);
 	let channels = $state<Channel[]>([]);
 	let categories = $state<Category[]>([]);
+	let contacts = $state<Contact[]>([]);
 	let loadingMeta = $state(true);
 
 	// Form fields
@@ -25,6 +27,7 @@
 	let locationId = $state('');
 	let salesChannelId = $state('');
 	let categoryId = $state('');
+	let contactId = $state('');
 	let note = $state('');
 	let referenceNo = $state('');
 
@@ -39,6 +42,8 @@
 	const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 	let filteredCategories = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
+	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
+	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
 
 	// ── Location modal ────────────────────────────────────────────────
 	let showLocationModal = $state(false);
@@ -108,6 +113,42 @@
 		}
 	}
 
+	// ── Contact modal ─────────────────────────────────────────────────
+	let showContactModal = $state(false);
+	let newContactName = $state('');
+	let newContactIsClient   = $state(false);
+	let newContactIsSupplier = $state(false);
+	let savingContact = $state(false);
+	let contactError = $state<string | null>(null);
+
+	function openContactModal() {
+		newContactName = '';
+		newContactIsClient   = type === 'income';
+		newContactIsSupplier = type === 'expense';
+		contactError = null;
+		showContactModal = true;
+	}
+
+	async function saveContact() {
+		if (!newContactName.trim()) return;
+		try {
+			savingContact = true;
+			contactError = null;
+			const c = await api.post<Contact>(`/businesses/${businessId}/contacts`, {
+				name:       newContactName.trim(),
+				isClient:   newContactIsClient,
+				isSupplier: newContactIsSupplier,
+			});
+			contacts = [...contacts, c];
+			contactId = c.id;
+			showContactModal = false;
+		} catch (e) {
+			contactError = e instanceof Error ? e.message : 'Failed to create contact.';
+		} finally {
+			savingContact = false;
+		}
+	}
+
 	// ── Channel modal ─────────────────────────────────────────────────
 	let showChannelModal = $state(false);
 	let newChName = $state('');
@@ -151,14 +192,16 @@
 	async function loadMeta() {
 		try {
 			loadingMeta = true;
-			const [locs, chans, cats] = await Promise.all([
+			const [locs, chans, cats, ctcts] = await Promise.all([
 				api.get<Location[]>(`/businesses/${businessId}/locations`),
 				api.get<Channel[]>(`/businesses/${businessId}/channels`),
-				api.get<Category[]>(`/businesses/${businessId}/categories`)
+				api.get<Category[]>(`/businesses/${businessId}/categories`),
+				api.get<Contact[]>(`/businesses/${businessId}/contacts`)
 			]);
 			locations = locs;
 			channels = chans;
 			categories = cats;
+			contacts = ctcts;
 			if (locs.length > 0) locationId = locs[0].id;
 		} catch {
 			// non-critical
@@ -218,6 +261,7 @@
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
+				contactId: contactId || undefined,
 				note: note.trim() || undefined,
 				referenceNo: referenceNo.trim() || undefined,
 				attachmentIds: pendingAttachments.map((a) => a.id)
@@ -424,6 +468,35 @@
 						</button>
 					</div>
 				{/if}
+			</div>
+		{/if}
+
+		<!-- Contact (client for income, supplier for expense) -->
+		{#if type === 'income' || type === 'expense'}
+			<div>
+				<label class="text-sm font-medium block mb-1" for="tx-contact">
+					{type === 'income' ? 'Client' : 'Supplier'}
+				</label>
+				<div class="flex gap-2">
+					<select
+						id="tx-contact"
+						bind:value={contactId}
+						class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<option value="">No {type === 'income' ? 'client' : 'supplier'}</option>
+						{#each (type === 'income' ? clientContacts : supplierContacts) as c (c.id)}
+							<option value={c.id}>{c.name}</option>
+						{/each}
+					</select>
+					<button
+						type="button"
+						onclick={openContactModal}
+						class="px-2.5 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+						title="Add new contact"
+					>
+						<Plus class="size-4" />
+					</button>
+				</div>
 			</div>
 		{/if}
 
@@ -758,6 +831,76 @@
 					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 				>
 					{#if savingChannel}<Loader2 class="size-3.5 animate-spin" />{/if}
+					Save
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- ── Contact modal ───────────────────────────────────────────────── -->
+{#if showContactModal}
+	<div
+		class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+		role="presentation"
+		onclick={(e) => { if (e.target === e.currentTarget) showContactModal = false; }}
+	>
+		<div class="bg-card border border-border rounded-lg shadow-lg w-full max-w-sm">
+			<div class="flex items-center justify-between px-5 py-4 border-b border-border">
+				<h3 class="font-semibold text-foreground">Add Contact</h3>
+				<button
+					onclick={() => (showContactModal = false)}
+					class="p-1 rounded text-muted-foreground hover:bg-muted"
+				>
+					<X class="size-4" />
+				</button>
+			</div>
+
+			<div class="px-5 py-4 flex flex-col gap-4">
+				{#if contactError}
+					<p class="text-sm text-destructive">{contactError}</p>
+				{/if}
+
+				<div>
+					<label class="text-sm font-medium block mb-1" for="contact-name">
+						Name <span class="text-destructive">*</span>
+					</label>
+					<input
+						id="contact-name"
+						type="text"
+						bind:value={newContactName}
+						placeholder="e.g. Acme Corp"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+
+				<div class="flex gap-4">
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<input type="checkbox" bind:checked={newContactIsClient} class="accent-primary" />
+						Client
+					</label>
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<input type="checkbox" bind:checked={newContactIsSupplier} class="accent-primary" />
+						Supplier
+					</label>
+				</div>
+			</div>
+
+			<div class="flex justify-end gap-2 px-5 py-4 border-t border-border">
+				<button
+					type="button"
+					onclick={() => (showContactModal = false)}
+					class="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					onclick={saveContact}
+					disabled={savingContact || !newContactName.trim()}
+					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+				>
+					{#if savingContact}<Loader2 class="size-3.5 animate-spin" />{/if}
 					Save
 				</button>
 			</div>

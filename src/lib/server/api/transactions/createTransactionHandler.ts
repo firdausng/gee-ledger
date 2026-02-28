@@ -44,6 +44,7 @@ export async function createTransactionHandler(
 			locationId: data.locationId,
 			salesChannelId: data.salesChannelId ?? null,
 			categoryId: data.categoryId ?? null,
+			contactId: data.contactId ?? null,
 			type: data.type,
 			amount: data.amount,
 			note: data.note ?? null,

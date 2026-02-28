@@ -15,7 +15,8 @@
 		Tag,
 		Hash,
 		Printer,
-		Mail
+		Mail,
+		UsersRound
 	} from '@lucide/svelte';
 
 	let { data } = $props();
@@ -23,6 +24,7 @@
 	type Location = { id: string; name: string; type: string };
 	type Channel  = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
+	type Contact  = { id: string; name: string; isClient: boolean; isSupplier: boolean };
 	type Transaction = {
 		id: string;
 		type: 'income' | 'expense' | 'transfer';
@@ -31,6 +33,7 @@
 		locationId: string;
 		salesChannelId: string | null;
 		categoryId: string | null;
+		contactId: string | null;
 		note: string | null;
 		referenceNo: string | null;
 	};
@@ -50,6 +53,7 @@
 	let channels    = $state<Channel[]>([]);
 	let categories  = $state<Category[]>([]);
 	let attachments = $state<Attachment[]>([]);
+	let contact     = $state<Contact | null>(null);
 	let loading     = $state(true);
 	let error       = $state<string | null>(null);
 
@@ -82,6 +86,9 @@
 			categories  = cats;
 			tx          = transaction;
 			attachments = atts;
+			if (transaction.contactId) {
+				contact = await api.get<Contact>(`/businesses/${businessId}/contacts/${transaction.contactId}`);
+			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load transaction';
 		} finally {
@@ -197,6 +204,15 @@
 					<Tag class="size-4 text-muted-foreground shrink-0" />
 					<span class="text-sm text-muted-foreground w-24 shrink-0">Category</span>
 					<span class="text-sm text-foreground">{category.name}</span>
+				</div>
+			{/if}
+
+			<!-- Contact -->
+			{#if contact}
+				<div class="flex items-center gap-3 px-4 py-3 border-b border-border">
+					<UsersRound class="size-4 text-muted-foreground shrink-0" />
+					<span class="text-sm text-muted-foreground w-24 shrink-0">Contact</span>
+					<span class="text-sm text-foreground">{contact.name}</span>
 				</div>
 			{/if}
 

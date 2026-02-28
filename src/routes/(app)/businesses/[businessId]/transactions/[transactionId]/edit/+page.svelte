@@ -8,6 +8,7 @@
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
+	type Contact  = { id: string; name: string; isClient: boolean; isSupplier: boolean };
 	type Transaction = {
 		id: string;
 		type: 'income' | 'expense' | 'transfer';
@@ -16,6 +17,7 @@
 		locationId: string;
 		salesChannelId: string | null;
 		categoryId: string | null;
+		contactId: string | null;
 		note: string | null;
 		referenceNo: string | null;
 		invoiceNo: string | null;
@@ -36,6 +38,7 @@
 	let locations = $state<Location[]>([]);
 	let channels = $state<Channel[]>([]);
 	let categories = $state<Category[]>([]);
+	let contacts = $state<Contact[]>([]);
 	let loadingMeta = $state(true);
 
 	// Form fields
@@ -45,6 +48,7 @@
 	let locationId = $state('');
 	let salesChannelId = $state('');
 	let categoryId = $state('');
+	let contactId = $state('');
 	let note = $state('');
 	let referenceNo = $state('');
 	let invoiceNo = $state('');
@@ -54,7 +58,9 @@
 	let submitError = $state<string | null>(null);
 	let loadError = $state<string | null>(null);
 
-	let filteredCategories = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
+	let filteredCategories  = $derived(categories.filter((c) => c.type === type || type === 'transfer'));
+	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
+	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
 
 	// Attachments
 	let attachmentsList = $state<Attachment[]>([]);
@@ -85,10 +91,11 @@
 		try {
 			loadingMeta = true;
 			loadError = null;
-			const [locs, chans, cats, tx, atts, txItems] = await Promise.all([
+			const [locs, chans, cats, conts, tx, atts, txItems] = await Promise.all([
 				api.get<Location[]>(`/businesses/${businessId}/locations`),
 				api.get<Channel[]>(`/businesses/${businessId}/channels`),
 				api.get<Category[]>(`/businesses/${businessId}/categories`),
+				api.get<Contact[]>(`/businesses/${businessId}/contacts`),
 				api.get<Transaction>(`/businesses/${businessId}/transactions/${transactionId}`),
 				api.get<Attachment[]>(`/businesses/${businessId}/transactions/${transactionId}/attachments`),
 				api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number }[]>(
@@ -98,6 +105,7 @@
 			locations = locs;
 			channels = chans;
 			categories = cats;
+			contacts = conts;
 			attachmentsList = atts;
 
 			type = tx.type;
@@ -106,6 +114,7 @@
 			locationId = tx.locationId;
 			salesChannelId = tx.salesChannelId ?? '';
 			categoryId = tx.categoryId ?? '';
+			contactId = tx.contactId ?? '';
 			note = tx.note ?? '';
 			referenceNo = tx.referenceNo ?? '';
 			invoiceNo = tx.invoiceNo ?? '';
@@ -141,6 +150,7 @@
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
+				contactId: contactId || null,
 				note: note.trim() || undefined,
 				referenceNo: referenceNo.trim() || undefined,
 				invoiceNo: invoiceNo.trim() || null,
@@ -277,7 +287,7 @@
 					{#each ['income', 'expense', 'transfer'] as t}
 						<button
 							type="button"
-							onclick={() => { type = t as typeof type; salesChannelId = ''; categoryId = ''; }}
+							onclick={() => { type = t as typeof type; salesChannelId = ''; categoryId = ''; contactId = ''; }}
 							class="flex-1 py-2 rounded-md border text-sm font-medium capitalize transition-colors
 								{type === t ? 'border-primary bg-primary/10 text-primary' : 'border-input text-muted-foreground hover:border-muted-foreground'}"
 						>
@@ -373,6 +383,25 @@
 					{/each}
 				</select>
 			</div>
+
+			<!-- Contact (client for income, supplier for expense) -->
+			{#if type === 'income' || type === 'expense'}
+				<div>
+					<label class="text-sm font-medium block mb-1" for="tx-contact">
+						{type === 'income' ? 'Client' : 'Supplier'}
+					</label>
+					<select
+						id="tx-contact"
+						bind:value={contactId}
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<option value="">No {type === 'income' ? 'client' : 'supplier'}</option>
+						{#each (type === 'income' ? clientContacts : supplierContacts) as c (c.id)}
+							<option value={c.id}>{c.name}</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
 
 			<!-- Note -->
 			<div>

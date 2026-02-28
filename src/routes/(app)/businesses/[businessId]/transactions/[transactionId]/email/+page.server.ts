@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, isNull, asc } from 'drizzle-orm';
-import { transactions, businesses, locations, categories, salesChannels, transactionAttachments, attachments, transactionItems } from '$lib/server/db/schema';
+import { transactions, businesses, locations, categories, salesChannels, transactionAttachments, attachments, transactionItems, contacts } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { checkBusinessPermission } from '$lib/server/utils/businessPermissions';
 import type { PageServerLoad } from './$types';
@@ -42,5 +42,11 @@ export const load: PageServerLoad = async ({ locals, params, platform }) => {
 	const category = cats.find((c) => c.id === tx.categoryId)    ?? null;
 	const channel  = chans.find((c) => c.id === tx.salesChannelId) ?? null;
 
-	return { transaction: tx, business: biz, location, category, channel, attachments: atts, items };
+	const contact = tx.contactId
+		? await db.select().from(contacts)
+			.where(and(eq(contacts.id, tx.contactId), isNull(contacts.deletedAt)))
+			.limit(1).then((r) => r[0] ?? null)
+		: null;
+
+	return { transaction: tx, business: biz, location, category, channel, attachments: atts, items, contact };
 };

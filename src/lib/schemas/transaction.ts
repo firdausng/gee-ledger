@@ -7,6 +7,7 @@ export const CreateTransactionSchema = v.pipe(
 		locationId: v.pipe(v.string(), v.minLength(1)),
 		salesChannelId: v.optional(v.string()),
 		categoryId: v.optional(v.string()),
+		contactId: v.optional(v.string()),
 		type: TransactionTypeSchema,
 		// Positive integer cents (e.g. 1000 = MYR 10.00)
 		amount: v.pipe(v.number(), v.integer(), v.minValue(1)),
@@ -32,6 +33,7 @@ export const UpdateTransactionSchema = v.pipe(
 		locationId: v.optional(v.pipe(v.string(), v.minLength(1))),
 		salesChannelId: v.optional(v.nullable(v.string())),
 		categoryId: v.optional(v.nullable(v.string())),
+		contactId: v.optional(v.nullable(v.string())),
 		type: v.optional(TransactionTypeSchema),
 		amount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
 		note: v.optional(v.pipe(v.string(), v.maxLength(500))),

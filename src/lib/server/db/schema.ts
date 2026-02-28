@@ -171,6 +171,8 @@ export const transactions = sqliteTable(
 		// Required for income, optional for expense/transfer
 		salesChannelId: text('sales_channel_id'),
 		categoryId: text('category_id'),
+		// Optional link to contacts.id — no FK constraint (contacts is a separate domain)
+		contactId: text('contact_id'),
 		// 'income' | 'expense' | 'transfer'
 		type: text('type').notNull(),
 		// Stored as integer cents (e.g. 1000 = MYR 10.00)
@@ -261,6 +263,60 @@ export const transactionItems = sqliteTable('transaction_items', {
 }, (t) => ({
 	transactionIdx: index('transaction_items_transaction_idx').on(t.transactionId)
 }));
+
+// ─── Contacts ─────────────────────────────────────────────────────────────────
+
+export const contacts = sqliteTable(
+	'contacts',
+	{
+		id:         text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		name:       text('name').notNull(),
+		email:      text('email'),
+		phone:      text('phone'),
+		address:    text('address'),
+		taxId:      text('tax_id'),
+		createdAt:  text('created_at').notNull(),
+		createdBy:  text('created_by').notNull(),
+		updatedAt:  text('updated_at').notNull(),
+		updatedBy:  text('updated_by').notNull(),
+		deletedAt:  text('deleted_at'),
+		deletedBy:  text('deleted_by')
+	},
+	(t) => ({
+		bizDeletedIdx: index('contacts_biz_deleted_idx').on(t.businessId, t.deletedAt)
+	})
+);
+
+// Marks a contact as a client of this business (income source)
+export const clients = sqliteTable(
+	'clients',
+	{
+		id:         text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		contactId:  text('contact_id').notNull(),
+		createdAt:  text('created_at').notNull(),
+		createdBy:  text('created_by').notNull()
+	},
+	(t) => ({
+		uniqueIdx: uniqueIndex('clients_biz_contact_uniq').on(t.businessId, t.contactId)
+	})
+);
+
+// Marks a contact as a supplier of this business (expense target)
+export const suppliers = sqliteTable(
+	'suppliers',
+	{
+		id:         text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		contactId:  text('contact_id').notNull(),
+		createdAt:  text('created_at').notNull(),
+		createdBy:  text('created_by').notNull()
+	},
+	(t) => ({
+		uniqueIdx: uniqueIndex('suppliers_biz_contact_uniq').on(t.businessId, t.contactId)
+	})
+);
 
 // ─── Invitations ──────────────────────────────────────────────────────────────
 
