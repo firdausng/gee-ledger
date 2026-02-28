@@ -559,6 +559,12 @@
 						<div class="flex items-center gap-3 px-3 py-2.5 border-b border-border last:border-0 bg-card">
 							{#if att.mimeType === 'application/pdf'}
 								<FileText class="size-4 text-red-500 shrink-0" />
+							{:else if att.mimeType.startsWith('image/')}
+								<img
+									src={downloadUrl(att.id)}
+									alt={att.fileName}
+									class="h-10 w-10 rounded object-cover border border-border shrink-0"
+								/>
 							{:else}
 								<FileImage class="size-4 text-blue-500 shrink-0" />
 							{/if}
