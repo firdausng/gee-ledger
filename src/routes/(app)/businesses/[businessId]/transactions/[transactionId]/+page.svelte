@@ -110,12 +110,12 @@
 			loadingMeta = true;
 			loadError = null;
 			const [locs, chans, cats, conts, tx, atts] = await Promise.all([
-				api.get(`/businesses/${businessId}/locations`),
-				api.get(`/businesses/${businessId}/channels`),
-				api.get(`/businesses/${businessId}/categories`),
-				api.get(`/businesses/${businessId}/contacts`),
-				api.get(`/businesses/${businessId}/transactions/${transactionId}`),
-				api.get(`/businesses/${businessId}/transactions/${transactionId}/attachments`),
+				api.get<Location[]>(`/businesses/${businessId}/locations`),
+				api.get<Channel[]>(`/businesses/${businessId}/channels`),
+				api.get<Category[]>(`/businesses/${businessId}/categories`),
+				api.get<Contact[]>(`/businesses/${businessId}/contacts`),
+				api.get<Transaction>(`/businesses/${businessId}/transactions/${transactionId}`),
+				api.get<Attachment[]>(`/businesses/${businessId}/transactions/${transactionId}/attachments`),
 			]);
 			locations = locs;
 			channels = chans;
@@ -136,14 +136,18 @@
 			featuredImageId = tx.featuredImageId ?? null;
 
 			if (lineItemMode === 'items') {
-				const txItems = await api.get(`/businesses/${businessId}/transactions/${transactionId}/items`);
+				const txItems = await api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number }[]>(
+					`/businesses/${businessId}/transactions/${transactionId}/items`
+				);
 				items = txItems.map((i) => ({
 					description: i.description,
 					quantity: i.quantity,
 					unitPrice: (i.unitPrice / 100).toFixed(2)
 				}));
 			} else {
-				const txServiceItems = await api.get(`/businesses/${businessId}/transactions/${transactionId}/service-items`);
+				const txServiceItems = await api.get<{ id: string; description: string; hours: number; rate: number; sortOrder: number }[]>(
+					`/businesses/${businessId}/transactions/${transactionId}/service-items`
+				);
 				serviceItems = txServiceItems.map((i) => ({
 					description: i.description,
 					hours: i.hours,
