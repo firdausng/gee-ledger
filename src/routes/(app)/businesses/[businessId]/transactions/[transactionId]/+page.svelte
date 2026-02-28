@@ -40,8 +40,9 @@
 		fileSize: number;
 		createdAt: string;
 	};
+	type Product = { id: string; name: string; sku: string | null; description: string | null; defaultPrice: number; defaultQty: number };
 	type ItemAttachment = { id: string; fileName: string; mimeType: string };
-	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[] };
+	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[]; productId: string };
 	type ServiceItem = { description: string; hours: number; rate: string; attachments: ItemAttachment[] };
 
 	const businessId = $page.params.businessId!;
@@ -59,6 +60,7 @@
 	let channels = $state<Channel[]>([]);
 	let categories = $state<Category[]>([]);
 	let contacts = $state<Contact[]>([]);
+	let products = $state<Product[]>([]);
 	let loadingMeta = $state(true);
 
 	// Form fields
@@ -119,11 +121,12 @@
 		try {
 			loadingMeta = true;
 			loadError = null;
-			const [locs, chans, cats, conts, tx, atts] = await Promise.all([
+			const [locs, chans, cats, conts, prods, tx, atts] = await Promise.all([
 				api.get<Location[]>(`/businesses/${businessId}/locations`),
 				api.get<Channel[]>(`/businesses/${businessId}/channels`),
 				api.get<Category[]>(`/businesses/${businessId}/categories`),
 				api.get<Contact[]>(`/businesses/${businessId}/contacts`),
+				api.get<Product[]>(`/businesses/${businessId}/products`),
 				api.get<Transaction>(`/businesses/${businessId}/transactions/${transactionId}`),
 				api.get<Attachment[]>(`/businesses/${businessId}/transactions/${transactionId}/attachments`),
 			]);
@@ -131,6 +134,7 @@
 			channels = chans;
 			categories = cats;
 			contacts = conts;
+			products = prods;
 			attachmentsList = atts;
 
 			type = tx.type;
@@ -146,14 +150,15 @@
 			featuredImageId = tx.featuredImageId ?? null;
 
 			if (lineItemMode === 'items') {
-				const txItems = await api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number; attachments: ItemAttachment[] }[]>(
+				const txItems = await api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number; productId: string; attachments: ItemAttachment[] }[]>(
 					`/businesses/${businessId}/transactions/${transactionId}/items`
 				);
 				items = txItems.map((i) => ({
 					description: i.description,
 					quantity: i.quantity,
 					unitPrice: (i.unitPrice / 100).toFixed(2),
-					attachments: i.attachments ?? []
+					attachments: i.attachments ?? [],
+					productId: i.productId
 				}));
 			} else {
 				const txServiceItems = await api.get<{ id: string; description: string; hours: number; rate: number; sortOrder: number; attachments: ItemAttachment[] }[]>(
@@ -212,7 +217,8 @@
 						quantity: item.quantity,
 						unitPrice:     Math.round(parseFloat(item.unitPrice) * 100) || 0,
 						sortOrder:     idx,
-						attachmentIds: item.attachments.map((a) => a.id)
+						attachmentIds: item.attachments.map((a) => a.id),
+						productId:     item.productId,
 					}))
 				);
 			} else {
@@ -303,6 +309,14 @@
 
 	function downloadUrl(attachmentId: string) {
 		return `/api/businesses/${businessId}/attachments/${attachmentId}/download`;
+	}
+
+	async function createProductInline(name: string, defaultPrice: number): Promise<Product> {
+		const p = await api.post<Product>(`/businesses/${businessId}/products`, {
+			name, defaultPrice
+		});
+		products = [...products, p];
+		return p;
 	}
 
 	onMount(loadMeta);
@@ -399,7 +413,7 @@
 							{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
 						</Label>
 						{#if lineItemMode === 'items'}
-							<LineItemsEditor bind:items {businessId} {canUploadAttachment} />
+							<LineItemsEditor bind:items {businessId} {canUploadAttachment} {products} onCreateProduct={createProductInline} />
 						{:else}
 							<ServicesEditor bind:items={serviceItems} {businessId} {canUploadAttachment} />
 						{/if}

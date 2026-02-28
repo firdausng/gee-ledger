@@ -216,6 +216,31 @@ export const categories = sqliteTable(
 	})
 );
 
+// ─── Products ─────────────────────────────────────────────────────────────────
+
+export const products = sqliteTable(
+	'products',
+	{
+		id: text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		name: text('name').notNull(),
+		sku: text('sku'),
+		description: text('description'),
+		defaultPrice: integer('default_price').notNull(), // cents
+		defaultQty: integer('default_qty').notNull().default(1),
+		isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+		createdAt: text('created_at').notNull(),
+		createdBy: text('created_by').notNull(),
+		updatedAt: text('updated_at').notNull(),
+		updatedBy: text('updated_by').notNull(),
+		deletedAt: text('deleted_at'),
+		deletedBy: text('deleted_by')
+	},
+	(t) => ({
+		businessDeletedIdx: index('products_business_deleted_idx').on(t.businessId, t.deletedAt)
+	})
+);
+
 // ─── Transactions ─────────────────────────────────────────────────────────────
 
 export const transactions = sqliteTable(
@@ -314,6 +339,7 @@ export const transactionAttachments = sqliteTable(
 export const transactionItems = sqliteTable('transaction_items', {
 	id:            text('id').primaryKey(),
 	transactionId: text('transaction_id').notNull(),
+	productId:     text('product_id'),                                   // required on create, nullable for legacy rows
 	description:   text('description').notNull(),
 	quantity:      integer('quantity').notNull().default(1),   // whole units
 	unitPrice:     integer('unit_price').notNull(),            // cents

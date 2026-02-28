@@ -9,6 +9,7 @@ import { locationsApi } from './locations/locations-api';
 import { channelsApi } from './channels/channels-api';
 import { accountsApi } from './accounts/accounts-api';
 import { categoriesApi } from './categories/categories-api';
+import { productsApi } from './products/products-api';
 import { contactsApi } from './contacts/contacts-api';
 import { transactionsApi } from './transactions/transactions-api';
 import { invitationsApi } from './invitations/invitations-api';
@@ -59,6 +60,7 @@ const router = new Hono<App.Api>()
 	.route('/', channelsApi)
 	.route('/', accountsApi)
 	.route('/', categoriesApi)
+	.route('/', productsApi)
 	.route('/', contactsApi)
 	.route('/', transactionsApi)
 	.route('/', invitationsApi)

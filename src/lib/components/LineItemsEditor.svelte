@@ -1,32 +1,79 @@
 <script lang="ts">
-	import { X, Plus, GripVertical, Pencil, Paperclip, FileText, Loader2, Crown } from '@lucide/svelte';
+	import { X, Plus, GripVertical, Pencil, Paperclip, FileText, Loader2, Crown, Check, ChevronsUpDown } from '@lucide/svelte';
 	import { api } from '$lib/client/api.svelte';
+	import * as Popover from '$lib/components/ui/popover';
+	import * as Command from '$lib/components/ui/command';
 
 	type ItemAttachment = { id: string; fileName: string; mimeType: string };
+	type Product = {
+		id: string;
+		name: string;
+		sku: string | null;
+		description: string | null;
+		defaultPrice: number;
+		defaultQty: number;
+	};
 	type LineItem = {
 		description: string;
 		quantity: number;
 		unitPrice: string;
 		attachments: ItemAttachment[];
+		productId: string;
 	};
 
 	let {
 		items = $bindable<LineItem[]>([]),
 		businessId,
-		canUploadAttachment = true
-	}: { items: LineItem[]; businessId: string; canUploadAttachment?: boolean } = $props();
+		canUploadAttachment = true,
+		products = [],
+		onCreateProduct
+	}: {
+		items: LineItem[];
+		businessId: string;
+		canUploadAttachment?: boolean;
+		products?: Product[];
+		onCreateProduct?: (name: string, defaultPrice: number) => Promise<Product>;
+	} = $props();
 
 	let dragIndex = $state<number | null>(null);
 
 	// ── Modal state ────────────────────────────────────────────────────────────
 	let modalOpen  = $state(false);
 	let editingIdx = $state<number | null>(null);
-	let modalItem  = $state<{ description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[] }>({
-		description: '', quantity: 1, unitPrice: '0.00', attachments: []
+	let modalItem  = $state<{ description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[]; productId: string }>({
+		description: '', quantity: 1, unitPrice: '0.00', attachments: [], productId: ''
 	});
 	let uploading   = $state(false);
 	let uploadError = $state<string | null>(null);
 	let fileInputEl = $state<HTMLInputElement | null>(null);
+
+	// ── Product combobox state ────────────────────────────────────────────────
+	let productPopoverOpen = $state(false);
+	let productSearch      = $state('');
+	let creatingProduct    = $state(false);
+	let productError       = $state<string | null>(null);
+	let showNewProductForm = $state(false);
+	let newProductName     = $state('');
+	let newProductPrice    = $state('');
+
+	const filteredProducts = $derived(
+		productSearch.trim()
+			? products.filter((p) => {
+				const q = productSearch.toLowerCase();
+				return p.name.toLowerCase().includes(q) || (p.sku?.toLowerCase().includes(q) ?? false);
+			})
+			: products
+	);
+
+	const selectedProduct = $derived(
+		modalItem.productId ? products.find((p) => p.id === modalItem.productId) : null
+	);
+
+	const hasExactMatch = $derived(
+		productSearch.trim()
+			? products.some((p) => p.name.toLowerCase() === productSearch.trim().toLowerCase())
+			: true
+	);
 
 	function rowAmount(item: { quantity: number; unitPrice: string }): number {
 		return (parseFloat(item.unitPrice) || 0) * item.quantity;
@@ -42,27 +89,80 @@
 		return `/api/businesses/${businessId}/attachments/${attachmentId}/download`;
 	}
 
+	function productLabel(p: Product): string {
+		return p.sku ? `${p.name} (${p.sku})` : p.name;
+	}
+
+	function pickProduct(product: Product) {
+		modalItem = {
+			...modalItem,
+			productId: product.id,
+			description: product.description || product.name,
+			unitPrice: (product.defaultPrice / 100).toFixed(2),
+			quantity: product.defaultQty
+		};
+		productSearch = '';
+		productPopoverOpen = false;
+	}
+
+	function openNewProductForm() {
+		newProductName  = productSearch.trim();
+		newProductPrice = '';
+		productError    = null;
+		showNewProductForm = true;
+		productPopoverOpen = false;
+	}
+
+	async function confirmNewProduct() {
+		if (!newProductName.trim() || !onCreateProduct) return;
+		const priceVal = Math.round((parseFloat(newProductPrice) || 0) * 100);
+		try {
+			creatingProduct = true;
+			productError    = null;
+			const product = await onCreateProduct(newProductName.trim(), priceVal);
+			showNewProductForm = false;
+			pickProduct(product);
+		} catch (e) {
+			productError = e instanceof Error ? e.message : 'Failed to create product.';
+		} finally {
+			creatingProduct = false;
+		}
+	}
+
 	function openNew() {
 		editingIdx  = null;
-		modalItem   = { description: '', quantity: 1, unitPrice: '0.00', attachments: [] };
-		uploadError = null;
+		modalItem   = { description: '', quantity: 1, unitPrice: '0.00', attachments: [], productId: '' };
+		uploadError        = null;
+		productSearch      = '';
+		productError       = null;
+		showNewProductForm = false;
 		modalOpen   = true;
 	}
 
 	function openEdit(idx: number) {
 		editingIdx  = idx;
-		modalItem   = { ...items[idx], attachments: [...(items[idx].attachments ?? [])] };
-		uploadError = null;
+		const item = items[idx];
+		modalItem   = {
+			...item,
+			attachments: [...(item.attachments ?? [])],
+			productId: item.productId
+		};
+		uploadError        = null;
+		productSearch      = '';
+		productError       = null;
+		showNewProductForm = false;
 		modalOpen   = true;
 	}
 
 	function confirmModal() {
+		const saved: LineItem = {
+			...modalItem,
+			attachments: [...modalItem.attachments]
+		};
 		if (editingIdx === null) {
-			items = [...items, { ...modalItem, attachments: [...modalItem.attachments] }];
+			items = [...items, saved];
 		} else {
-			items = items.map((item, i) =>
-				i === editingIdx ? { ...modalItem, attachments: [...modalItem.attachments] } : item
-			);
+			items = items.map((item, i) => i === editingIdx ? saved : item);
 		}
 		modalOpen = false;
 	}
@@ -122,7 +222,7 @@
 				<tr class="border-b border-border bg-muted/50">
 					<th class="w-7 px-2"></th>
 					<th class="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Description</th>
-					<th class="text-right px-2 py-2 text-xs font-medium text-muted-foreground w-28">Qty × Price</th>
+					<th class="text-right px-2 py-2 text-xs font-medium text-muted-foreground w-28">Qty x Price</th>
 					<th class="text-right px-3 py-2 text-xs font-medium text-muted-foreground w-20">Amount</th>
 					<th class="w-16"></th>
 				</tr>
@@ -149,7 +249,7 @@
 							{/if}
 						</td>
 						<td class="px-2 py-2 text-right text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-							{item.quantity} × {item.unitPrice}
+							{item.quantity} x {item.unitPrice}
 						</td>
 						<td class="px-3 py-2 text-right text-sm tabular-nums">
 							{rowAmount(item).toFixed(2)}
@@ -221,6 +321,121 @@
 
 			<!-- Body -->
 			<div class="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
+				<!-- Product combobox -->
+				<div class="flex flex-col gap-1.5">
+					<label class="text-sm font-medium text-foreground">Product <span class="text-destructive">*</span></label>
+					{#if productError}
+						<p class="text-xs text-destructive">{productError}</p>
+					{/if}
+					<Popover.Root bind:open={productPopoverOpen}>
+						<Popover.Trigger
+							class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring {selectedProduct ? 'text-foreground' : 'text-muted-foreground'}"
+							role="combobox"
+							aria-expanded={productPopoverOpen}
+						>
+							<span class="truncate">
+								{selectedProduct ? productLabel(selectedProduct) : 'Search or create product...'}
+							</span>
+							<ChevronsUpDown class="ml-2 size-4 shrink-0 opacity-50" />
+						</Popover.Trigger>
+						<Popover.Content class="w-[--bits-popover-anchor-width] p-0" sideOffset={4}>
+							<Command.Root shouldFilter={false}>
+								<Command.Input
+									placeholder="Type to search..."
+									bind:value={productSearch}
+								/>
+								<Command.List class="max-h-48">
+									{#if filteredProducts.length === 0 && !productSearch.trim()}
+										<Command.Empty>No products yet.</Command.Empty>
+									{:else if filteredProducts.length === 0}
+										<Command.Empty>No matching products.</Command.Empty>
+									{/if}
+									<Command.Group>
+										{#each filteredProducts as p (p.id)}
+											<Command.Item
+												value={p.id}
+												onSelect={() => pickProduct(p)}
+												class="flex items-center gap-2"
+											>
+												<Check class="size-4 {modalItem.productId === p.id ? 'opacity-100' : 'opacity-0'}" />
+												<span class="flex-1 truncate">{productLabel(p)}</span>
+												<span class="text-xs text-muted-foreground tabular-nums">
+													{(p.defaultPrice / 100).toFixed(2)}
+												</span>
+											</Command.Item>
+										{/each}
+									</Command.Group>
+									{#if onCreateProduct && productSearch.trim() && !hasExactMatch}
+										<Command.Separator />
+										<Command.Group>
+											<Command.Item
+												value="__create__"
+												onSelect={openNewProductForm}
+												class="flex items-center gap-2"
+											>
+												<Plus class="size-4" />
+												<span>Create "<strong>{productSearch.trim()}</strong>"</span>
+											</Command.Item>
+										</Command.Group>
+									{/if}
+								</Command.List>
+							</Command.Root>
+						</Popover.Content>
+					</Popover.Root>
+				</div>
+
+				<!-- Inline new product form -->
+				{#if showNewProductForm}
+					<div class="rounded-md border border-border bg-muted/20 p-3 flex flex-col gap-3">
+						<p class="text-xs font-semibold text-foreground">New Product</p>
+						{#if productError}
+							<p class="text-xs text-destructive">{productError}</p>
+						{/if}
+						<div class="flex flex-col gap-1.5">
+							<label class="text-xs font-medium text-foreground" for="np-name">Name <span class="text-destructive">*</span></label>
+							<input
+								id="np-name"
+								type="text"
+								bind:value={newProductName}
+								placeholder="Product name"
+								class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+							/>
+						</div>
+						<div class="flex flex-col gap-1.5">
+							<label class="text-xs font-medium text-foreground" for="np-price">Default Price</label>
+							<input
+								id="np-price"
+								type="number"
+								bind:value={newProductPrice}
+								placeholder="0.00"
+								min="0"
+								step="0.01"
+								class="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+							/>
+						</div>
+						<div class="flex justify-end gap-2">
+							<button
+								type="button"
+								onclick={() => (showNewProductForm = false)}
+								class="px-2.5 py-1 rounded-md border border-input bg-background text-xs font-medium hover:bg-muted transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								onclick={confirmNewProduct}
+								disabled={creatingProduct || !newProductName.trim()}
+								class="px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-1"
+							>
+								{#if creatingProduct}
+									<Loader2 class="size-3 animate-spin" />
+								{/if}
+								Create
+							</button>
+						</div>
+					</div>
+				{/if}
+
 				<!-- Description -->
 				<div class="flex flex-col gap-1.5">
 					<label class="text-sm font-medium text-foreground" for="li-desc">Description</label>
@@ -343,7 +558,7 @@
 				<button
 					type="button"
 					onclick={confirmModal}
-					disabled={!modalItem.description.trim()}
+					disabled={!modalItem.description.trim() || !modalItem.productId}
 					class="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
 				>
 					{editingIdx === null ? 'Add' : 'Save'}

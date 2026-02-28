@@ -18,9 +18,10 @@
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
 	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean };
+	type Product = { id: string; name: string; sku: string | null; description: string | null; defaultPrice: number; defaultQty: number };
 	type PendingAttachment = { id: string; fileName: string; mimeType: string; fileSize: number };
 	type ItemAttachment = { id: string; fileName: string; mimeType: string };
-	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[] };
+	type LineItem = { description: string; quantity: number; unitPrice: string; attachments: ItemAttachment[]; productId: string };
 	type ServiceItem = { description: string; hours: number; rate: string; attachments: ItemAttachment[] };
 
 	const businessId = $page.params.businessId!;
@@ -33,6 +34,7 @@
 	let channels = $state<Channel[]>([]);
 	let categories = $state<Category[]>([]);
 	let contacts = $state<Contact[]>([]);
+	let products = $state<Product[]>([]);
 	let loadingMeta = $state(true);
 
 	// Form fields
@@ -217,6 +219,15 @@
 		}
 	}
 
+	// ── Inline product create ────────────────────────────────────────
+	async function createProductInline(name: string, defaultPrice: number): Promise<Product> {
+		const p = await api.post<Product>(`/businesses/${businessId}/products`, {
+			name, defaultPrice
+		});
+		products = [...products, p];
+		return p;
+	}
+
 	// ─────────────────────────────────────────────────────────────────
 
 	function formatFileSize(bytes: number): string {
@@ -227,16 +238,18 @@
 	async function loadMeta() {
 		try {
 			loadingMeta = true;
-			const [locs, chans, cats, ctcts] = await Promise.all([
+			const [locs, chans, cats, ctcts, prods] = await Promise.all([
 				api.get<Location[]>(`/businesses/${businessId}/locations`),
 				api.get<Channel[]>(`/businesses/${businessId}/channels`),
 				api.get<Category[]>(`/businesses/${businessId}/categories`),
-				api.get<Contact[]>(`/businesses/${businessId}/contacts`)
+				api.get<Contact[]>(`/businesses/${businessId}/contacts`),
+				api.get<Product[]>(`/businesses/${businessId}/products`)
 			]);
 			locations = locs;
 			channels = chans;
 			categories = cats;
 			contacts = ctcts;
+			products = prods;
 			if (locs.length > 0) locationId = locs[0].id;
 		} catch {
 			// non-critical
@@ -314,6 +327,7 @@
 						unitPrice:     Math.round(parseFloat(i.unitPrice) * 100),
 						sortOrder:     idx,
 						attachmentIds: i.attachments.map((a) => a.id),
+						productId:     i.productId,
 					}))
 				);
 			} else {
@@ -399,7 +413,7 @@
 						{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
 					</Label>
 					{#if lineItemMode === 'items'}
-						<LineItemsEditor bind:items {businessId} {canUploadAttachment} />
+						<LineItemsEditor bind:items {businessId} {canUploadAttachment} {products} onCreateProduct={createProductInline} />
 					{:else}
 						<ServicesEditor bind:items={serviceItems} {businessId} {canUploadAttachment} />
 					{/if}

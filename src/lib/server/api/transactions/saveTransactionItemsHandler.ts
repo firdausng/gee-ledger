@@ -58,6 +58,7 @@ export async function saveTransactionItemsHandler(
 				items.map((item, idx) => ({
 					id:            crypto.randomUUID(),
 					transactionId,
+					productId:     item.productId,
 					description:   item.description,
 					quantity:      item.quantity,
 					unitPrice:     item.unitPrice,

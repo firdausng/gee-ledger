@@ -20,7 +20,8 @@
 		Settings2,
 		ScrollText,
 		UsersRound,
-		Crown
+		Crown,
+		Package
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
@@ -49,6 +50,7 @@
 		{ href: '/transactions', label: 'Transactions', icon: ReceiptText },
 		{ href: '/contacts',    label: 'Contacts',     icon: UsersRound },
 		{ href: '/accounts', label: 'Accounts', icon: BookOpen },
+		{ href: '/products',   label: 'Products',   icon: Package },
 		{ href: '/categories', label: 'Categories', icon: Tag },
 		{ href: '/locations', label: 'Locations', icon: MapPin },
 		{ href: '/channels', label: 'Channels', icon: ShoppingBag },
