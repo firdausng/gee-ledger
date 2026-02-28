@@ -27,7 +27,7 @@ export const POLICIES: Record<PolicyKey, Permission[]> = {
 		'category:manage',
 		'contact:manage',
 		'business:manage',
-		'user:invite'
+		'user:invite',
 	],
 	manager: [
 		'transaction:create',

@@ -13,6 +13,7 @@ import { contactsApi } from './contacts/contacts-api';
 import { transactionsApi } from './transactions/transactions-api';
 import { invitationsApi } from './invitations/invitations-api';
 import { attachmentsApi } from './attachments/attachments-api';
+import { organizationsApi } from './organizations/organizations-api';
 import {
 	type VerifyFirebaseAuthConfig ,
 	verifyFirebaseAuth
@@ -80,6 +81,7 @@ const router = new Hono<App.Api>()
 	.route('/', transactionsApi)
 	.route('/', invitationsApi)
 	.route('/', attachmentsApi)
+	.route('/', organizationsApi)
 
 	// Global error handler
 	.onError((err, c) => {

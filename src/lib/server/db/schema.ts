@@ -11,12 +11,67 @@ export const users = sqliteTable('users', {
 	updatedAt: text('updated_at').notNull()
 });
 
+// ─── Organizations ────────────────────────────────────────────────────────────
+
+export const organizations = sqliteTable('organizations', {
+	id:        text('id').primaryKey(),
+	name:      text('name').notNull(),
+	createdAt: text('created_at').notNull(),
+	createdBy: text('created_by').notNull(),
+	updatedAt: text('updated_at').notNull(),
+	updatedBy: text('updated_by').notNull(),
+	deletedAt: text('deleted_at'),
+	deletedBy: text('deleted_by'),
+});
+
+// ─── Organization Members ────────────────────────────────────────────────────
+
+export const organizationMembers = sqliteTable(
+	'organization_members',
+	{
+		id:             text('id').primaryKey(),
+		organizationId: text('organization_id').notNull(),
+		userId:         text('user_id').notNull(),
+		// 'owner' | 'admin' | 'member'
+		role:           text('role').notNull(),
+		createdAt:      text('created_at').notNull(),
+		createdBy:      text('created_by').notNull(),
+	},
+	(t) => ({
+		uniqueOrgUser: uniqueIndex('org_members_org_user_uniq').on(t.organizationId, t.userId),
+		orgIdx:        index('org_members_org_idx').on(t.organizationId),
+		userIdx:       index('org_members_user_idx').on(t.userId),
+	})
+);
+
+// ─── Subscriptions ───────────────────────────────────────────────────────────
+
+export const subscriptions = sqliteTable(
+	'subscriptions',
+	{
+		id:                 text('id').primaryKey(),
+		organizationId:     text('organization_id').notNull(),
+		// 'free' | 'pro'
+		planKey:            text('plan_key').notNull(),
+		// 'active' | 'cancelled' | 'past_due'
+		status:             text('status').notNull(),
+		currentPeriodStart: text('current_period_start'),
+		currentPeriodEnd:   text('current_period_end'),
+		createdAt:          text('created_at').notNull(),
+		updatedAt:          text('updated_at').notNull(),
+	},
+	(t) => ({
+		orgIdx: uniqueIndex('subscriptions_org_idx').on(t.organizationId),
+	})
+);
+
 // ─── Businesses ───────────────────────────────────────────────────────────────
 
 export const businesses = sqliteTable(
 	'businesses',
 	{
 		id: text('id').primaryKey(),
+		organizationId: text('organization_id'),
 		name: text('name').notNull(),
 		description: text('description'),
 		currency:   text('currency').notNull().default('USD'),
@@ -35,7 +90,8 @@ export const businesses = sqliteTable(
 	},
 	(t) => ({
 		createdByIdx: index('businesses_created_by_idx').on(t.createdBy),
-		deletedAtIdx: index('businesses_deleted_at_idx').on(t.deletedAt)
+		deletedAtIdx: index('businesses_deleted_at_idx').on(t.deletedAt),
+		orgIdx:       index('businesses_org_idx').on(t.organizationId),
 	})
 );
 

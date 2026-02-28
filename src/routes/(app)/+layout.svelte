@@ -19,7 +19,8 @@
 		Paperclip,
 		Settings2,
 		ScrollText,
-		UsersRound
+		UsersRound,
+		Crown
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
@@ -138,6 +139,13 @@
 
 		<!-- Bottom nav -->
 		<div class="p-3 border-t border-border flex flex-col gap-1">
+			<a
+				href="/organizations"
+				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
+			>
+				<Crown class="size-4" />
+				Organizations
+			</a>
 			<a
 				href="/invitations"
 				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
@@ -267,6 +275,14 @@
 		</nav>
 
 		<div class="p-3 border-t border-border flex flex-col gap-1">
+			<a
+				href="/organizations"
+				onclick={closeDrawer}
+				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted"
+			>
+				<Crown class="size-4" />
+				Organizations
+			</a>
 			<a
 				href="/invitations"
 				onclick={closeDrawer}

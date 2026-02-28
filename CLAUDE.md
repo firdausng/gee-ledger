@@ -95,6 +95,27 @@ pnpm cf-typegen        # Generate types to src/worker-configuration.d.ts
 - Worker script generated at `.svelte-kit/cloudflare/_worker.js`
 - Do not commit `.svelte-kit/`, `.wrangler/`, or `/build` directories
 
+### Organizations & Subscriptions
+- **Organizations** are the parent entity for businesses and the billing anchor
+- Every business belongs to an organization (`businesses.organizationId`)
+- When a user creates their first business, a personal organization is auto-created
+- **Subscriptions** are tied to organizations via the `subscriptions` table
+- Plan definitions are hardcoded in `src/lib/configurations/plans.ts` (same pattern as `policies.ts`)
+- Plan tiers: `free` (default) and `pro` — extensible by adding to `PlanKey` union and `PLANS` record
+- No subscription row or no active subscription = free plan
+- **Constants**: Use `PLAN_KEY`, `SUBSCRIPTION_STATUS`, and `ORG_ROLE` from `plans.ts` — never use magic strings for these values
+- **Feature gating**: `requireBusinessPermission()` in `businessPermissions.ts` automatically checks plan features for gated permissions (e.g. `attachment:upload` requires pro plan)
+- `PLAN_GATED_PERMISSIONS` set is auto-derived from plan feature lists — adding a permission to a plan's `features` array automatically gates it
+- Organization CRUD: `src/lib/server/api/organizations/`
+- Frontend pages: `/organizations` (list) and `/organizations/:id` (detail with plan info)
+- Subscription management is currently manual (direct DB insert) — no payment gateway yet
+
+### RBAC & Permissions
+- **Business roles**: `PolicyKey` (`owner` | `manager` | `cashier` | `viewer`) defined in `src/lib/configurations/policies.ts`
+- **Organization roles**: `OrgMemberRole` (`owner` | `admin` | `member`) defined in `src/lib/configurations/plans.ts`
+- Permission check: `requireBusinessPermission(user, businessId, permission, env)` checks both role permission AND plan feature
+- Plan feature check: business → organization → subscription → plan → features
+
 ## Important Notes
 
 - The project uses **Svelte 5** syntax and features
