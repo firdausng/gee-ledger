@@ -97,7 +97,7 @@
 		modalItem = {
 			...modalItem,
 			productId: product.id,
-			description: product.description || product.name,
+			description: product.description || '',
 			unitPrice: (product.defaultPrice / 100).toFixed(2),
 			quantity: product.defaultQty
 		};
@@ -241,7 +241,10 @@
 				ondragend={onDragEnd}
 			>
 				<div class="flex-1 min-w-0">
-					<p class="text-sm text-foreground break-words">{item.description || '—'}</p>
+					<p class="text-sm font-medium text-foreground break-words">{products.find((p) => p.id === item.productId)?.name || item.description || '—'}</p>
+					{#if item.description && products.find((p) => p.id === item.productId)}
+						<p class="text-xs text-muted-foreground break-words">{item.description}</p>
+					{/if}
 					<div class="flex items-center gap-2 mt-0.5">
 						<span class="text-xs text-muted-foreground tabular-nums">{item.quantity} x {item.unitPrice}</span>
 						<span class="text-xs font-medium tabular-nums">{rowAmount(item).toFixed(2)}</span>
@@ -261,7 +264,7 @@
 						class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
 						title="Move up"
 					>
-						<ChevronUp class="size-3" />
+						<ChevronUp class="size-4" />
 					</button>
 					<button
 						type="button"
@@ -270,7 +273,7 @@
 						class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
 						title="Move down"
 					>
-						<ChevronDown class="size-3" />
+						<ChevronDown class="size-4" />
 					</button>
 					<button
 						type="button"

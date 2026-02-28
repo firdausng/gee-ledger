@@ -161,7 +161,7 @@
 						class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
 						title="Move up"
 					>
-						<ChevronUp class="size-3" />
+						<ChevronUp class="size-4" />
 					</button>
 					<button
 						type="button"
@@ -170,7 +170,7 @@
 						class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
 						title="Move down"
 					>
-						<ChevronDown class="size-3" />
+						<ChevronDown class="size-4" />
 					</button>
 					<button
 						type="button"
