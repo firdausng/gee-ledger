@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/client/api.svelte';
-	import { Building2, Plus, X, Loader2, ChevronsUpDown, Check } from '@lucide/svelte';
+	import { page } from '$app/stores';
+	import { Building2, Plus, X, Loader2, ChevronsUpDown, Check, Crown } from '@lucide/svelte';
 	import { CURRENCIES } from '$lib/data/currencies';
 	import { PHONE_CODES } from '$lib/data/phoneCodes';
+	import { PLAN_KEY, PLANS } from '$lib/configurations/plans';
 
 	type Business = {
 		id: string;
@@ -18,6 +20,16 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let showCreate = $state(false);
+
+	const currentPlanKey = $derived(
+		($page.data.navBusinesses as { planKey: string }[])?.some((b) => b.planKey === PLAN_KEY.PRO)
+			? PLAN_KEY.PRO
+			: PLAN_KEY.FREE
+	);
+	const plan = $derived(PLANS[currentPlanKey as keyof typeof PLANS]);
+	const canCreateBusiness = $derived(
+		plan.limits.maxBusinesses === -1 || businesses.length < plan.limits.maxBusinesses
+	);
 
 	// Create form state
 	let createName        = $state('');
@@ -114,13 +126,20 @@
 			<h1 class="text-2xl font-bold text-foreground">My Businesses</h1>
 			<p class="text-sm text-muted-foreground mt-0.5">Manage your business entities</p>
 		</div>
-		<button
-			onclick={() => (showCreate = !showCreate)}
-			class="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-		>
-			<Plus class="size-4" />
-			New Business
-		</button>
+		{#if canCreateBusiness}
+			<button
+				onclick={() => (showCreate = !showCreate)}
+				class="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+			>
+				<Plus class="size-4" />
+				New Business
+			</button>
+		{:else}
+			<span class="flex items-center gap-1.5 px-3 py-2 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium">
+				<Crown class="size-4" />
+				{plan.limits.maxBusinesses}/{plan.limits.maxBusinesses} businesses
+			</span>
+		{/if}
 	</div>
 
 	<!-- Create form -->
