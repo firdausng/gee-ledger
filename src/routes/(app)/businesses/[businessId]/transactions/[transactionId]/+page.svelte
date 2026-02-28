@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { api, parseToCents } from '$lib/client/api.svelte';
+	import { api } from '$lib/client/api.svelte';
 	import { ArrowLeft, Loader2, Paperclip, Trash2, Download, FileImage, FileText, Plus, X, Star, Printer, Mail } from '@lucide/svelte';
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
 
@@ -45,7 +45,6 @@
 	// Form fields
 	let type = $state<'income' | 'expense' | 'transfer'>('income');
 	let transactionDate = $state('');
-	let amountRaw = $state('');
 	let locationId = $state('');
 	let salesChannelId = $state('');
 	let categoryId = $state('');
@@ -77,9 +76,6 @@
 
 	// Line items
 	let items = $state<LineItem[]>([]);
-	let savingItems = $state(false);
-	let itemsError = $state<string | null>(null);
-	let hasItems = $derived(items.length > 0);
 
 	function formatFileSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;
@@ -114,8 +110,7 @@
 
 			type = tx.type;
 			transactionDate = tx.transactionDate;
-			amountRaw = (tx.amount / 100).toFixed(2);
-			locationId = tx.locationId;
+				locationId = tx.locationId;
 			salesChannelId = tx.salesChannelId ?? '';
 			categoryId = tx.categoryId ?? '';
 			contactId = tx.contactId ?? '';
@@ -138,19 +133,25 @@
 
 	async function submit() {
 		if (!locationId || !transactionDate) return;
-		if (!hasItems && !amountRaw) return;
 		if (type === 'income' && !salesChannelId) {
 			submitError = 'Sales channel is required for income transactions.';
+			return;
+		}
+		if (items.length === 0) {
+			submitError = 'Add at least one line item.';
 			return;
 		}
 
 		try {
 			submitting = true;
 			submitError = null;
+			const total = items.reduce(
+				(sum, i) => sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0
+			);
 			await api.patch(`/businesses/${businessId}/transactions/${transactionId}`, {
 				type,
 				transactionDate,
-				...(hasItems ? {} : { amount: parseToCents(amountRaw) }),
+				amount: total,
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
@@ -160,6 +161,14 @@
 				invoiceNo: invoiceNo.trim() || null,
 				featuredImageId: featuredImageId ?? null
 			});
+			await api.put(`/businesses/${businessId}/transactions/${transactionId}/items`,
+				items.map((item, idx) => ({
+					description: item.description,
+					quantity: item.quantity,
+					unitPrice: Math.round(parseFloat(item.unitPrice) * 100) || 0,
+					sortOrder: idx
+				}))
+			);
 			goto(`/businesses/${businessId}/transactions`);
 		} catch (e) {
 			submitError = e instanceof Error ? e.message : 'Failed to update transaction';
@@ -176,28 +185,6 @@
 		} catch {
 			deleting = false;
 			showDeleteConfirm = false;
-		}
-	}
-
-	async function saveItems() {
-		try {
-			savingItems = true;
-			itemsError = null;
-			const payload = items.map((item, idx) => ({
-				description: item.description,
-				quantity: item.quantity,
-				unitPrice: Math.round(parseFloat(item.unitPrice) * 100) || 0,
-				sortOrder: idx
-			}));
-			const result = await api.put<{ items: unknown[]; total: number }>(
-				`/businesses/${businessId}/transactions/${transactionId}/items`,
-				payload
-			);
-			amountRaw = (result.total / 100).toFixed(2);
-		} catch (e) {
-			itemsError = e instanceof Error ? e.message : 'Failed to save items';
-		} finally {
-			savingItems = false;
 		}
 	}
 
@@ -315,10 +302,10 @@
 			<div class="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{submitError}</div>
 		{/if}
 
-		<div class="flex flex-col gap-4">
+		<div class="flex flex-col gap-5">
 			<!-- Type -->
 			<div>
-				<label class="text-sm font-medium block mb-1">Type <span class="text-destructive">*</span></label>
+				<label class="text-sm font-medium block mb-1.5">Type <span class="text-destructive">*</span></label>
 				<div class="flex gap-2">
 					{#each ['income', 'expense', 'transfer'] as t}
 						<button
@@ -333,11 +320,15 @@
 				</div>
 			</div>
 
+
+			<!-- Line Items -->
+			<div>
+				<label class="text-sm font-medium block mb-1.5">Line Items <span class="text-destructive">*</span></label>
+				<LineItemsEditor bind:items />
+			</div>
 			<!-- Date -->
 			<div>
-				<label class="text-sm font-medium block mb-1" for="tx-date">
-					Date <span class="text-destructive">*</span>
-				</label>
+				<label class="text-sm font-medium block mb-1.5" for="tx-date">Date <span class="text-destructive">*</span></label>
 				<input
 					id="tx-date"
 					type="date"
@@ -346,137 +337,106 @@
 				/>
 			</div>
 
-			<!-- Amount (read-only when items present) -->
-			<div>
-				<label class="text-sm font-medium block mb-1" for="tx-amount">
-					Amount <span class="text-destructive">*</span>
-					{#if hasItems}
-						<span class="text-xs font-normal text-muted-foreground ml-1">(calculated from items)</span>
-					{/if}
-				</label>
-				<input
-					id="tx-amount"
-					type="number"
-					step="0.01"
-					min="0.01"
-					bind:value={amountRaw}
-					placeholder="0.00"
-					readonly={hasItems}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring {hasItems ? 'opacity-60 cursor-not-allowed' : ''}"
-				/>
-			</div>
-
-			<!-- Location -->
-			<div>
-				<label class="text-sm font-medium block mb-1" for="tx-location">
-					Location <span class="text-destructive">*</span>
-				</label>
-				<select
-					id="tx-location"
-					bind:value={locationId}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				>
-					<option value="">Select location</option>
-					{#each locations as loc (loc.id)}
-						<option value={loc.id}>{loc.name}</option>
-					{/each}
-				</select>
-			</div>
-
-			<!-- Sales Channel (required for income) -->
-			{#if type !== 'transfer'}
-				<div>
-					<label class="text-sm font-medium block mb-1" for="tx-channel">
-						Sales Channel
-						{#if type === 'income'}
-							<span class="text-destructive">*</span>
-						{/if}
-					</label>
+			<!-- Classification: Location / Channel / Category / Contact -->
+			<div class="grid grid-cols-2 gap-3">
+				<div class="{type === 'transfer' ? 'col-span-2' : ''}">
+					<label class="text-sm font-medium block mb-1.5" for="tx-location">Location <span class="text-destructive">*</span></label>
 					<select
-						id="tx-channel"
-						bind:value={salesChannelId}
+						id="tx-location"
+						bind:value={locationId}
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 					>
-						<option value="">Select channel</option>
-						{#each channels as ch (ch.id)}
-							<option value={ch.id}>{ch.name}</option>
+						<option value="">Select location</option>
+						{#each locations as loc (loc.id)}
+							<option value={loc.id}>{loc.name}</option>
 						{/each}
 					</select>
 				</div>
-			{/if}
-
-			<!-- Category -->
-			<div>
-				<label class="text-sm font-medium block mb-1" for="tx-category">Category</label>
-				<select
-					id="tx-category"
-					bind:value={categoryId}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				>
-					<option value="">No category</option>
-					{#each filteredCategories as cat (cat.id)}
-						<option value={cat.id}>{cat.name}</option>
-					{/each}
-				</select>
-			</div>
-
-			<!-- Contact (client for income, supplier for expense) -->
-			{#if type === 'income' || type === 'expense'}
-				<div>
-					<label class="text-sm font-medium block mb-1" for="tx-contact">
-						{type === 'income' ? 'Client' : 'Supplier'}
-					</label>
+				{#if type !== 'transfer'}
+					<div>
+						<label class="text-sm font-medium block mb-1.5" for="tx-channel">
+							Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}
+						</label>
+						<select
+							id="tx-channel"
+							bind:value={salesChannelId}
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+						>
+							<option value="">Select channel</option>
+							{#each channels as ch (ch.id)}
+								<option value={ch.id}>{ch.name}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
+				<div class="{type === 'transfer' ? 'col-span-2' : ''}">
+					<label class="text-sm font-medium block mb-1.5" for="tx-category">Category</label>
 					<select
-						id="tx-contact"
-						bind:value={contactId}
+						id="tx-category"
+						bind:value={categoryId}
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 					>
-						<option value="">No {type === 'income' ? 'client' : 'supplier'}</option>
-						{#each (type === 'income' ? clientContacts : supplierContacts) as c (c.id)}
-							<option value={c.id}>{c.name}</option>
+						<option value="">No category</option>
+						{#each filteredCategories as cat (cat.id)}
+							<option value={cat.id}>{cat.name}</option>
 						{/each}
 					</select>
 				</div>
-			{/if}
-
-			<!-- Note -->
-			<div>
-				<label class="text-sm font-medium block mb-1" for="tx-note">Note</label>
-				<input
-					id="tx-note"
-					type="text"
-					bind:value={note}
-					placeholder="Optional note"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
+				{#if type === 'income' || type === 'expense'}
+					<div>
+						<label class="text-sm font-medium block mb-1.5" for="tx-contact">
+							{type === 'income' ? 'Client' : 'Supplier'}
+						</label>
+						<select
+							id="tx-contact"
+							bind:value={contactId}
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+						>
+							<option value="">No {type === 'income' ? 'client' : 'supplier'}</option>
+							{#each (type === 'income' ? clientContacts : supplierContacts) as c (c.id)}
+								<option value={c.id}>{c.name}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
 			</div>
 
-			<!-- Reference No -->
-			<div>
-				<label class="text-sm font-medium block mb-1" for="tx-ref">Reference No.</label>
-				<input
-					id="tx-ref"
-					type="text"
-					bind:value={referenceNo}
-					placeholder="Optional reference number"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
-			</div>
-
-			<!-- Invoice No -->
-			<div>
-				<label class="text-sm font-medium block mb-1" for="tx-invoice-no">Invoice No.</label>
-				<input
-					id="tx-invoice-no"
-					type="text"
-					bind:value={invoiceNo}
-					placeholder="e.g. INV-0001 (auto-assigned on print)"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
+			<!-- Note + Reference + Invoice -->
+			<div class="grid grid-cols-2 gap-3">
+				<div class="col-span-2">
+					<label class="text-sm font-medium block mb-1.5" for="tx-note">Note</label>
+					<input
+						id="tx-note"
+						type="text"
+						bind:value={note}
+						placeholder="Optional note"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+				<div>
+					<label class="text-sm font-medium block mb-1.5" for="tx-ref">Reference No.</label>
+					<input
+						id="tx-ref"
+						type="text"
+						bind:value={referenceNo}
+						placeholder="Optional"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+				<div>
+					<label class="text-sm font-medium block mb-1.5" for="tx-invoice-no">Invoice No.</label>
+					<input
+						id="tx-invoice-no"
+						type="text"
+						bind:value={invoiceNo}
+						placeholder="e.g. INV-0001"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
 			</div>
 
 			<!-- Actions -->
-			<div class="flex justify-end gap-2 pt-2">
+			<div class="flex justify-end gap-2">
 				<a
 					href="/businesses/{businessId}/transactions"
 					class="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted"
@@ -485,36 +445,13 @@
 				</a>
 				<button
 					onclick={submit}
-					disabled={submitting || !locationId || !transactionDate || (!hasItems && !amountRaw)}
+					disabled={submitting || !locationId || !transactionDate}
 					class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 				>
 					{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}
 					Save Changes
 				</button>
 			</div>
-		</div>
-
-		<!-- ─── Line Items ───────────────────────────────────────────────────── -->
-		<div class="mt-8 pt-6 border-t border-border">
-			<span class="text-sm font-medium text-foreground">Line Items</span>
-			<div class="mt-3">
-				<LineItemsEditor bind:items />
-			</div>
-			{#if itemsError}
-				<p class="text-destructive text-xs mt-2">{itemsError}</p>
-			{/if}
-			{#if hasItems}
-				<div class="flex justify-end mt-3">
-					<button
-						onclick={saveItems}
-						disabled={savingItems}
-						class="flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 disabled:opacity-50"
-					>
-						{#if savingItems}<Loader2 class="size-3.5 animate-spin" />{/if}
-						Save items
-					</button>
-				</div>
-			{/if}
 		</div>
 		<!-- ─── Attachments ─────────────────────────────────────────────── -->
 		<div class="mt-8 pt-6 border-t border-border">

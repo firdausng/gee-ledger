@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { api, parseToCents } from '$lib/client/api.svelte';
+	import { api } from '$lib/client/api.svelte';
 	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
 	import { ArrowLeft, Loader2, Paperclip, X, FileImage, FileText, Plus } from '@lucide/svelte';
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
@@ -25,7 +25,6 @@
 	// Form fields
 	let type = $state<'income' | 'expense' | 'transfer'>('income');
 	let transactionDate = $state(new Date().toISOString().slice(0, 10));
-	let amountRaw = $state('');
 	let locationId = $state('');
 	let salesChannelId = $state('');
 	let categoryId = $state('');
@@ -49,7 +48,6 @@
 
 	// Line items
 	let items = $state<LineItem[]>([]);
-	let hasItems   = $derived(items.length > 0);
 	let itemsTotal = $derived(
 		items.reduce((sum, i) =>
 			sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0)
@@ -256,15 +254,12 @@
 
 	async function submit() {
 		if (!locationId || !transactionDate) return;
-		if (!hasItems && !amountRaw) return;
 		if (type === 'income' && !salesChannelId) {
 			submitError = 'Sales channel is required for income transactions.';
 			return;
 		}
-
-		const amount = hasItems ? itemsTotal : parseToCents(amountRaw);
-		if (amount <= 0) {
-			submitError = 'Amount must be greater than zero.';
+		if (itemsTotal <= 0) {
+			submitError = 'Add at least one item with a price greater than zero.';
 			return;
 		}
 
@@ -274,7 +269,7 @@
 			const tx = await api.post<{ id: string }>(`/businesses/${businessId}/transactions`, {
 				type,
 				transactionDate,
-				amount,
+				amount: itemsTotal,
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
@@ -283,16 +278,14 @@
 				referenceNo: referenceNo.trim() || undefined,
 				attachmentIds: pendingAttachments.map((a) => a.id)
 			});
-			if (hasItems) {
-				await api.put(`/businesses/${businessId}/transactions/${tx.id}/items`,
-					items.map((i, idx) => ({
-						description: i.description,
-						quantity:    i.quantity,
-						unitPrice:   Math.round(parseFloat(i.unitPrice) * 100),
-						sortOrder:   idx,
-					}))
-				);
-			}
+			await api.put(`/businesses/${businessId}/transactions/${tx.id}/items`,
+				items.map((i, idx) => ({
+					description: i.description,
+					quantity:    i.quantity,
+					unitPrice:   Math.round(parseFloat(i.unitPrice) * 100),
+					sortOrder:   idx,
+				}))
+			);
 			goto(`/businesses/${businessId}/transactions`);
 		} catch (e) {
 			submitError = e instanceof Error ? e.message : 'Failed to create transaction';
@@ -319,10 +312,10 @@
 		<div class="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{submitError}</div>
 	{/if}
 
-	<div class="flex flex-col gap-4">
+	<div class="flex flex-col gap-5">
 		<!-- Type -->
 		<div>
-			<label class="text-sm font-medium block mb-1">Type <span class="text-destructive">*</span></label>
+			<label class="text-sm font-medium block mb-1.5">Type <span class="text-destructive">*</span></label>
 			<div class="flex gap-2">
 				{#each ['income', 'expense', 'transfer'] as t}
 					<button
@@ -337,39 +330,21 @@
 			</div>
 		</div>
 
+		<!-- Line Items -->
+		<div>
+			<label class="text-sm font-medium block mb-1.5">Line Items <span class="text-destructive">*</span></label>
+			<LineItemsEditor bind:items />
+		</div>
+
 		<!-- Date -->
 		<div>
-			<label class="text-sm font-medium block mb-1" for="tx-date">
-				Date <span class="text-destructive">*</span>
-			</label>
+			<label class="text-sm font-medium block mb-1.5" for="tx-date">Date <span class="text-destructive">*</span></label>
 			<input
 				id="tx-date"
 				type="date"
 				bind:value={transactionDate}
 				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 			/>
-		</div>
-
-		<!-- Amount -->
-		<div>
-			<label class="text-sm font-medium block mb-1" for="tx-amount">
-				Amount <span class="text-destructive">*</span>
-			</label>
-			{#if hasItems}
-				<div class="rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-					Calculated from items &middot; <span class="font-medium text-foreground">{(itemsTotal / 100).toFixed(2)}</span>
-				</div>
-			{:else}
-				<input
-					id="tx-amount"
-					type="number"
-					step="0.01"
-					min="0.01"
-					bind:value={amountRaw}
-					placeholder="0.00"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
-			{/if}
 		</div>
 
 		<!-- Location -->
@@ -533,38 +508,30 @@
 			</div>
 		{/if}
 
-		<!-- Note -->
-		<div>
-			<label class="text-sm font-medium block mb-1" for="tx-note">Note</label>
-			<input
-				id="tx-note"
-				type="text"
-				bind:value={note}
-				placeholder="Optional note"
-				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-			/>
+		<!-- Note + Reference No -->
+		<div class="grid grid-cols-2 gap-3">
+			<div class="col-span-2">
+				<label class="text-sm font-medium block mb-1.5" for="tx-note">Note</label>
+				<input
+					id="tx-note"
+					type="text"
+					bind:value={note}
+					placeholder="Optional note"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+			</div>
+			<div class="col-span-2">
+				<label class="text-sm font-medium block mb-1.5" for="tx-ref">Reference No.</label>
+				<input
+					id="tx-ref"
+					type="text"
+					bind:value={referenceNo}
+					placeholder="Optional"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+			</div>
 		</div>
 
-		<!-- Reference No -->
-		<div>
-			<label class="text-sm font-medium block mb-1" for="tx-ref">Reference No.</label>
-			<input
-				id="tx-ref"
-				type="text"
-				bind:value={referenceNo}
-				placeholder="Optional reference number"
-				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-			/>
-		</div>
-
-		<!-- Line Items -->
-		<div class="pt-2 border-t border-border">
-			<p class="text-sm font-medium mb-2">Line Items</p>
-			<LineItemsEditor bind:items />
-			{#if hasItems}
-				<p class="text-xs text-muted-foreground mt-1">Transaction amount will be set to the total above.</p>
-			{/if}
-		</div>
 
 		<!-- Attachments -->
 		<div>
@@ -626,7 +593,7 @@
 		</div>
 
 		<!-- Actions -->
-		<div class="flex justify-end gap-2 pt-2">
+		<div class="flex justify-end gap-2">
 			<a
 				href="/businesses/{businessId}/transactions"
 				class="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted"
@@ -635,7 +602,7 @@
 			</a>
 			<button
 				onclick={submit}
-				disabled={submitting || !locationId || (!hasItems && !amountRaw) || !transactionDate || uploadingFile}
+				disabled={submitting || !locationId || itemsTotal <= 0 || !transactionDate || uploadingFile}
 				class="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 			>
 				{#if submitting}<Loader2 class="size-4 animate-spin" />{/if}
