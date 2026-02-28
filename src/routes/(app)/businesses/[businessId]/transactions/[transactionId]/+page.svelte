@@ -143,16 +143,16 @@
 				<div>
 					<span
 						class="inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-2
-							{tx.type === 'income'   ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-							 tx.type === 'expense'  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-							 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}"
+							{tx.type === 'income'   ? 'bg-success-bg text-success-fg' :
+							 tx.type === 'expense'  ? 'bg-destructive/15 text-destructive' :
+							 'bg-info-bg text-info-fg'}"
 					>
 						{tx.type}
 					</span>
 					<p
 						class="text-2xl font-bold
-							{tx.type === 'income'  ? 'text-green-600' :
-							 tx.type === 'expense' ? 'text-red-600'   : 'text-foreground'}"
+							{tx.type === 'income'  ? 'text-success-fg' :
+							 tx.type === 'expense' ? 'text-destructive' : 'text-foreground'}"
 					>
 						{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.amount, data.business.currency)}
 					</p>

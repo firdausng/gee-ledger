@@ -9,14 +9,14 @@
 	});
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50">
-	<div class="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+<div class="min-h-screen flex items-center justify-center bg-background">
+	<div class="max-w-md w-full space-y-8 p-8 bg-card rounded-lg border border-border shadow-sm">
 		<div>
-			<h2 class="text-3xl font-bold text-center">Sign in to Gee Ledger</h2>
+			<h2 class="text-3xl font-bold text-center text-foreground">Sign in to Gee Ledger</h2>
 		</div>
 
 		{#if authState.error}
-			<div class="bg-red-50 text-red-600 p-3 rounded">
+			<div class="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
 				{authState.error}
 			</div>
 		{/if}
@@ -24,7 +24,7 @@
 		<div class="space-y-4">
 			<button
 				onclick={() => authActions.signInWithGoogle()}
-				class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50 transition-colors"
+				class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-border rounded-md shadow-sm bg-card hover:bg-accent transition-colors text-foreground"
 			>
 				<svg class="w-5 h-5" viewBox="0 0 24 24">
 					<path
