@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.shadcn-svelte.com)",
+      "WebFetch(https://svelte.dev)"
+    ]
+  }
+}

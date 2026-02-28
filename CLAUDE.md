@@ -11,6 +11,17 @@ This is a SvelteKit application configured to deploy on Cloudflare Workers with 
 - **Deployment**: Cloudflare Workers via Wrangler
 - **Package Manager**: pnpm
 
+**IMPORTANT:** Before working on UI components, fetch the relevant llms.txt:
+
+- Shadcn/ui: https://www.shadcn-svelte.com/llms.txt
+- Tailwind CSS: https://tailwindcss.com/llms.txt
+- svelte: https://svelte.dev/llms.txt
+- complete documentation for Svelte, SvelteKit and the CLI: https://svelte.dev/llms-full.txt
+- compressed documentation for use with medium context windows - https://svelte.dev/llms-medium.txt
+
+When working on styling tasks, read the Tailwind docs first.
+When working on components, read the component library docs first.
+
 ## Development Commands
 
 ### Running the Application
