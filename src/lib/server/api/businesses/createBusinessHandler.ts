@@ -18,7 +18,7 @@ export async function createBusinessHandler(
 			id: businessId,
 			name: data.name,
 			description: data.description ?? null,
-			currency: data.currency ?? 'MYR',
+			currency: data.currency ?? 'USD',
 			createdAt: now,
 			createdBy: user.id,
 			updatedAt: now,

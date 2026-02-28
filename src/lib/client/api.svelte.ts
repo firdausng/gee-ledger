@@ -49,8 +49,8 @@ export const api = {
 	upload: <T>(path: string, formData: FormData) => apiUpload<T>(path, formData)
 };
 
-export function formatAmount(cents: number, currency = 'MYR'): string {
-	return new Intl.NumberFormat('en-MY', { style: 'currency', currency }).format(cents / 100);
+export function formatAmount(cents: number, currency = 'USD'): string {
+	return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);
 }
 
 export function parseToCents(value: string): number {

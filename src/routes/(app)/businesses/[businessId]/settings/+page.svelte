@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
-	import { Settings2, Loader2, Upload, ImageOff } from '@lucide/svelte';
+	import { Settings2, Loader2, Upload, ImageOff, ChevronsUpDown, Check } from '@lucide/svelte';
+	import { CURRENCIES } from '$lib/data/currencies';
+	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
 
 	let { data } = $props();
 
@@ -11,15 +13,19 @@
 	// ── Business Info ──────────────────────────────────────────────
 	let infoName        = $state(biz.name ?? '');
 	let infoDescription = $state(biz.description ?? '');
-	let infoCurrency    = $state(biz.currency ?? 'MYR');
+	let infoCurrency    = $state(biz.currency ?? 'USD');
 	let infoSaving      = $state(false);
 	let infoError       = $state<string | null>(null);
 	let infoSuccess     = $state(false);
 
 	// ── Contact & Legal ────────────────────────────────────────────
 	let contactAddress = $state(biz.address ?? '');
-	let contactPhone   = $state(biz.phone ?? '');
 	let contactTaxId   = $state(biz.taxId ?? '');
+
+	// ── Phone with country code ─────────────────────────────────────
+	const parsedPhone = parsePhone(biz.phone ?? '');
+	let contactPhoneCode   = $state(parsedPhone.code);
+	let contactPhoneNumber = $state(parsedPhone.number);
 	let contactSaving  = $state(false);
 	let contactError   = $state<string | null>(null);
 	let contactSuccess = $state(false);
@@ -57,7 +63,7 @@
 			contactSuccess = false;
 			await api.patch(`/businesses/${businessId}`, {
 				address: contactAddress || undefined,
-				phone:   contactPhone   || undefined,
+				phone:   contactPhoneNumber.trim() ? `${contactPhoneCode}${contactPhoneNumber.trim()}` : undefined,
 				taxId:   contactTaxId   || undefined,
 			});
 			contactSuccess = true;
@@ -90,6 +96,41 @@
 		}
 	}
 
+	// ── Currency dropdown ───────────────────────────────────────────
+	let currencyOpen = $state(false);
+	let currencySearch = $state('');
+	let currencyContainer: HTMLDivElement;
+
+	const filteredCurrencies = $derived(
+		currencySearch.trim()
+			? CURRENCIES.filter(
+					(c) =>
+						c.code.toLowerCase().includes(currencySearch.toLowerCase()) ||
+						c.name.toLowerCase().includes(currencySearch.toLowerCase())
+				)
+			: CURRENCIES
+	);
+
+	const selectedCurrency = $derived(CURRENCIES.find((c) => c.code === infoCurrency));
+
+	function selectCurrency(code: string) {
+		infoCurrency = code;
+		currencyOpen = false;
+		currencySearch = '';
+	}
+
+	$effect(() => {
+		if (!currencyOpen) return;
+		function handleClick(e: MouseEvent) {
+			if (!currencyContainer?.contains(e.target as Node)) {
+				currencyOpen = false;
+				currencySearch = '';
+			}
+		}
+		document.addEventListener('click', handleClick);
+		return () => document.removeEventListener('click', handleClick);
+	});
+
 	const inputClass = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring';
 	const labelClass = 'block text-sm font-medium text-foreground mb-1';
 	const sectionClass = 'rounded-lg border border-border bg-card p-5 mb-4';
@@ -118,7 +159,55 @@
 			</div>
 			<div>
 				<label class={labelClass} for="info-currency">Currency</label>
-				<input id="info-currency" class={inputClass} type="text" maxlength="3" bind:value={infoCurrency} />
+				<div class="relative" bind:this={currencyContainer}>
+					<button
+						type="button"
+						id="info-currency"
+						onclick={() => { currencyOpen = !currencyOpen; currencySearch = ''; }}
+						class="{inputClass} flex items-center justify-between gap-2 text-left cursor-pointer"
+					>
+						<span>
+							<span class="font-mono font-medium">{infoCurrency}</span>
+							{#if selectedCurrency}
+								<span class="text-muted-foreground ml-1.5">— {selectedCurrency.name}</span>
+							{/if}
+						</span>
+						<ChevronsUpDown class="size-4 text-muted-foreground shrink-0" />
+					</button>
+					{#if currencyOpen}
+						<div class="absolute z-20 mt-1 w-full rounded-md border border-border bg-card shadow-lg overflow-hidden">
+							<div class="border-b border-border px-3 py-2">
+								<input
+									type="text"
+									bind:value={currencySearch}
+									placeholder="Search currency…"
+									autofocus
+									class="w-full text-sm bg-transparent focus:outline-none text-foreground placeholder:text-muted-foreground"
+								/>
+							</div>
+							<ul class="max-h-52 overflow-y-auto py-1">
+								{#each filteredCurrencies as c (c.code)}
+									<li>
+										<button
+											type="button"
+											onclick={() => selectCurrency(c.code)}
+											class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors {infoCurrency === c.code ? 'text-primary' : 'text-foreground'}"
+										>
+											<span class="font-mono w-10 shrink-0">{c.code}</span>
+											<span class="text-muted-foreground flex-1 text-left truncate">{c.name}</span>
+											{#if infoCurrency === c.code}
+												<Check class="size-3.5 text-primary shrink-0" />
+											{/if}
+										</button>
+									</li>
+								{/each}
+								{#if filteredCurrencies.length === 0}
+									<li class="px-3 py-4 text-center text-sm text-muted-foreground">No currencies found</li>
+								{/if}
+							</ul>
+						</div>
+					{/if}
+				</div>
 			</div>
 		</div>
 		{#if infoError}
@@ -134,7 +223,7 @@
 				Save
 			</button>
 			{#if infoSuccess}
-				<span class="text-xs text-green-600">Saved!</span>
+				<span class="text-xs text-success-fg">Saved!</span>
 			{/if}
 		</div>
 	</div>
@@ -146,11 +235,27 @@
 		<div class="flex flex-col gap-3">
 			<div>
 				<label class={labelClass} for="contact-address">Address</label>
-				<textarea id="contact-address" class="{inputClass} resize-none" rows="3" bind:value={contactAddress} placeholder="123 Main St, City, Country"></textarea>
+				<textarea id="contact-address" class="{inputClass} resize-none" rows="5" bind:value={contactAddress} placeholder="123 Main St, City, Country"></textarea>
 			</div>
 			<div>
-				<label class={labelClass} for="contact-phone">Phone</label>
-				<input id="contact-phone" class={inputClass} type="text" bind:value={contactPhone} placeholder="+60 12-345 6789" />
+				<label class={labelClass} for="contact-phone-number">Phone</label>
+				<div class="flex rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring overflow-hidden">
+					<select
+						bind:value={contactPhoneCode}
+						class="shrink-0 bg-transparent border-r border-input pl-2 pr-1 py-2 text-sm focus:outline-none text-foreground"
+					>
+						{#each PHONE_CODES as p (p.code)}
+							<option value={p.code}>{p.flag} {p.code}</option>
+						{/each}
+					</select>
+					<input
+						id="contact-phone-number"
+						type="tel"
+						bind:value={contactPhoneNumber}
+						placeholder="12-345 6789"
+						class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground"
+					/>
+				</div>
 			</div>
 			<div>
 				<label class={labelClass} for="contact-taxid">Tax ID / SST No.</label>
@@ -170,7 +275,7 @@
 				Save
 			</button>
 			{#if contactSuccess}
-				<span class="text-xs text-green-600">Saved!</span>
+				<span class="text-xs text-success-fg">Saved!</span>
 			{/if}
 		</div>
 	</div>

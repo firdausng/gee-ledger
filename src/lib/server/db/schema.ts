@@ -19,7 +19,7 @@ export const businesses = sqliteTable(
 		id: text('id').primaryKey(),
 		name: text('name').notNull(),
 		description: text('description'),
-		currency:   text('currency').notNull().default('MYR'),
+		currency:   text('currency').notNull().default('USD'),
 		address:    text('address'),
 		phone:      text('phone'),
 		taxId:      text('tax_id'),

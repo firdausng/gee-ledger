@@ -43,6 +43,13 @@
       "when": 1771800074560,
       "tag": "0005_eminent_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1772241500478,
+      "tag": "0006_easy_rockslide",
+      "breakpoints": true
     }
   ]
 }

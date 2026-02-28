@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/client/api.svelte';
-	import { Building2, Plus, X, Loader2 } from '@lucide/svelte';
+	import { Building2, Plus, X, Loader2, ChevronsUpDown, Check } from '@lucide/svelte';
+	import { CURRENCIES } from '$lib/data/currencies';
+	import { PHONE_CODES } from '$lib/data/phoneCodes';
 
 	type Business = {
 		id: string;
@@ -18,11 +20,49 @@
 	let showCreate = $state(false);
 
 	// Create form state
-	let createName = $state('');
+	let createName        = $state('');
 	let createDescription = $state('');
-	let createCurrency = $state('MYR');
-	let creating = $state(false);
-	let createError = $state<string | null>(null);
+	let createCurrency    = $state('USD');
+	let createAddress     = $state('');
+	let createPhoneCode   = $state('+1');
+	let createPhoneNumber = $state('');
+	let createTaxId       = $state('');
+	let creating          = $state(false);
+	let createError       = $state<string | null>(null);
+
+	// Currency combobox for create form
+	let createCurrencyOpen      = $state(false);
+	let createCurrencySearch    = $state('');
+	let createCurrencyContainer: HTMLDivElement;
+
+	const createFilteredCurrencies = $derived(
+		createCurrencySearch.trim()
+			? CURRENCIES.filter(
+					(c) =>
+						c.code.toLowerCase().includes(createCurrencySearch.toLowerCase()) ||
+						c.name.toLowerCase().includes(createCurrencySearch.toLowerCase())
+				)
+			: CURRENCIES
+	);
+	const createSelectedCurrency = $derived(CURRENCIES.find((c) => c.code === createCurrency));
+
+	function selectCreateCurrency(code: string) {
+		createCurrency = code;
+		createCurrencyOpen = false;
+		createCurrencySearch = '';
+	}
+
+	$effect(() => {
+		if (!createCurrencyOpen) return;
+		function handleClick(e: MouseEvent) {
+			if (!createCurrencyContainer?.contains(e.target as Node)) {
+				createCurrencyOpen = false;
+				createCurrencySearch = '';
+			}
+		}
+		document.addEventListener('click', handleClick);
+		return () => document.removeEventListener('click', handleClick);
+	});
 
 	async function loadBusinesses() {
 		try {
@@ -42,15 +82,22 @@
 			creating = true;
 			createError = null;
 			const created = await api.post<Business>('/businesses', {
-				name: createName.trim(),
+				name:        createName.trim(),
 				description: createDescription.trim() || undefined,
-				currency: createCurrency
+				currency:    createCurrency,
+				address:     createAddress.trim() || undefined,
+				phone:       createPhoneNumber.trim() ? `${createPhoneCode}${createPhoneNumber.trim()}` : undefined,
+				taxId:       createTaxId.trim() || undefined,
 			});
 			businesses = [created, ...businesses];
 			showCreate = false;
-			createName = '';
+			createName        = '';
 			createDescription = '';
-			createCurrency = 'MYR';
+			createCurrency    = 'USD';
+			createAddress     = '';
+			createPhoneCode   = '+1';
+			createPhoneNumber = '';
+			createTaxId       = '';
 		} catch (e) {
 			createError = e instanceof Error ? e.message : 'Failed to create business';
 		} finally {
@@ -91,6 +138,8 @@
 			{/if}
 
 			<div class="flex flex-col gap-3">
+
+				<!-- Required -->
 				<div>
 					<label class="text-sm font-medium text-foreground block mb-1" for="create-name">
 						Name <span class="text-destructive">*</span>
@@ -103,6 +152,8 @@
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 					/>
 				</div>
+
+				<!-- Optional -->
 				<div>
 					<label class="text-sm font-medium text-foreground block mb-1" for="create-desc">
 						Description
@@ -111,25 +162,115 @@
 						id="create-desc"
 						bind:value={createDescription}
 						rows="2"
-						placeholder="Optional description"
+						placeholder="Optional"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
 					></textarea>
 				</div>
+
 				<div>
 					<label class="text-sm font-medium text-foreground block mb-1" for="create-currency">
 						Currency
 					</label>
-					<select
-						id="create-currency"
-						bind:value={createCurrency}
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-					>
-						<option value="MYR">MYR – Malaysian Ringgit</option>
-						<option value="USD">USD – US Dollar</option>
-						<option value="SGD">SGD – Singapore Dollar</option>
-						<option value="IDR">IDR – Indonesian Rupiah</option>
-					</select>
+					<div class="relative" bind:this={createCurrencyContainer}>
+						<button
+							type="button"
+							id="create-currency"
+							onclick={() => { createCurrencyOpen = !createCurrencyOpen; createCurrencySearch = ''; }}
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm flex items-center justify-between gap-2 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
+						>
+							<span>
+								<span class="font-mono font-medium">{createCurrency}</span>
+								{#if createSelectedCurrency}
+									<span class="text-muted-foreground ml-1.5">— {createSelectedCurrency.name}</span>
+								{/if}
+							</span>
+							<ChevronsUpDown class="size-4 text-muted-foreground shrink-0" />
+						</button>
+						{#if createCurrencyOpen}
+							<div class="absolute z-20 mt-1 w-full rounded-md border border-border bg-card shadow-lg overflow-hidden">
+								<div class="border-b border-border px-3 py-2">
+									<input
+										type="text"
+										bind:value={createCurrencySearch}
+										placeholder="Search currency…"
+										autofocus
+										class="w-full text-sm bg-transparent focus:outline-none text-foreground placeholder:text-muted-foreground"
+									/>
+								</div>
+								<ul class="max-h-48 overflow-y-auto py-1">
+									{#each createFilteredCurrencies as c (c.code)}
+										<li>
+											<button
+												type="button"
+												onclick={() => selectCreateCurrency(c.code)}
+												class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors {createCurrency === c.code ? 'text-primary' : 'text-foreground'}"
+											>
+												<span class="font-mono w-10 shrink-0">{c.code}</span>
+												<span class="text-muted-foreground flex-1 text-left truncate">{c.name}</span>
+												{#if createCurrency === c.code}
+													<Check class="size-3.5 text-primary shrink-0" />
+												{/if}
+											</button>
+										</li>
+									{/each}
+									{#if createFilteredCurrencies.length === 0}
+										<li class="px-3 py-4 text-center text-sm text-muted-foreground">No currencies found</li>
+									{/if}
+								</ul>
+							</div>
+						{/if}
+					</div>
 				</div>
+
+				<div>
+					<label class="text-sm font-medium text-foreground block mb-1" for="create-address">
+						Address
+					</label>
+					<textarea
+						id="create-address"
+						bind:value={createAddress}
+						rows="3"
+						placeholder="Optional — appears on invoices and receipts"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+					></textarea>
+				</div>
+
+				<div>
+					<label class="text-sm font-medium text-foreground block mb-1" for="create-phone-number">
+						Phone
+					</label>
+					<div class="flex rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring overflow-hidden">
+						<select
+							bind:value={createPhoneCode}
+							class="shrink-0 bg-transparent border-r border-input pl-2 pr-1 py-2 text-sm focus:outline-none text-foreground"
+						>
+							{#each PHONE_CODES as p (p.code)}
+								<option value={p.code}>{p.flag} {p.code}</option>
+							{/each}
+						</select>
+						<input
+							id="create-phone-number"
+							type="tel"
+							bind:value={createPhoneNumber}
+							placeholder="Optional"
+							class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground"
+						/>
+					</div>
+				</div>
+
+				<div>
+					<label class="text-sm font-medium text-foreground block mb-1" for="create-taxid">
+						Tax ID / SST No.
+					</label>
+					<input
+						id="create-taxid"
+						type="text"
+						bind:value={createTaxId}
+						placeholder="Optional"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+
 				<div class="flex justify-end gap-2 pt-1">
 					<button
 						onclick={() => (showCreate = false)}
