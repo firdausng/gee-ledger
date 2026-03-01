@@ -13,16 +13,21 @@ This is a SvelteKit application configured to deploy on Cloudflare Workers with 
 
 **IMPORTANT:** Before working on anything, fetch the relevant llms.txt:
 
-- Shadcn/ui: https://www.shadcn-svelte.com/llms.txt
+- Shadcn/ui components: https://www.shadcn-svelte.com/llms.txt
 - Tailwind CSS: https://tailwindcss.com/llms.txt
 - svelte: https://svelte.dev/llms.txt
 - Svelte documentation for use with medium context windows - https://svelte.dev/llms-medium.txt
 - drizzle - https://orm.drizzle.team/llms-full.txt
 - Cloudflare d1 - https://developers.cloudflare.com/d1/llms.txt
 - Cloudflare workers - https://developers.cloudflare.com/workers/llms-full.txt
+- Polar Payment - https://polar.sh/docs/llms-full.txt
 
-When working on styling tasks, read the Tailwind docs first.
-When working on components, read the component library docs first.
+When working on styling tasks, read the Tailwind docs above first.
+When working on components, read the Shadcn/ui components library docs above first.
+When working on svelte, read the svelte docs above first.
+When working on drizzle or database operations, read the drizzle docs above and D1 docs above first.
+When working on Cloudflare Workers, read the Cloudflare docs above first.
+When working on Polar Payment, read the Polar docs above first.
 
 ## Development Commands
 

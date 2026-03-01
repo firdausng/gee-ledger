@@ -645,7 +645,7 @@
 			</div>
 			<div class="flex items-center gap-4 text-sm text-muted-foreground">
 				<span>&copy; {new Date().getFullYear()} Gee Ledger</span>
-				<span>ledger.nurzerani.com</span>
+				<span>geeledger.com</span>
 			</div>
 		</div>
 	</div>

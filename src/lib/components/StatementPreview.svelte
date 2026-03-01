@@ -206,6 +206,6 @@
 
 	<!-- Footer -->
 	<div class="border-t border-gray-100 pt-3 text-center text-xs text-gray-400">
-		Gee Ledger · ledger.nurzerani.com
+		Gee Ledger · geeledger.com
 	</div>
 </div>

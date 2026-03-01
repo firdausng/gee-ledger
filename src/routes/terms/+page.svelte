@@ -121,7 +121,7 @@
 			<h2 class="text-xl font-semibold text-foreground mt-10 mb-3">13. Contact</h2>
 			<p class="text-sm text-muted-foreground leading-relaxed mb-4">
 				If you have any questions about these terms, please reach out to us at
-				<strong class="text-foreground">ledger.nurzerani.com</strong>.
+				<strong class="text-foreground">geeledger.com</strong>.
 			</p>
 		</div>
 	</main>
@@ -140,7 +140,7 @@
 				</div>
 				<div class="flex items-center gap-4 text-sm text-muted-foreground">
 					<span>&copy; {new Date().getFullYear()} Gee Ledger</span>
-					<span>ledger.nurzerani.com</span>
+					<span>geeledger.com</span>
 				</div>
 			</div>
 		</div>

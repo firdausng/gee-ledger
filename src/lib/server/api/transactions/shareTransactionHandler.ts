@@ -73,7 +73,7 @@ export async function shareTransactionHandler(
 		channel:     chan ?? null,
 		billTo:      billTo,
 		resendApiKey: env.RESEND_API_KEY,
-		fromDomain:   env.FROM_DOMAIN ?? 'ledger.nurzerani.com',
+		fromDomain:   env.FROM_DOMAIN ?? 'geeledger.com',
 		items,
 	});
 

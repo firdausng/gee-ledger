@@ -39,13 +39,13 @@
 	 * For production, update these with your actual Firebase values
 	 */
 	"vars": {
-		"FROM_DOMAIN": "ledger.nurzerani.com"
+		"FROM_DOMAIN": "geeledger.com"
 	},
 	"env": {
 		"production": {
 			"routes": [
 				{
-					"pattern": "ledger.nurzerani.com",
+					"pattern": "geeledger.com",
 					"custom_domain": true
 				}
 			],

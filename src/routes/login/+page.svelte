@@ -94,7 +94,7 @@
 	<footer class="border-t border-border/60">
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
 			<span class="text-muted-foreground text-sm">&copy; {new Date().getFullYear()} Gee Ledger</span>
-			<span class="text-muted-foreground text-sm">ledger.nurzerani.com</span>
+			<span class="text-muted-foreground text-sm">geeledger.com</span>
 		</div>
 	</footer>
 </div>

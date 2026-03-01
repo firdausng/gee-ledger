@@ -30,7 +30,7 @@
 			<p class="text-sm text-muted-foreground mb-10">Last updated: 1 March 2026</p>
 
 			<p class="text-sm text-muted-foreground leading-relaxed mb-4">
-				Gee Ledger ("we", "our", or "us") operates the ledger.nurzerani.com website and application.
+				Gee Ledger ("we", "our", or "us") operates the geeledger.com website and application.
 				This page explains what information we collect, how we use it, and your rights regarding your data.
 			</p>
 
@@ -101,7 +101,7 @@
 			<h2 class="text-xl font-semibold text-foreground mt-10 mb-3">9. Contact</h2>
 			<p class="text-sm text-muted-foreground leading-relaxed mb-4">
 				If you have any questions about this privacy policy or your data, please reach out to us at
-				<strong class="text-foreground">ledger.nurzerani.com</strong>.
+				<strong class="text-foreground">geeledger.com</strong>.
 			</p>
 		</div>
 	</main>
@@ -120,7 +120,7 @@
 				</div>
 				<div class="flex items-center gap-4 text-sm text-muted-foreground">
 					<span>&copy; {new Date().getFullYear()} Gee Ledger</span>
-					<span>ledger.nurzerani.com</span>
+					<span>geeledger.com</span>
 				</div>
 			</div>
 		</div>
