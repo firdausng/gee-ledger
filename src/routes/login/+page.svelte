@@ -2,6 +2,7 @@
 	import { authState, authActions } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
 	import { Loader2 } from '@lucide/svelte';
+	import logoSvg from '$lib/assets/logo.svg?raw';
 
 	let signingIn = $state(false);
 
@@ -29,7 +30,10 @@
 	<!-- Nav -->
 	<header class="border-b border-border/60">
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-			<a href="/" class="text-foreground text-lg font-semibold tracking-tight">Gee Ledger</a>
+			<a href="/" class="flex items-center gap-2 text-foreground [&_svg]:h-6 [&_svg]:w-auto">
+				{@html logoSvg}
+				<span class="text-lg font-semibold tracking-tight">Gee Ledger</span>
+			</a>
 		</div>
 	</header>
 
@@ -76,7 +80,7 @@
 				</button>
 
 				<p class="text-xs text-muted-foreground text-center mt-4">
-					By signing in, you agree to our terms of service.
+					By signing in, you agree to our <a href="/terms" class="underline hover:text-foreground">terms of service</a>.
 				</p>
 			</div>
 

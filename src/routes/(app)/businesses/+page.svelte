@@ -121,7 +121,7 @@
 </script>
 
 <div class="p-4 md:p-6 max-w-4xl mx-auto">
-	<div class="flex items-center justify-between mb-6">
+	<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
 		<div>
 			<h1 class="text-2xl font-bold text-foreground">My Businesses</h1>
 			<p class="text-sm text-muted-foreground mt-0.5">Manage your business entities</p>
@@ -129,13 +129,13 @@
 		{#if canCreateBusiness}
 			<button
 				onclick={() => (showCreate = !showCreate)}
-				class="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+				class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors self-start sm:self-auto"
 			>
-				<Plus class="size-4" />
+				<Plus class="size-3.5" />
 				New Business
 			</button>
 		{:else}
-			<span class="flex items-center gap-1.5 px-3 py-2 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium">
+			<span class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium self-start sm:self-auto">
 				<Crown class="size-4" />
 				{plan.limits.maxBusinesses}/{plan.limits.maxBusinesses} businesses
 			</span>

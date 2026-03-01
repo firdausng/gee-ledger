@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { authActions } from '$lib/stores/auth.svelte';
+	import logoSvg from '$lib/assets/logo.svg?raw';
 	import {
 		Building2,
 		LayoutDashboard,
@@ -79,9 +80,9 @@
 	>
 		<!-- Logo -->
 		<div class="h-14 flex items-center px-5 border-b border-border shrink-0">
-			<a href="/businesses" class="flex items-center gap-2 font-semibold text-foreground">
-				<LayoutDashboard class="size-5 text-primary" />
-				<span>Gee Ledger</span>
+			<a href="/businesses" class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto">
+				{@html logoSvg}
+				<span class="font-semibold">Gee Ledger</span>
 			</a>
 		</div>
 
@@ -198,9 +199,9 @@
 			{#if currentBusiness}
 				<span class="font-semibold text-foreground truncate">{currentBusiness.name}</span>
 			{:else}
-				<a href="/businesses" class="flex items-center gap-2 font-semibold text-foreground">
-					<LayoutDashboard class="size-5 text-primary" />
-					<span>Gee Ledger</span>
+				<a href="/businesses" class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto">
+					{@html logoSvg}
+					<span class="font-semibold">Gee Ledger</span>
 				</a>
 			{/if}
 		</header>
@@ -224,9 +225,9 @@
 	<!-- Drawer panel -->
 	<div class="lg:hidden fixed inset-y-0 left-0 z-40 w-72 bg-card border-r border-border flex flex-col">
 		<div class="h-14 flex items-center justify-between px-4 border-b border-border shrink-0">
-			<a href="/businesses" class="flex items-center gap-2 font-semibold text-foreground" onclick={closeDrawer}>
-				<LayoutDashboard class="size-5 text-primary" />
-				<span>Gee Ledger</span>
+			<a href="/businesses" class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto" onclick={closeDrawer}>
+				{@html logoSvg}
+				<span class="font-semibold">Gee Ledger</span>
 			</a>
 			<button onclick={closeDrawer} class="p-1.5 rounded-md hover:bg-muted text-muted-foreground">
 				<X class="size-5" />
