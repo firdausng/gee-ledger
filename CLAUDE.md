@@ -28,6 +28,7 @@ When working on svelte, read the svelte docs above first.
 When working on drizzle or database operations, read the drizzle docs above and D1 docs above first.
 When working on Cloudflare Workers, read the Cloudflare docs above first.
 When working on Polar Payment, read the Polar docs above first.
+When working on styling tasks, consider mobile first design.
 
 ## Development Commands
 

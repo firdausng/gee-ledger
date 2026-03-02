@@ -20,6 +20,7 @@ import { saveServiceItemsHandler } from './saveServiceItemsHandler';
 import { assignInvoiceNoHandler } from './assignInvoiceNoHandler';
 import { assignReceiptNoHandler } from './assignReceiptNoHandler';
 import { exportTransactionsHandler } from './exportTransactionsHandler';
+import { getDashboardStatsHandler } from './getDashboardStatsHandler';
 import { csvResponse } from '$lib/server/utils/csv';
 import { HTTPException } from 'hono/http-exception';
 
@@ -49,6 +50,19 @@ export const transactionsApi = new Hono<App.Api>()
 		const csv = await exportTransactionsHandler(user, c.req.param('businessId'), filtersResult.output, currency, c.env);
 		const today = new Date().toISOString().slice(0, 10);
 		return csvResponse(csv, `transactions-${today}.csv`);
+	})
+
+	.get('/businesses/:businessId/dashboard-stats', async (c) => {
+		const user = c.get('currentUser');
+		const { from, to, groupBy } = c.req.query();
+		if (!from || !to) throw new HTTPException(400, { message: 'from and to are required' });
+		const data = await getDashboardStatsHandler(
+			user,
+			c.req.param('businessId'),
+			{ from, to, groupBy: groupBy === 'month' ? 'month' : 'day' },
+			c.env
+		);
+		return c.json({ data });
 	})
 
 	.post('/businesses/:businessId/transactions', async (c) => {
