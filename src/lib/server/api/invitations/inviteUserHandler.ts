@@ -113,9 +113,10 @@ export async function inviteUserHandler(
 			businessName: businessName,
 			inviterName: user.displayName ?? user.email ?? 'Someone',
 			roleName: data.policyKey,
-			signInUrl: `https://${env.FROM_DOMAIN}/invitations`,
+			signInUrl: `https://${env.APP_DOMAIN}/invitations`,
 			resendApiKey: env.RESEND_API_KEY,
-			fromDomain: env.FROM_DOMAIN,
+			fromDomain: env.RESEND_FROM_DOMAIN,
+			appDomain: env.APP_DOMAIN,
 			type: 'added',
 		}).catch((err) => console.error('Failed to send invitation email:', err));
 
@@ -146,9 +147,10 @@ export async function inviteUserHandler(
 		businessName: businessName,
 		inviterName: user.displayName ?? user.email ?? 'Someone',
 		roleName: data.policyKey,
-		signInUrl: `https://${env.FROM_DOMAIN}/invitations`,
+		signInUrl: `https://${env.APP_DOMAIN}/invitations`,
 		resendApiKey: env.RESEND_API_KEY,
-		fromDomain: env.FROM_DOMAIN,
+		fromDomain: env.RESEND_FROM_DOMAIN,
+		appDomain: env.APP_DOMAIN,
 		type: 'invited',
 	}).catch((err) => console.error('Failed to send invitation email:', err));
 

@@ -3,10 +3,10 @@ function buildHtml(opts: {
 	inviterName: string;
 	roleName: string;
 	signInUrl: string;
-	fromDomain: string;
+	appDomain: string;
 	type: 'invited' | 'added';
 }): string {
-	const { businessName, inviterName, roleName, signInUrl, fromDomain, type } = opts;
+	const { businessName, inviterName, roleName, signInUrl, appDomain, type } = opts;
 
 	const heading = type === 'added'
 		? `You've been added to ${businessName}`
@@ -49,7 +49,7 @@ function buildHtml(opts: {
 
         <!-- Footer -->
         <tr><td style="padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center">
-          <p style="margin:0;font-size:12px;color:#9ca3af">Sent via <a href="https://${fromDomain}" style="color:#6b7280">${fromDomain}</a></p>
+          <p style="margin:0;font-size:12px;color:#9ca3af">Sent via <a href="https://${appDomain}" style="color:#6b7280">${appDomain}</a></p>
         </td></tr>
 
       </table>
@@ -67,9 +67,10 @@ export async function sendInvitationEmail(opts: {
 	signInUrl: string;
 	resendApiKey: string;
 	fromDomain: string;
+	appDomain: string;
 	type: 'invited' | 'added';
 }): Promise<void> {
-	const { to, businessName, resendApiKey, fromDomain, type } = opts;
+	const { to, businessName, resendApiKey, fromDomain, appDomain, type } = opts;
 
 	const subject = type === 'added'
 		? `You've been added to ${businessName}`

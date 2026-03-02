@@ -49,10 +49,10 @@ function buildHtml(opts: {
 	category: NamedEntity;
 	channel: NamedEntity;
 	billTo: BillTo | null;
-	fromDomain: string;
+	appDomain: string;
 	items?: LineItem[];
 }): string {
-	const { business, transaction, location, category, channel, billTo, fromDomain, items = [] } = opts;
+	const { business, transaction, location, category, channel, billTo, appDomain, items = [] } = opts;
 	const title = docTitle(transaction.type, transaction.documentType);
 	const amount = formatAmount(transaction.amount, business.currency);
 	const hasItems = items.length > 0;
@@ -154,7 +154,7 @@ function buildHtml(opts: {
 
         <!-- Footer -->
         <tr><td style="padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center">
-          <p style="margin:0;font-size:12px;color:#9ca3af">Sent via <a href="https://${fromDomain}" style="color:#6b7280">${fromDomain}</a></p>
+          <p style="margin:0;font-size:12px;color:#9ca3af">Sent via <a href="https://${appDomain}" style="color:#6b7280">${appDomain}</a></p>
         </td></tr>
 
       </table>
@@ -174,6 +174,7 @@ export async function sendTransactionEmail(opts: {
 	billTo: BillTo | null;
 	resendApiKey: string;
 	fromDomain: string;
+	appDomain: string;
 	items?: LineItem[];
 }): Promise<void> {
 	const { to, business, transaction, resendApiKey, fromDomain } = opts;

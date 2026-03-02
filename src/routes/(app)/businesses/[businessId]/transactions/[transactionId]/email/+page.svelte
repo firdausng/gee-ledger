@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { ArrowLeft, Send, Loader2, CheckCircle2 } from '@lucide/svelte';
@@ -27,16 +27,19 @@
 
 	const amount = $derived(formatAmount(tx.amount, biz.currency));
 
-	let documentType = $state<DocType>((data.transaction.documentType as DocType | null) ?? defaultDocType(data.transaction.type));
-	let toEmail      = $state(data.contact?.email ?? '');
-	let billToName   = $state(data.contact?.name ?? '');
-	let billToAddr   = $state(data.contact?.address ?? '');
+	const contact    = $derived(data.contact);
+	// Form defaults — intentionally captured once (not reactive)
+	const { initTx, initContact } = untrack(() => ({ initTx: data.transaction, initContact: data.contact }));
+	let documentType = $state<DocType>((initTx.documentType as DocType | null) ?? defaultDocType(initTx.type));
+	let toEmail      = $state(initContact?.email ?? '');
+	let billToName   = $state(initContact?.name ?? '');
+	let billToAddr   = $state(initContact?.address ?? '');
 	let subject      = $state('');
 	let sending      = $state(false);
 	let sent         = $state(false);
 	let sendError    = $state<string | null>(null);
-	let invoiceNo    = $state(tx.invoiceNo ?? '');
-	let receiptNo    = $state(tx.receiptNo ?? '');
+	let invoiceNo    = $state(initTx.invoiceNo ?? '');
+	let receiptNo    = $state(initTx.receiptNo ?? '');
 
 	const titleLabel = $derived(documentType === 'invoice' ? 'Invoice' : 'Receipt');
 

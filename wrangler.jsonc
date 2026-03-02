@@ -39,7 +39,8 @@
 	 * For production, update these with your actual Firebase values
 	 */
 	"vars": {
-		"FROM_DOMAIN": "geeledger.com",
+		"RESEND_FROM_DOMAIN": "fivebitrate.com",
+		"APP_DOMAIN": "geeledger.com",
 		"STRIPE_PRICE_ID_PRO_MONTHLY": "price_1T6IMpEtJV1FPtwdI5fpEi6Q",
 		"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64lOEtJV1FPtwdHpIdLBEM",
 		"STRIPE_PRICE_ID_SEAT": "price_1T6X2xEtJV1FPtwd8jZPXzKA"
