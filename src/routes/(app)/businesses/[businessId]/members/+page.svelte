@@ -24,12 +24,20 @@
 		expiresAt: string;
 	};
 
+	type SeatInfo = {
+		usedSeats: number;
+		allowedSeats: number;
+	};
+
 	const businessId = $page.params.businessId!;
 	let { data } = $props();
 	const canInvite = $derived(
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
 	);
+
+	let seatInfo = $state<SeatInfo | null>(null);
+	const seatsFull = $derived(seatInfo ? seatInfo.usedSeats >= seatInfo.allowedSeats : false);
 
 	const ROLES = ['owner', 'manager', 'cashier', 'viewer'] as const;
 
@@ -61,14 +69,19 @@
 		try {
 			loading = true;
 			error = null;
-			const [mems, invs] = await Promise.all([
+			const orgId = (data as { business: { organizationId?: string } }).business?.organizationId;
+			const [mems, invs, orgData] = await Promise.all([
 				api.get<Member[]>(`/businesses/${businessId}/members`),
 				data.policyKey === 'owner'
 					? api.get<Invitation[]>(`/businesses/${businessId}/invitations`)
-					: Promise.resolve<Invitation[]>([])
+					: Promise.resolve<Invitation[]>([]),
+				orgId
+					? api.get<{ seatInfo: SeatInfo | null }>(`/organizations/${orgId}`).catch(() => null)
+					: Promise.resolve(null),
 			]);
 			members = mems;
 			invitations = invs;
+			if (orgData?.seatInfo) seatInfo = orgData.seatInfo;
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load';
 		} finally {
@@ -152,14 +165,22 @@
 
 <div>
 	<div class="flex items-center justify-between mb-4">
-		<h2 class="font-semibold text-foreground">Members</h2>
+		<div class="flex items-center gap-3">
+			<h2 class="font-semibold text-foreground">Members</h2>
+			{#if seatInfo}
+				<span class="text-xs px-2 py-0.5 rounded-full {seatsFull ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-muted text-muted-foreground'}">
+					{seatInfo.usedSeats}/{seatInfo.allowedSeats} seats
+				</span>
+			{/if}
+		</div>
 		{#if canInvite}
 		<button
 			onclick={() => { showInvite = !showInvite; inviteError = null; inviteSuccess = null; }}
-			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+			disabled={seatsFull}
+			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 		>
 			<Plus class="size-4" />
-			Invite Member
+			{seatsFull ? 'Seats Full' : 'Invite Member'}
 		</button>
 		{:else}
 			<span class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium">
@@ -170,6 +191,15 @@
 	</div>
 
 	{#if canInvite}
+	{#if seatsFull}
+		<div class="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-sm mb-4">
+			<Users class="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+			<span class="text-amber-700 dark:text-amber-300">
+				All seats are in use. <a href="/organizations" class="underline font-medium">Purchase additional seats</a> to invite more members.
+			</span>
+		</div>
+	{/if}
+
 	{#if inviteSuccess}
 		<div class="mb-4 p-3 rounded-md bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm">{inviteSuccess}</div>
 	{/if}

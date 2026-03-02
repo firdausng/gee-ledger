@@ -37,6 +37,7 @@ export interface PlanDefinition {
 	limits: {
 		maxBusinesses: number; // -1 = unlimited
 		maxAttachmentSizeMb: number;
+		includedSeats: number; // seats included in base plan price
 	};
 }
 
@@ -44,12 +45,12 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
 	[PLAN_KEY.FREE]: {
 		name: 'Free',
 		features: [],
-		limits: { maxBusinesses: 1, maxAttachmentSizeMb: 0 },
+		limits: { maxBusinesses: 1, maxAttachmentSizeMb: 0, includedSeats: 1 },
 	},
 	[PLAN_KEY.PRO]: {
 		name: 'Pro',
 		features: ['attachment:upload', 'attachment:delete', 'transaction:email', 'transaction:export', 'user:invite'],
-		limits: { maxBusinesses: 5, maxAttachmentSizeMb: 10 },
+		limits: { maxBusinesses: 5, maxAttachmentSizeMb: 10, includedSeats: 2 },
 	},
 };
 

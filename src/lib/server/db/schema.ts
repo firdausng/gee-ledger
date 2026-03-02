@@ -60,6 +60,8 @@ export const subscriptions = sqliteTable(
 		stripeSubscriptionId: text('stripe_subscription_id'),
 		stripeCustomerId:     text('stripe_customer_id'),
 		cancelAtPeriodEnd:    integer('cancel_at_period_end', { mode: 'boolean' }).notNull().default(false),
+		extraSeats:           integer('extra_seats').notNull().default(0),
+		seatSubscriptionItemId: text('seat_subscription_item_id'),
 		createdAt:            text('created_at').notNull(),
 		updatedAt:            text('updated_at').notNull(),
 	},

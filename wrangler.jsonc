@@ -41,7 +41,8 @@
 	"vars": {
 		"FROM_DOMAIN": "geeledger.com",
 		"STRIPE_PRICE_ID_PRO_MONTHLY": "price_1T6IMpEtJV1FPtwdI5fpEi6Q",
-		"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64lOEtJV1FPtwdHpIdLBEM"
+		"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64lOEtJV1FPtwdHpIdLBEM",
+		"STRIPE_PRICE_ID_SEAT": "price_1T6X2xEtJV1FPtwd8jZPXzKA"
 	},
 	"env": {
 		"production": {
@@ -57,7 +58,8 @@
 				"PUBLIC_FIREBASE_STORAGE_BUCKET":"gee-ledger.firebasestorage.app",
 				"PUBLIC_FIREBASE_MEASUREMENT_ID":"G-T162PGH0V6",
 				"STRIPE_PRICE_ID_PRO_MONTHLY": "price_1T6IOKIVwBxlXYyo1lRQwhi8",
-				"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64fxIVwBxlXYyoYmoLWr0Q"
+				"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64fxIVwBxlXYyoYmoLWr0Q",
+				"STRIPE_PRICE_ID_SEAT": "price_1T6X1JIVwBxlXYyoy07SFPnh"
 			},
 			"d1_databases": [
 				{

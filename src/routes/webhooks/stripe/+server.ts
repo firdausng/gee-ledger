@@ -16,6 +16,7 @@ interface StripeSubscription {
 	current_period_start: number;
 	current_period_end: number;
 	metadata?: Record<string, string>;
+	items?: { data: Array<{ id: string; price: { id: string }; quantity: number }> };
 }
 
 interface StripeCheckoutSession {
@@ -149,13 +150,26 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 				if (sub.status === 'past_due') status = SUBSCRIPTION_STATUS.PAST_DUE;
 				if (sub.status === 'canceled' || sub.status === 'unpaid') status = SUBSCRIPTION_STATUS.CANCELLED;
 
-				await db.update(subscriptions).set({
+				const updateData: Record<string, unknown> = {
 					status,
 					cancelAtPeriodEnd:  sub.cancel_at_period_end,
 					currentPeriodStart: toISOString(sub.current_period_start),
 					currentPeriodEnd:   toISOString(sub.current_period_end),
 					updatedAt:          now(),
-				}).where(eq(subscriptions.id, existing.id));
+				};
+
+				// Sync seat quantity from subscription items
+				if (sub.items?.data) {
+					const seatItem = sub.items.data.find(
+						(i) => i.price.id === env.STRIPE_PRICE_ID_SEAT,
+					);
+					if (seatItem) {
+						updateData.extraSeats = seatItem.quantity;
+						updateData.seatSubscriptionItemId = seatItem.id;
+					}
+				}
+
+				await db.update(subscriptions).set(updateData).where(eq(subscriptions.id, existing.id));
 				break;
 			}
 
@@ -167,10 +181,12 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 				const sub = event.data.object as StripeSubscription;
 
 				await db.update(subscriptions).set({
-					status:            SUBSCRIPTION_STATUS.CANCELLED,
-					planKey:           PLAN_KEY.FREE,
-					cancelAtPeriodEnd: false,
-					updatedAt:         now(),
+					status:                 SUBSCRIPTION_STATUS.CANCELLED,
+					planKey:                PLAN_KEY.FREE,
+					cancelAtPeriodEnd:      false,
+					extraSeats:             0,
+					seatSubscriptionItemId: null,
+					updatedAt:              now(),
 				}).where(eq(subscriptions.stripeSubscriptionId, sub.id));
 				break;
 			}

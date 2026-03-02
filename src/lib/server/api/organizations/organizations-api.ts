@@ -6,6 +6,7 @@ import { getOrganizationsHandler } from './getOrganizationsHandler';
 import { getOrganizationHandler } from './getOrganizationHandler';
 import { checkoutHandler } from './checkoutHandler';
 import { portalHandler } from './portalHandler';
+import { purchaseSeatsHandler } from './purchaseSeatsHandler';
 import { HTTPException } from 'hono/http-exception';
 
 export const organizationsApi = new Hono<App.Api>()
@@ -44,5 +45,13 @@ export const organizationsApi = new Hono<App.Api>()
 		const user = c.get('currentUser');
 		const origin = new URL(c.req.url).origin;
 		const data = await portalHandler(user, c.req.param('organizationId'), c.env, origin);
+		return c.json({ data });
+	})
+
+	.post('/organizations/:organizationId/seats', async (c) => {
+		const user = c.get('currentUser');
+		const body = await c.req.json();
+		const quantity = Math.floor(Number(body.quantity) || 0);
+		const data = await purchaseSeatsHandler(user, c.req.param('organizationId'), { quantity }, c.env);
 		return c.json({ data });
 	});

@@ -22,6 +22,15 @@
 		stripeCustomerId: string | null;
 	} | null;
 
+	type SeatInfo = {
+		currentMembers: number;
+		pendingInvites: number;
+		usedSeats: number;
+		allowedSeats: number;
+		extraSeats: number;
+		includedSeats: number;
+	};
+
 	type OrgDetail = {
 		id: string;
 		name: string;
@@ -30,6 +39,7 @@
 		subscription: Subscription;
 		members: Member[];
 		businessCount: number;
+		seatInfo: SeatInfo | null;
 		createdAt: string;
 		updatedAt: string;
 	};
@@ -55,6 +65,12 @@
 	// Portal state
 	let openingPortal = $state(false);
 	let portalError = $state<string | null>(null);
+
+	// Seat purchase state
+	let seatQuantity = $state(1);
+	let purchasingSeats = $state(false);
+	let seatError = $state<string | null>(null);
+	let seatSuccess = $state(false);
 
 	const plan = $derived(org ? PLANS[org.planKey as keyof typeof PLANS] ?? PLANS[PLAN_KEY.FREE] : PLANS[PLAN_KEY.FREE]);
 	const isOwner = $derived(org?.role === ORG_ROLE.OWNER);
@@ -106,6 +122,22 @@
 			portalError = e instanceof Error ? e.message : 'Failed to open billing portal';
 		} finally {
 			openingPortal = false;
+		}
+	}
+
+	async function handlePurchaseSeats() {
+		try {
+			purchasingSeats = true;
+			seatError = null;
+			seatSuccess = false;
+			await api.post(`/organizations/${organizationId}/seats`, { quantity: seatQuantity });
+			seatSuccess = true;
+			seatQuantity = 1;
+			await loadOrg();
+		} catch (e) {
+			seatError = e instanceof Error ? e.message : 'Failed to purchase seats';
+		} finally {
+			purchasingSeats = false;
 		}
 	}
 
@@ -197,6 +229,17 @@
 							{plan.features.includes('attachment:upload') ? 'Enabled' : 'Disabled'}
 						</span>
 					</div>
+					{#if org.seatInfo}
+						<div class="flex justify-between text-sm">
+							<span class="text-muted-foreground">Seats</span>
+							<span class="font-medium" class:text-amber-600={org.seatInfo.usedSeats >= org.seatInfo.allowedSeats} class:dark:text-amber-400={org.seatInfo.usedSeats >= org.seatInfo.allowedSeats}>
+								{org.seatInfo.usedSeats} / {org.seatInfo.allowedSeats}
+								{#if org.seatInfo.extraSeats > 0}
+									<span class="text-xs text-muted-foreground">({org.seatInfo.includedSeats} + {org.seatInfo.extraSeats} extra)</span>
+								{/if}
+							</span>
+						</div>
+					{/if}
 					{#if org.subscription}
 						<div class="flex justify-between text-sm">
 							<span class="text-muted-foreground">Status</span>
@@ -281,6 +324,41 @@
 							Manage Subscription
 						</button>
 					</div>
+
+					<!-- Seat purchase section -->
+					{#if org.seatInfo && org.seatInfo.usedSeats >= org.seatInfo.allowedSeats}
+						<div class="mt-3 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+							<p class="text-xs text-amber-700 dark:text-amber-300 mb-3">
+								All seats are in use ({org.seatInfo.usedSeats}/{org.seatInfo.allowedSeats}). Purchase additional seats to invite more members.
+							</p>
+							{#if seatSuccess}
+								<p class="text-xs text-green-600 dark:text-green-400 mb-2">Seats added successfully!</p>
+							{/if}
+							{#if seatError}
+								<p class="text-xs text-destructive mb-2">{seatError}</p>
+							{/if}
+							<div class="flex items-center gap-2">
+								<select
+									bind:value={seatQuantity}
+									class="rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+								>
+									{#each [1, 2, 3, 5, 10] as qty}
+										<option value={qty}>{qty} seat{qty > 1 ? 's' : ''}</option>
+									{/each}
+								</select>
+								<button
+									onclick={handlePurchaseSeats}
+									disabled={purchasingSeats}
+									class="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+								>
+									{#if purchasingSeats}
+										<Loader2 class="size-4 animate-spin" />
+									{/if}
+									Add — ${seatQuantity * 5}/mo
+								</button>
+							</div>
+						</div>
+					{/if}
 				{/if}
 			</div>
 

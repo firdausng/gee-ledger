@@ -99,3 +99,39 @@ export async function createPortalSession(
 		return_url: params.returnUrl,
 	});
 }
+
+// ── Subscription Items (seat management) ────────────────────────────────────
+
+export interface SubscriptionItem {
+	id: string;
+	subscription: string;
+	price: { id: string };
+	quantity: number;
+}
+
+export async function addSubscriptionItem(
+	env: Cloudflare.Env,
+	params: { subscriptionId: string; priceId: string; quantity: number },
+): Promise<SubscriptionItem> {
+	return stripeRequest<SubscriptionItem>(env.STRIPE_SECRET_KEY, 'POST', '/subscription_items', {
+		subscription: params.subscriptionId,
+		price: params.priceId,
+		quantity: String(params.quantity),
+		proration_behavior: 'create_prorations',
+	});
+}
+
+export async function updateSubscriptionItem(
+	env: Cloudflare.Env,
+	params: { subscriptionItemId: string; quantity: number },
+): Promise<SubscriptionItem> {
+	return stripeRequest<SubscriptionItem>(
+		env.STRIPE_SECRET_KEY,
+		'POST',
+		`/subscription_items/${params.subscriptionItemId}`,
+		{
+			quantity: String(params.quantity),
+			proration_behavior: 'create_prorations',
+		},
+	);
+}

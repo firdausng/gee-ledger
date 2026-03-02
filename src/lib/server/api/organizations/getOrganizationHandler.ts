@@ -4,6 +4,7 @@ import { organizations, organizationMembers, subscriptions, businesses } from '$
 import * as schema from '$lib/server/db/schema';
 import { HTTPException } from 'hono/http-exception';
 import { PLAN_KEY, SUBSCRIPTION_STATUS } from '$lib/configurations/plans';
+import { getOrgSeatInfo } from '$lib/server/utils/seatLimits';
 
 export async function getOrganizationHandler(
 	user: App.User,
@@ -73,6 +74,8 @@ export async function getOrganizationHandler(
 			)
 		);
 
+	const seatInfo = await getOrgSeatInfo(organizationId, env);
+
 	return {
 		...org,
 		role: membership.role,
@@ -80,5 +83,6 @@ export async function getOrganizationHandler(
 		subscription: sub ?? null,
 		members,
 		businessCount: bizCount.length,
+		seatInfo,
 	};
 }

@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
-import { invitations, userBusinessRoles } from '$lib/server/db/schema';
+import { invitations, userBusinessRoles, businesses, organizationMembers } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { HTTPException } from 'hono/http-exception';
 
@@ -44,6 +44,35 @@ export async function acceptInvitationHandler(
 			createdBy: user.id
 		})
 	]);
+
+	// Ensure user is also an org member
+	const [biz] = await db
+		.select({ organizationId: businesses.organizationId })
+		.from(businesses)
+		.where(eq(businesses.id, invitation.businessId))
+		.limit(1);
+
+	if (biz?.organizationId) {
+		const [existingOrgMember] = await db
+			.select({ id: organizationMembers.id })
+			.from(organizationMembers)
+			.where(and(
+				eq(organizationMembers.organizationId, biz.organizationId),
+				eq(organizationMembers.userId, user.id),
+			))
+			.limit(1);
+
+		if (!existingOrgMember) {
+			await db.insert(organizationMembers).values({
+				id: crypto.randomUUID(),
+				organizationId: biz.organizationId,
+				userId: user.id,
+				role: 'member',
+				createdAt: now,
+				createdBy: user.id,
+			});
+		}
+	}
 
 	return { success: true, businessId: invitation.businessId };
 }

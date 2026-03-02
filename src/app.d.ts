@@ -10,6 +10,7 @@ declare global {
 			STRIPE_WEBHOOK_SECRET: string;
 			STRIPE_PRICE_ID_PRO_MONTHLY: string;
 			STRIPE_PRICE_ID_PRO_YEARLY: string;
+			STRIPE_PRICE_ID_SEAT: string;
 		}
 	}
 
