@@ -1,0 +1,2 @@
+ALTER TABLE `subscriptions` RENAME COLUMN "polar_subscription_id" TO "stripe_subscription_id";--> statement-breakpoint
+ALTER TABLE `subscriptions` RENAME COLUMN "polar_customer_id" TO "stripe_customer_id";

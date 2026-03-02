@@ -22,12 +22,14 @@
 		ScrollText,
 		UsersRound,
 		Crown,
-		Package
+		Package,
+		Sparkles
 	} from '@lucide/svelte';
 
 	let { children, data } = $props();
 
 	let drawerOpen = $state(false);
+	let bannerDismissed = $state(false);
 
 	let currentBusinessId = $derived($page.params.businessId ?? null);
 	let currentBusiness = $derived(
@@ -205,6 +207,28 @@
 				</a>
 			{/if}
 		</header>
+
+		<!-- Upgrade banner -->
+		{#if data.upgradeOrgId && !bannerDismissed}
+			<div class="border-b border-amber-200 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-900/10">
+				<div class="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
+					<a
+						href="/organizations/{data.upgradeOrgId}"
+						class="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 hover:underline"
+					>
+						<Sparkles class="size-3.5 shrink-0" />
+						<span>Upgrade to Pro for exports, attachments, email & more</span>
+					</a>
+					<button
+						onclick={() => (bannerDismissed = true)}
+						class="text-amber-500 dark:text-amber-600 hover:text-amber-700 dark:hover:text-amber-400 shrink-0"
+						aria-label="Dismiss"
+					>
+						<X class="size-3.5" />
+					</button>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Page content -->
 		<main class="flex-1">

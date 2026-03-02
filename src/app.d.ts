@@ -6,6 +6,10 @@ declare global {
 		interface Env {
 			RESEND_API_KEY: string;
 			FROM_DOMAIN: string;
+			STRIPE_SECRET_KEY: string;
+			STRIPE_WEBHOOK_SECRET: string;
+			STRIPE_PRICE_ID_PRO_MONTHLY: string;
+			STRIPE_PRICE_ID_PRO_YEARLY: string;
 		}
 	}
 

@@ -49,16 +49,19 @@ export const organizationMembers = sqliteTable(
 export const subscriptions = sqliteTable(
 	'subscriptions',
 	{
-		id:                 text('id').primaryKey(),
-		organizationId:     text('organization_id').notNull(),
+		id:                   text('id').primaryKey(),
+		organizationId:       text('organization_id').notNull(),
 		// 'free' | 'pro'
-		planKey:            text('plan_key').notNull(),
+		planKey:              text('plan_key').notNull(),
 		// 'active' | 'cancelled' | 'past_due'
-		status:             text('status').notNull(),
-		currentPeriodStart: text('current_period_start'),
-		currentPeriodEnd:   text('current_period_end'),
-		createdAt:          text('created_at').notNull(),
-		updatedAt:          text('updated_at').notNull(),
+		status:               text('status').notNull(),
+		currentPeriodStart:   text('current_period_start'),
+		currentPeriodEnd:     text('current_period_end'),
+		stripeSubscriptionId: text('stripe_subscription_id'),
+		stripeCustomerId:     text('stripe_customer_id'),
+		cancelAtPeriodEnd:    integer('cancel_at_period_end', { mode: 'boolean' }).notNull().default(false),
+		createdAt:            text('created_at').notNull(),
+		updatedAt:            text('updated_at').notNull(),
 	},
 	(t) => ({
 		orgIdx: uniqueIndex('subscriptions_org_idx').on(t.organizationId),

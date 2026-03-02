@@ -39,7 +39,9 @@
 	 * For production, update these with your actual Firebase values
 	 */
 	"vars": {
-		"FROM_DOMAIN": "geeledger.com"
+		"FROM_DOMAIN": "geeledger.com",
+		"STRIPE_PRICE_ID_PRO_MONTHLY": "price_1T6IMpEtJV1FPtwdI5fpEi6Q",
+		"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64lOEtJV1FPtwdHpIdLBEM"
 	},
 	"env": {
 		"production": {
@@ -53,7 +55,9 @@
 				"PUBLIC_FIREBASE_AUTH_DOMAIN":"gee-ledger.firebaseapp.com",
 				"PUBLIC_FIREBASE_PROJECT_ID":"gee-ledger",
 				"PUBLIC_FIREBASE_STORAGE_BUCKET":"gee-ledger.firebasestorage.app",
-				"PUBLIC_FIREBASE_MEASUREMENT_ID":"G-T162PGH0V6"
+				"PUBLIC_FIREBASE_MEASUREMENT_ID":"G-T162PGH0V6",
+				"STRIPE_PRICE_ID_PRO_MONTHLY": "price_1T6IOKIVwBxlXYyo1lRQwhi8",
+				"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64fxIVwBxlXYyoYmoLWr0Q"
 			},
 			"d1_databases": [
 				{

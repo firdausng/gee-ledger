@@ -1,5 +1,7 @@
 <script lang="ts">
 	import logoSvg from '$lib/assets/logo.svg?raw';
+
+	let pricingInterval = $state<'month' | 'year'>('year');
 </script>
 
 <svelte:head>
@@ -529,9 +531,25 @@
 				<h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
 					Simple pricing, no surprises
 				</h2>
-				<p class="text-muted-foreground max-w-xl mx-auto leading-relaxed">
+				<p class="text-muted-foreground max-w-xl mx-auto leading-relaxed mb-6">
 					Start free. Upgrade when you need more power.
 				</p>
+
+				<!-- Interval toggle -->
+				<div class="inline-flex rounded-md border border-border overflow-hidden">
+					<button
+						onclick={() => (pricingInterval = 'month')}
+						class="px-4 py-2 text-sm font-medium transition-colors {pricingInterval === 'month' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
+					>
+						Monthly
+					</button>
+					<button
+						onclick={() => (pricingInterval = 'year')}
+						class="px-4 py-2 text-sm font-medium transition-colors {pricingInterval === 'year' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
+					>
+						Yearly <span class="text-xs opacity-75">save $24</span>
+					</button>
+				</div>
 			</div>
 
 			<div class="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -579,7 +597,13 @@
 					</span>
 					<h3 class="text-lg font-bold text-foreground mb-1">Pro</h3>
 					<div class="mb-6">
-						<span class="text-3xl font-bold text-foreground">Coming soon</span>
+						{#if pricingInterval === 'month'}
+							<span class="text-3xl font-bold text-foreground">$12</span>
+							<span class="text-muted-foreground text-sm ml-1">/ month</span>
+						{:else}
+							<span class="text-3xl font-bold text-foreground">$120</span>
+							<span class="text-muted-foreground text-sm ml-1">/ year</span>
+						{/if}
 					</div>
 					<p class="text-sm text-muted-foreground mb-4">Everything in Free, plus:</p>
 					<ul class="space-y-2.5 mb-8">
@@ -602,7 +626,7 @@
 						href="/login"
 						class="block text-center rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
 					>
-						Get started free
+						Get started
 					</a>
 				</div>
 			</div>

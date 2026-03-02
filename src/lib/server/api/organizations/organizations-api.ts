@@ -4,6 +4,8 @@ import { CreateOrganizationSchema, UpdateOrganizationSchema } from '$lib/schemas
 import { createOrganizationHandler } from './createOrganizationHandler';
 import { getOrganizationsHandler } from './getOrganizationsHandler';
 import { getOrganizationHandler } from './getOrganizationHandler';
+import { checkoutHandler } from './checkoutHandler';
+import { portalHandler } from './portalHandler';
 import { HTTPException } from 'hono/http-exception';
 
 export const organizationsApi = new Hono<App.Api>()
@@ -26,5 +28,21 @@ export const organizationsApi = new Hono<App.Api>()
 	.get('/organizations/:organizationId', async (c) => {
 		const user = c.get('currentUser');
 		const data = await getOrganizationHandler(user, c.req.param('organizationId'), c.env);
+		return c.json({ data });
+	})
+
+	.post('/organizations/:organizationId/checkout', async (c) => {
+		const user = c.get('currentUser');
+		const body = await c.req.json();
+		const interval = body.interval === 'year' ? 'year' : 'month';
+		const origin = new URL(c.req.url).origin;
+		const data = await checkoutHandler(user, c.req.param('organizationId'), { interval }, c.env, origin);
+		return c.json({ data });
+	})
+
+	.post('/organizations/:organizationId/portal', async (c) => {
+		const user = c.get('currentUser');
+		const origin = new URL(c.req.url).origin;
+		const data = await portalHandler(user, c.req.param('organizationId'), c.env, origin);
 		return c.json({ data });
 	});
