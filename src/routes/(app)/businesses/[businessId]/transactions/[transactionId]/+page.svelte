@@ -13,6 +13,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { PLAN_KEY } from '$lib/configurations/plans';
+	import { DatePicker } from '$lib/components/ui/date-picker';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
@@ -424,7 +425,7 @@
 					<!-- Date -->
 					<div class="space-y-1.5">
 						<Label for="tx-date">Date <span class="text-destructive">*</span></Label>
-						<Input id="tx-date" type="date" bind:value={transactionDate} />
+						<DatePicker id="tx-date" bind:value={transactionDate} />
 					</div>
 				</Card.Content>
 			</Card.Root>

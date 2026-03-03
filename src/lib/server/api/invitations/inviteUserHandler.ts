@@ -5,6 +5,8 @@ import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import { getOrgIdForBusiness, checkSeatAvailability } from '$lib/server/utils/seatLimits';
 import { sendInvitationEmail } from '$lib/server/email/sendInvitationEmail';
+import { dispatchNotification } from '$lib/server/push/dispatcher';
+import { NOTIFICATION_TYPE } from '$lib/configurations/notifications';
 import { HTTPException } from 'hono/http-exception';
 import type { InviteUserInput } from '$lib/schemas/invitation';
 
@@ -119,6 +121,16 @@ export async function inviteUserHandler(
 			appDomain: env.APP_DOMAIN,
 			type: 'added',
 		}).catch((err) => console.error('Failed to send invitation email:', err));
+
+		// Push notification (fire-and-forget)
+		dispatchNotification({
+			recipientUserIds: [existingUser.id],
+			type: NOTIFICATION_TYPE.INVITATION_RECEIVED,
+			title: 'Added to business',
+			body: `${user.displayName ?? 'Someone'} added you to ${businessName}`,
+			actionUrl: `/businesses/${businessId}`,
+			env,
+		}).catch((err) => console.error('Failed to dispatch notification:', err));
 
 		return { status: 'added', userId: existingUser.id };
 	}

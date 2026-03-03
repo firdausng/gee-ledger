@@ -34,3 +34,4 @@ vite.config.ts.timestamp-*
 
 # Internal docs
 docs/internal
+internal

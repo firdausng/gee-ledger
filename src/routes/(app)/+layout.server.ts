@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, inArray } from 'drizzle-orm';
-import { businesses, userBusinessRoles, subscriptions, organizationMembers } from '$lib/server/db/schema';
+import { eq, and, isNull, inArray, count } from 'drizzle-orm';
+import { businesses, userBusinessRoles, subscriptions, organizationMembers, invitations } from '$lib/server/db/schema';
 import { PLAN_KEY, SUBSCRIPTION_STATUS } from '$lib/configurations/plans';
 import * as schema from '$lib/server/db/schema';
 import type { LayoutServerLoad } from './$types';
@@ -96,5 +96,16 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 		}
 	}
 
-	return { user: locals.user, navBusinesses, upgradeOrgId };
+	// Count pending invitations for the current user
+	const [{ value: pendingInvitationCount }] = await db
+		.select({ value: count() })
+		.from(invitations)
+		.where(
+			and(
+				eq(invitations.email, locals.user.email ?? ''),
+				eq(invitations.status, 'pending')
+			)
+		);
+
+	return { user: locals.user, navBusinesses, upgradeOrgId, pendingInvitationCount };
 };

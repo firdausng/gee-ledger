@@ -7,8 +7,6 @@
 		LayoutDashboard,
 		Mail,
 		LogOut,
-		Menu,
-		X,
 		Plus,
 		ChevronRight,
 		ReceiptText,
@@ -23,12 +21,22 @@
 		UsersRound,
 		Crown,
 		Package,
-		Sparkles
+		Sparkles,
+		Sun,
+		Moon,
+		X
 	} from '@lucide/svelte';
+	import { toggleMode, mode } from 'mode-watcher';
+	import { Collapsible } from 'bits-ui';
+	import * as Sidebar from '$lib/components/ui/sidebar';
+	import { onMount } from 'svelte';
+	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
+	import { registerDeviceToken, onForegroundMessage } from '$lib/messaging/fcm.client';
+	import { notificationActions } from '$lib/stores/notifications.svelte';
+	import { authState } from '$lib/stores/auth.svelte';
 
 	let { children, data } = $props();
 
-	let drawerOpen = $state(false);
 	let bannerDismissed = $state(false);
 
 	let currentBusinessId = $derived($page.params.businessId ?? null);
@@ -38,29 +46,19 @@
 			: null
 	);
 
-	// Which business sub-menu is expanded — auto-syncs when navigating
-	let expandedBusinessId = $state<string | null>(null);
-	$effect(() => {
-		expandedBusinessId = currentBusinessId;
-	});
-
-	function toggleBiz(id: string) {
-		expandedBusinessId = expandedBusinessId === id ? null : id;
-	}
-
 	const bizTabs = [
 		{ href: '', label: 'Overview', icon: LayoutDashboard },
 		{ href: '/transactions', label: 'Transactions', icon: ReceiptText },
-		{ href: '/contacts',    label: 'Contacts',     icon: UsersRound },
+		{ href: '/contacts', label: 'Contacts', icon: UsersRound },
 		{ href: '/accounts', label: 'Accounts', icon: BookOpen },
-		{ href: '/products',   label: 'Products',   icon: Package },
+		{ href: '/products', label: 'Products', icon: Package },
 		{ href: '/categories', label: 'Categories', icon: Tag },
 		{ href: '/locations', label: 'Locations', icon: MapPin },
 		{ href: '/channels', label: 'Channels', icon: ShoppingBag },
 		{ href: '/members', label: 'Members', icon: Users },
 		{ href: '/attachments', label: 'Attachments', icon: Paperclip },
-		{ href: '/statement',   label: 'Statement',   icon: ScrollText },
-		{ href: '/settings',    label: 'Settings',    icon: Settings2 }
+		{ href: '/statement', label: 'Statement', icon: ScrollText },
+		{ href: '/settings', label: 'Settings', icon: Settings2 }
 	];
 
 	function isSubActive(bizId: string, tabHref: string): boolean {
@@ -70,147 +68,216 @@
 		return path.startsWith(`${base}${tabHref}`);
 	}
 
-	function closeDrawer() {
-		drawerOpen = false;
-	}
+	onMount(() => {
+		// Register device for push notifications
+		const user = authState.user;
+		if (user) {
+			user.getIdToken().then((idToken: string) => {
+				registerDeviceToken(idToken).catch(() => {});
+			});
+		}
+
+		// Listen for foreground push messages
+		const unsubscribe = onForegroundMessage((payload) => {
+			notificationActions.addFromPush(payload);
+		});
+
+		// Fetch existing notifications
+		notificationActions.fetchNotifications();
+
+		return () => {
+			if (unsubscribe) unsubscribe();
+		};
+	});
 </script>
 
-<div class="min-h-screen bg-background flex">
-	<!-- ─── Sidebar (desktop) ─────────────────────────────────────── -->
-	<aside
-		class="hidden lg:flex flex-col w-64 fixed inset-y-0 left-0 border-r border-border bg-card z-20"
-	>
-		<!-- Logo -->
-		<div class="h-14 flex items-center px-5 border-b border-border shrink-0">
-			<a href="/businesses" class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto">
-				{@html logoSvg}
-				<span class="font-semibold">Gee Ledger</span>
-			</a>
-		</div>
-
-		<nav class="flex-1 overflow-y-auto p-3 flex flex-col gap-1">
-			<!-- Businesses section -->
-			<div class="px-2 pt-2 pb-1">
-				<div class="flex items-center justify-between">
-					<span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-						Businesses
-					</span>
-					<a
-						href="/businesses"
-						class="size-5 flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
-						title="Manage businesses"
-					>
-						<Plus class="size-3.5" />
-					</a>
-				</div>
-			</div>
-
-			{#each data.navBusinesses as biz (biz.id)}
-				<button
-					onclick={() => toggleBiz(biz.id)}
-					class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors
-						{currentBusinessId === biz.id
-						? 'text-primary font-medium hover:bg-primary/5'
-						: 'text-foreground hover:bg-muted'}"
-				>
-					<Building2 class="size-4 shrink-0" />
-					<span class="truncate flex-1 text-left">{biz.name}</span>
-					<ChevronRight
-						class="size-3.5 shrink-0 transition-transform duration-200
-							{expandedBusinessId === biz.id ? 'rotate-90' : ''}"
-					/>
-				</button>
-
-				{#if expandedBusinessId === biz.id}
-					<div class="ml-3 pl-3 border-l border-border flex flex-col gap-0.5 py-0.5">
-						{#each bizTabs as tab}
-							<a
-								href="/businesses/{biz.id}{tab.href}"
-								class="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors
-									{isSubActive(biz.id, tab.href)
-									? 'bg-primary/10 text-primary font-medium'
-									: 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
-							>
-								<tab.icon class="size-3.5 shrink-0" />
-								{tab.label}
+<Sidebar.Provider>
+	<Sidebar.Root collapsible="offcanvas" side="left">
+		<!-- Header: Logo -->
+		<Sidebar.Header>
+			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton size="lg">
+						{#snippet child({ props })}
+							<a href="/businesses" {...props}>
+								<div class="[&_svg]:h-5 [&_svg]:w-auto">
+									{@html logoSvg}
+								</div>
+								<span class="font-semibold text-sm">Gee Ledger</span>
 							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+		</Sidebar.Header>
+
+		<!-- Content: Nav -->
+		<Sidebar.Content>
+			<!-- Businesses group -->
+			<Sidebar.Group>
+				<Sidebar.GroupLabel>
+					Businesses
+					<Sidebar.GroupAction>
+						{#snippet child({ props })}
+							<a href="/businesses" {...props} title="Manage businesses">
+								<Plus class="size-4" />
+							</a>
+						{/snippet}
+					</Sidebar.GroupAction>
+				</Sidebar.GroupLabel>
+				<Sidebar.GroupContent>
+					<Sidebar.Menu>
+						{#each data.navBusinesses as biz (biz.id)}
+							<Collapsible.Root open={currentBusinessId === biz.id}>
+								<Sidebar.MenuItem>
+									<Sidebar.MenuButton isActive={currentBusinessId === biz.id}>
+										{#snippet child({ props })}
+											<a href="/businesses/{biz.id}" {...props}>
+												<Building2 class="size-4" />
+												<span class="truncate flex-1">{biz.name}</span>
+												<Collapsible.Trigger
+													class="ml-auto"
+													onclick={(e: MouseEvent) => e.preventDefault()}
+												>
+													<ChevronRight
+														class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+													/>
+												</Collapsible.Trigger>
+											</a>
+										{/snippet}
+									</Sidebar.MenuButton>
+									<Collapsible.Content>
+										<Sidebar.MenuSub>
+											{#each bizTabs as tab}
+												<Sidebar.MenuSubItem>
+													<Sidebar.MenuSubButton
+														href="/businesses/{biz.id}{tab.href}"
+														isActive={isSubActive(biz.id, tab.href)}
+													>
+														<tab.icon class="size-3.5" />
+														<span>{tab.label}</span>
+													</Sidebar.MenuSubButton>
+												</Sidebar.MenuSubItem>
+											{/each}
+										</Sidebar.MenuSub>
+									</Collapsible.Content>
+								</Sidebar.MenuItem>
+							</Collapsible.Root>
+						{:else}
+							<Sidebar.MenuItem>
+								<p class="px-2 py-1.5 text-sm text-muted-foreground">No businesses yet.</p>
+							</Sidebar.MenuItem>
 						{/each}
-					</div>
-				{/if}
-			{:else}
-				<p class="px-2 py-1.5 text-sm text-muted-foreground">No businesses yet.</p>
-			{/each}
-		</nav>
+					</Sidebar.Menu>
+				</Sidebar.GroupContent>
+			</Sidebar.Group>
 
-		<!-- Bottom nav -->
-		<div class="p-3 border-t border-border flex flex-col gap-1">
-			<a
-				href="/organizations"
-				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
-			>
-				<Crown class="size-4" />
-				Organizations
-			</a>
-			<a
-				href="/invitations"
-				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
-			>
-				<Mail class="size-4" />
-				Invitations
-			</a>
-			<div class="pt-2 border-t border-border mt-1">
-				<div class="px-2 py-1.5 flex items-center gap-2.5 mb-1">
-					{#if data.user.photoURL}
-						<img src={data.user.photoURL} alt="avatar" class="size-7 rounded-full" />
-					{:else}
-						<div
-							class="size-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold"
-						>
-							{(data.user.displayName ?? data.user.email ?? '?')[0].toUpperCase()}
+			<!-- General links -->
+			<Sidebar.Group class="mt-auto">
+				<Sidebar.GroupContent>
+					<Sidebar.Menu>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet child({ props })}
+									<a href="/organizations" {...props}>
+										<Crown class="size-4" />
+										<span>Organizations</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet child({ props })}
+									<a href="/invitations" {...props}>
+										<Mail class="size-4" />
+										<span>Invitations</span>
+										{#if data.pendingInvitationCount > 0}
+											<span class="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-destructive rounded-full">
+												{data.pendingInvitationCount}
+											</span>
+										{/if}
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton onclick={toggleMode}>
+								{#if mode.current === 'dark'}
+									<Sun class="size-4" />
+									<span>Light mode</span>
+								{:else}
+									<Moon class="size-4" />
+									<span>Dark mode</span>
+								{/if}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+					</Sidebar.Menu>
+				</Sidebar.GroupContent>
+			</Sidebar.Group>
+		</Sidebar.Content>
+
+		<!-- Footer: User info -->
+		<Sidebar.Footer>
+			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<div class="flex items-center gap-2.5 px-2 py-1.5">
+						{#if data.user.photoURL}
+							<img src={data.user.photoURL} alt="avatar" class="size-7 rounded-full shrink-0" />
+						{:else}
+							<div
+								class="size-7 rounded-full bg-sidebar-primary/20 flex items-center justify-center text-sidebar-primary text-xs font-bold shrink-0"
+							>
+								{(data.user.displayName ?? data.user.email ?? '?')[0].toUpperCase()}
+							</div>
+						{/if}
+						<div class="min-w-0 flex-1">
+							<p class="text-sm font-medium truncate">{data.user.displayName ?? 'User'}</p>
+							<p class="text-xs text-sidebar-foreground/60 truncate">{data.user.email ?? ''}</p>
 						</div>
-					{/if}
-					<div class="min-w-0">
-						<p class="text-sm font-medium truncate">{data.user.displayName ?? 'User'}</p>
-						<p class="text-xs text-muted-foreground truncate">{data.user.email ?? ''}</p>
 					</div>
-				</div>
-				<button
-					onclick={() => authActions.signOut()}
-					class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
-				>
-					<LogOut class="size-4" />
-					Sign out
-				</button>
-			</div>
-		</div>
-	</aside>
+				</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton
+						onclick={() => authActions.signOut()}
+						class="text-destructive hover:text-destructive"
+					>
+						<LogOut class="size-4" />
+						<span>Sign out</span>
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+		</Sidebar.Footer>
+	</Sidebar.Root>
 
-	<!-- ─── Main area ─────────────────────────────────────────────── -->
-	<div class="flex-1 lg:pl-64 flex flex-col min-h-screen min-w-0 overflow-x-hidden">
-		<!-- Mobile topbar -->
+	<!-- Main content area -->
+	<Sidebar.Inset>
+		<!-- Top bar -->
 		<header
-			class="lg:hidden sticky top-0 z-10 h-14 border-b border-border bg-background/95 backdrop-blur flex items-center px-4 gap-3"
+			class="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background/95 backdrop-blur px-4"
 		>
-			<button
-				onclick={() => (drawerOpen = !drawerOpen)}
-				class="p-1.5 rounded-md hover:bg-muted text-muted-foreground shrink-0"
-				aria-label="Toggle menu"
-			>
-				<Menu class="size-5" />
-			</button>
+			<Sidebar.Trigger class="md:hidden" />
 			{#if currentBusiness}
 				<span class="font-semibold text-foreground truncate">{currentBusiness.name}</span>
 			{:else}
-				<a href="/businesses" class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto">
+				<a
+					href="/businesses"
+					class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto"
+				>
 					{@html logoSvg}
 					<span class="font-semibold">Gee Ledger</span>
 				</a>
 			{/if}
+			<div class="ml-auto flex items-center gap-2">
+				<NotificationBell />
+			</div>
 		</header>
 
 		<!-- Upgrade banner -->
 		{#if data.upgradeOrgId && !bannerDismissed}
-			<div class="border-b border-amber-200 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-900/10">
+			<div
+				class="border-b border-amber-200 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-900/10"
+			>
 				<div class="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
 					<a
 						href="/organizations/{data.upgradeOrgId}"
@@ -234,97 +301,5 @@
 		<main class="flex-1">
 			{@render children()}
 		</main>
-	</div>
-</div>
-
-<!-- ─── Mobile drawer overlay ───────────────────────────────────── -->
-{#if drawerOpen}
-	<!-- Backdrop -->
-	<div
-		class="lg:hidden fixed inset-0 z-30 bg-black/40"
-		role="presentation"
-		onclick={closeDrawer}
-	></div>
-
-	<!-- Drawer panel -->
-	<div class="lg:hidden fixed inset-y-0 left-0 z-40 w-72 bg-card border-r border-border flex flex-col">
-		<div class="h-14 flex items-center justify-between px-4 border-b border-border shrink-0">
-			<a href="/businesses" class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto" onclick={closeDrawer}>
-				{@html logoSvg}
-				<span class="font-semibold">Gee Ledger</span>
-			</a>
-			<button onclick={closeDrawer} class="p-1.5 rounded-md hover:bg-muted text-muted-foreground">
-				<X class="size-5" />
-			</button>
-		</div>
-
-		<nav class="flex-1 overflow-y-auto p-3 flex flex-col gap-1">
-			<div class="px-2 pt-2 pb-1">
-				<span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-					Businesses
-				</span>
-			</div>
-
-			{#each data.navBusinesses as biz (biz.id)}
-				<button
-					onclick={() => toggleBiz(biz.id)}
-					class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors
-						{currentBusinessId === biz.id
-						? 'text-primary font-medium hover:bg-primary/5'
-						: 'text-foreground hover:bg-muted'}"
-				>
-					<Building2 class="size-4 shrink-0" />
-					<span class="truncate flex-1 text-left">{biz.name}</span>
-					<ChevronRight
-						class="size-3.5 shrink-0 transition-transform duration-200
-							{expandedBusinessId === biz.id ? 'rotate-90' : ''}"
-					/>
-				</button>
-
-				{#if expandedBusinessId === biz.id}
-					<div class="ml-3 pl-3 border-l border-border flex flex-col gap-0.5 py-0.5">
-						{#each bizTabs as tab}
-							<a
-								href="/businesses/{biz.id}{tab.href}"
-								class="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors
-									{isSubActive(biz.id, tab.href)
-									? 'bg-primary/10 text-primary font-medium'
-									: 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
-								onclick={closeDrawer}
-							>
-								<tab.icon class="size-3.5 shrink-0" />
-								{tab.label}
-							</a>
-						{/each}
-					</div>
-				{/if}
-			{/each}
-		</nav>
-
-		<div class="p-3 border-t border-border flex flex-col gap-1">
-			<a
-				href="/organizations"
-				onclick={closeDrawer}
-				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted"
-			>
-				<Crown class="size-4" />
-				Organizations
-			</a>
-			<a
-				href="/invitations"
-				onclick={closeDrawer}
-				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted"
-			>
-				<Mail class="size-4" />
-				Invitations
-			</a>
-			<button
-				onclick={() => authActions.signOut()}
-				class="flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10"
-			>
-				<LogOut class="size-4" />
-				Sign out
-			</button>
-		</div>
-	</div>
-{/if}
+	</Sidebar.Inset>
+</Sidebar.Provider>

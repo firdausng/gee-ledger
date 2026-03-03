@@ -4,6 +4,7 @@
 	import { api, formatAmount } from '$lib/client/api.svelte';
 	import { Plus, Loader2, Trash2, Paperclip, ScrollText, Download, Crown } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
+	import { DateRangePicker } from '$lib/components/ui/date-picker';
 
 	let { data } = $props();
 
@@ -144,17 +145,11 @@
 			<option value="income">Income</option>
 			<option value="expense">Expense</option>
 		</select>
-		<input
-			type="date"
-			bind:value={filterFrom}
+		<DateRangePicker
+			bind:from={filterFrom}
+			bind:to={filterTo}
 			onchange={() => loadTransactions()}
-			class="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-		/>
-		<input
-			type="date"
-			bind:value={filterTo}
-			onchange={() => loadTransactions()}
-			class="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+			class="w-full sm:w-auto"
 		/>
 	</div>
 

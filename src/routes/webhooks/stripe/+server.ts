@@ -2,9 +2,11 @@ import type { RequestHandler } from './$types';
 import { verifyStripeWebhook } from '$lib/server/stripe/webhook';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
-import { subscriptions } from '$lib/server/db/schema';
+import { subscriptions, organizationMembers } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { PLAN_KEY, SUBSCRIPTION_STATUS } from '$lib/configurations/plans';
+import { dispatchNotification } from '$lib/server/push/dispatcher';
+import { NOTIFICATION_TYPE } from '$lib/configurations/notifications';
 
 // ── Stripe event types ───────────────────────────────────────────────────────
 
@@ -51,6 +53,30 @@ function toISOString(epoch: number): string {
 
 function now(): string {
 	return new Date().toISOString();
+}
+
+async function notifyOrgMembers(
+	orgId: string,
+	title: string,
+	body: string,
+	env: Cloudflare.Env
+) {
+	const db = drizzle(env.DB, { schema });
+	const members = await db
+		.select({ userId: organizationMembers.userId })
+		.from(organizationMembers)
+		.where(eq(organizationMembers.organizationId, orgId));
+
+	if (members.length > 0) {
+		dispatchNotification({
+			recipientUserIds: members.map((m) => m.userId),
+			type: NOTIFICATION_TYPE.SUBSCRIPTION_CHANGED,
+			title,
+			body,
+			actionUrl: `/organizations/${orgId}`,
+			env,
+		}).catch((err) => console.error('Failed to dispatch subscription notification:', err));
+	}
 }
 
 // ── Handler ──────────────────────────────────────────────────────────────────
@@ -127,6 +153,8 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 						updatedAt:            now(),
 					});
 				}
+
+				notifyOrgMembers(organizationId, 'Upgraded to Pro', 'Your organization has been upgraded to the Pro plan', env);
 				break;
 			}
 
@@ -180,6 +208,13 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 				});
 				const sub = event.data.object as StripeSubscription;
 
+				// Look up org for notification before updating
+				const [cancelledSub] = await db
+					.select({ organizationId: subscriptions.organizationId })
+					.from(subscriptions)
+					.where(eq(subscriptions.stripeSubscriptionId, sub.id))
+					.limit(1);
+
 				await db.update(subscriptions).set({
 					status:                 SUBSCRIPTION_STATUS.CANCELLED,
 					planKey:                PLAN_KEY.FREE,
@@ -188,6 +223,10 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 					seatSubscriptionItemId: null,
 					updatedAt:              now(),
 				}).where(eq(subscriptions.stripeSubscriptionId, sub.id));
+
+				if (cancelledSub) {
+					notifyOrgMembers(cancelledSub.organizationId, 'Subscription cancelled', 'Your organization subscription has been cancelled', env);
+				}
 				break;
 			}
 

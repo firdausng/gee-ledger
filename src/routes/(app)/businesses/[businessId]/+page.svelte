@@ -6,6 +6,7 @@
 	import { Plus, TrendingUp, TrendingDown, Scale, Loader2 } from '@lucide/svelte';
 	import { BarChart, PieChart } from 'layerchart';
 	import { ChartContainer, type ChartConfig } from '$lib/components/ui/chart';
+	import { DateRangePicker } from '$lib/components/ui/date-picker';
 
 	let { data } = $props();
 
@@ -90,16 +91,16 @@
 	let totalExpense = $derived(trend.reduce((s, t) => s + t.expense, 0));
 	let balance = $derived(totalIncome - totalExpense);
 
-	const businessId = $page.params.businessId!;
+	let businessId = $derived($page.params.businessId!);
 
-	async function loadRecentTransactions() {
+	async function loadRecentTransactions(bizId: string) {
 		try {
 			loading = true;
 			const today = new Date();
 			const from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
 			const to = today.toISOString().slice(0, 10);
 			const res = await api.get<{ data: Transaction[]; hasMore: boolean }>(
-				`/businesses/${businessId}/transactions?from=${from}&to=${to}&limit=50`
+				`/businesses/${bizId}/transactions?from=${from}&to=${to}&limit=50`
 			);
 			transactions = res.data;
 		} catch (e) {
@@ -109,16 +110,16 @@
 		}
 	}
 
-	async function loadStats() {
+	async function loadStats(bizId: string, range: { from: string; to: string; groupBy: 'day' | 'month' }) {
 		try {
 			statsLoading = true;
 			const q = new URLSearchParams({
-				from: dateRange.from,
-				to: dateRange.to,
-				groupBy: dateRange.groupBy
+				from: range.from,
+				to: range.to,
+				groupBy: range.groupBy
 			});
 			const res = await api.get<{ trend: TrendRow[]; categoryBreakdown: CategoryRow[] }>(
-				`/businesses/${businessId}/dashboard-stats?${q}`
+				`/businesses/${bizId}/dashboard-stats?${q}`
 			);
 			trend = res.trend;
 			categoryBreakdown = res.categoryBreakdown;
@@ -149,15 +150,23 @@
 		goto(`?${params}`, { replaceState: true, keepFocus: true });
 	}
 
-	// Reload stats when date range changes
+	function onCustomRangeChange() {
+		if (customFromInput && customToInput) {
+			applyCustomRange();
+		}
+	}
+
+	// Reload stats when businessId or date range changes
 	$effect(() => {
-		// Access dateRange to track it
-		const _range = dateRange;
-		loadStats();
+		loadStats(businessId, dateRange);
+	});
+
+	// Reload recent transactions when businessId changes
+	$effect(() => {
+		loadRecentTransactions(businessId);
 	});
 
 	onMount(() => {
-		loadRecentTransactions();
 		// Initialize custom inputs from URL params
 		if (customFrom) customFromInput = customFrom;
 		if (customTo) customToInput = customTo;
@@ -239,26 +248,12 @@
 		{/each}
 
 		{#if activePeriod === 'custom'}
-			<div class="flex items-center gap-2">
-				<input
-					type="date"
-					bind:value={customFromInput}
-					class="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-				/>
-				<span class="text-xs text-muted-foreground">to</span>
-				<input
-					type="date"
-					bind:value={customToInput}
-					class="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-				/>
-				<button
-					onclick={applyCustomRange}
-					disabled={!customFromInput || !customToInput}
-					class="px-3 py-1.5 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-				>
-					Apply
-				</button>
-			</div>
+			<DateRangePicker
+				bind:from={customFromInput}
+				bind:to={customToInput}
+				onchange={onCustomRangeChange}
+				class="w-auto"
+			/>
 		{/if}
 	</div>
 

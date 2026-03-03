@@ -3,6 +3,7 @@
 	import { ArrowLeft, Printer, Loader2 } from '@lucide/svelte';
 	import StatementPreview from '$lib/components/StatementPreview.svelte';
 	import { api } from '$lib/client/api.svelte';
+	import { DatePicker } from '$lib/components/ui/date-picker';
 
 	let { data } = $props();
 
@@ -134,13 +135,11 @@
 			<div class="flex flex-col gap-2">
 				<div>
 					<label for="stmt-from" class="block text-xs text-muted-foreground mb-1">From</label>
-					<input id="stmt-from" type="date" bind:value={filterFrom}
-						class="w-full text-sm text-foreground bg-background border border-input rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring" />
+					<DatePicker id="stmt-from" bind:value={filterFrom} />
 				</div>
 				<div>
 					<label for="stmt-to" class="block text-xs text-muted-foreground mb-1">To</label>
-					<input id="stmt-to" type="date" bind:value={filterTo}
-						class="w-full text-sm text-foreground bg-background border border-input rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring" />
+					<DatePicker id="stmt-to" bind:value={filterTo} />
 				</div>
 			</div>
 		</div>
@@ -252,13 +251,11 @@
 		<div class="grid grid-cols-2 divide-x divide-border border-b border-border">
 			<div class="px-4 py-3">
 				<label for="stmt-m-from" class="block text-xs text-muted-foreground mb-1">From</label>
-				<input id="stmt-m-from" type="date" bind:value={filterFrom}
-					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
+				<DatePicker id="stmt-m-from" bind:value={filterFrom} />
 			</div>
 			<div class="px-4 py-3">
 				<label for="stmt-m-to" class="block text-xs text-muted-foreground mb-1">To</label>
-				<input id="stmt-m-to" type="date" bind:value={filterTo}
-					class="w-full text-sm text-foreground bg-transparent focus:outline-none" />
+				<DatePicker id="stmt-m-to" bind:value={filterTo} />
 			</div>
 		</div>
 

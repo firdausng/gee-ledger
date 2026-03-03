@@ -479,3 +479,60 @@ export const invitations = sqliteTable(
 		emailStatusIdx: index('invitations_email_status_idx').on(t.email, t.status)
 	})
 );
+
+// ─── Device Tokens (Push Notifications) ──────────────────────────────────────
+
+export const deviceTokens = sqliteTable(
+	'device_tokens',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id').notNull(),
+		token: text('token').notNull(),
+		platform: text('platform').notNull().default('web'),
+		userAgent: text('user_agent'),
+		createdAt: text('created_at').notNull(),
+		updatedAt: text('updated_at').notNull()
+	},
+	(t) => ({
+		userIdx: index('device_tokens_user_idx').on(t.userId),
+		tokenUniq: uniqueIndex('device_tokens_token_uniq').on(t.token)
+	})
+);
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export const notifications = sqliteTable(
+	'notifications',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id').notNull(),
+		type: text('type').notNull(),
+		title: text('title').notNull(),
+		body: text('body').notNull(),
+		data: text('data'),
+		actionUrl: text('action_url'),
+		isRead: integer('is_read', { mode: 'boolean' }).notNull().default(false),
+		createdAt: text('created_at').notNull()
+	},
+	(t) => ({
+		userReadIdx: index('notifications_user_read_idx').on(t.userId, t.isRead),
+		userDateIdx: index('notifications_user_date_idx').on(t.userId, t.createdAt)
+	})
+);
+
+// ─── Notification Preferences ────────────────────────────────────────────────
+
+export const notificationPreferences = sqliteTable(
+	'notification_preferences',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id').notNull(),
+		type: text('type').notNull(),
+		pushEnabled: integer('push_enabled', { mode: 'boolean' }).notNull().default(true),
+		inAppEnabled: integer('in_app_enabled', { mode: 'boolean' }).notNull().default(true),
+		updatedAt: text('updated_at').notNull()
+	},
+	(t) => ({
+		userTypeUniq: uniqueIndex('notification_prefs_user_type_uniq').on(t.userId, t.type)
+	})
+);

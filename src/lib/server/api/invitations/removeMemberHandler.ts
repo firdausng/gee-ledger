@@ -1,9 +1,11 @@
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, count } from 'drizzle-orm';
-import { userBusinessRoles } from '$lib/server/db/schema';
+import { userBusinessRoles, businesses } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import { HTTPException } from 'hono/http-exception';
+import { dispatchNotification } from '$lib/server/push/dispatcher';
+import { NOTIFICATION_TYPE } from '$lib/configurations/notifications';
 
 export async function removeMemberHandler(
 	user: App.User,
@@ -43,6 +45,13 @@ export async function removeMemberHandler(
 		if (ownerCount <= 1) throw new HTTPException(400, { message: 'Cannot remove the last owner' });
 	}
 
+	// Look up business name for notification
+	const [biz] = await db
+		.select({ name: businesses.name })
+		.from(businesses)
+		.where(eq(businesses.id, businessId))
+		.limit(1);
+
 	await db
 		.delete(userBusinessRoles)
 		.where(
@@ -51,6 +60,16 @@ export async function removeMemberHandler(
 				eq(userBusinessRoles.businessId, businessId)
 			)
 		);
+
+	// Notify the removed user (fire-and-forget)
+	dispatchNotification({
+		recipientUserIds: [targetUserId],
+		type: NOTIFICATION_TYPE.MEMBER_LEFT,
+		title: 'Removed from business',
+		body: `You were removed from ${biz?.name ?? 'a business'}`,
+		actionUrl: '/businesses',
+		env,
+	}).catch((err) => console.error('Failed to dispatch notification:', err));
 
 	return { success: true };
 }

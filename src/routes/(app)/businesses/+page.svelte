@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/client/api.svelte';
 	import { page } from '$app/stores';
-	import { Building2, Plus, X, Loader2, ChevronsUpDown, Check, Crown } from '@lucide/svelte';
+	import { Building2, Plus, X, Loader2, ChevronsUpDown, Check, Crown, Mail } from '@lucide/svelte';
 	import { CURRENCIES } from '$lib/data/currencies';
 	import { PHONE_CODES } from '$lib/data/phoneCodes';
 	import { PLAN_KEY, PLANS } from '$lib/configurations/plans';
@@ -329,9 +329,19 @@
 			<Building2 class="size-12 text-muted-foreground mx-auto mb-4" />
 			<h3 class="text-lg font-semibold mb-1">No businesses yet</h3>
 			<p class="text-sm text-muted-foreground mb-4">Create your first business to get started.</p>
+			{#if ($page.data.pendingInvitationCount ?? 0) > 0}
+				<a
+					href="/invitations"
+					class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 mb-3"
+				>
+					<Mail class="size-4" />
+					View {$page.data.pendingInvitationCount} pending invitation{$page.data.pendingInvitationCount === 1 ? '' : 's'}
+				</a>
+				<p class="text-xs text-muted-foreground mb-4">or</p>
+			{/if}
 			<button
 				onclick={() => (showCreate = true)}
-				class="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+				class="px-4 py-2 rounded-md {($page.data.pendingInvitationCount ?? 0) > 0 ? 'border border-border text-foreground hover:bg-accent' : 'bg-primary text-primary-foreground hover:bg-primary/90'} text-sm font-medium"
 			>
 				Create Business
 			</button>

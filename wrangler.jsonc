@@ -40,7 +40,7 @@
 	 */
 	"vars": {
 		"RESEND_FROM_DOMAIN": "fivebitrate.com",
-		"APP_DOMAIN": "geeledger.com",
+		"APP_DOMAIN": "localhost:5173",
 		"STRIPE_PRICE_ID_PRO_MONTHLY": "price_1T6IMpEtJV1FPtwdI5fpEi6Q",
 		"STRIPE_PRICE_ID_PRO_YEARLY": "price_1T64lOEtJV1FPtwdHpIdLBEM",
 		"STRIPE_PRICE_ID_SEAT": "price_1T6X2xEtJV1FPtwd8jZPXzKA"

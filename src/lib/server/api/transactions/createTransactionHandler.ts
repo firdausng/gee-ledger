@@ -1,10 +1,12 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { transactions, transactionAttachments, attachments } from '$lib/server/db/schema';
+import { transactions, transactionAttachments, attachments, userBusinessRoles } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import type { CreateTransactionInput } from '$lib/schemas/transaction';
-import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { eq, and, ne, isNull, inArray } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
+import { dispatchNotification } from '$lib/server/push/dispatcher';
+import { NOTIFICATION_TYPE } from '$lib/configurations/notifications';
 
 export async function createTransactionHandler(
 	user: App.User,
@@ -62,6 +64,29 @@ export async function createTransactionHandler(
 		await db.insert(transactionAttachments).values(
 			attachmentIds.map((attachmentId) => ({ transactionId: transaction.id, attachmentId }))
 		);
+	}
+
+	// Notify other business members (fire-and-forget)
+	const otherMembers = await db
+		.select({ userId: userBusinessRoles.userId })
+		.from(userBusinessRoles)
+		.where(
+			and(
+				eq(userBusinessRoles.businessId, businessId),
+				ne(userBusinessRoles.userId, user.id)
+			)
+		);
+
+	if (otherMembers.length > 0) {
+		const amountStr = (Math.abs(data.amount) / 100).toFixed(2);
+		dispatchNotification({
+			recipientUserIds: otherMembers.map((m) => m.userId),
+			type: NOTIFICATION_TYPE.TRANSACTION_CREATED,
+			title: `New ${data.type}`,
+			body: `${user.displayName ?? 'Someone'} recorded a ${data.type} of ${amountStr}`,
+			actionUrl: `/businesses/${businessId}/transactions/${transaction.id}`,
+			env,
+		}).catch((err) => console.error('Failed to dispatch notification:', err));
 	}
 
 	return transaction;

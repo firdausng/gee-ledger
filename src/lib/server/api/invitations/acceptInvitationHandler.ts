@@ -1,8 +1,10 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 import { invitations, userBusinessRoles, businesses, organizationMembers } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { HTTPException } from 'hono/http-exception';
+import { dispatchNotification } from '$lib/server/push/dispatcher';
+import { NOTIFICATION_TYPE } from '$lib/configurations/notifications';
 
 export async function acceptInvitationHandler(
 	user: App.User,
@@ -72,6 +74,35 @@ export async function acceptInvitationHandler(
 				createdBy: user.id,
 			});
 		}
+	}
+
+	// Notify other business members (fire-and-forget)
+	const bizName = await db
+		.select({ name: businesses.name })
+		.from(businesses)
+		.where(eq(businesses.id, invitation.businessId))
+		.limit(1)
+		.then(([b]) => b?.name ?? 'a business');
+
+	const otherMembers = await db
+		.select({ userId: userBusinessRoles.userId })
+		.from(userBusinessRoles)
+		.where(
+			and(
+				eq(userBusinessRoles.businessId, invitation.businessId),
+				ne(userBusinessRoles.userId, user.id)
+			)
+		);
+
+	if (otherMembers.length > 0) {
+		dispatchNotification({
+			recipientUserIds: otherMembers.map((m) => m.userId),
+			type: NOTIFICATION_TYPE.MEMBER_JOINED,
+			title: 'New member joined',
+			body: `${user.displayName ?? user.email ?? 'Someone'} joined ${bizName}`,
+			actionUrl: `/businesses/${invitation.businessId}/members`,
+			env,
+		}).catch((err) => console.error('Failed to dispatch notification:', err));
 	}
 
 	return { success: true, businessId: invitation.businessId };

@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { firebaseConfig } from '$lib/config/firebase.client';
 import { goto } from '$app/navigation';
+import { removeDeviceToken } from '$lib/messaging/fcm.client';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -50,6 +51,11 @@ export const authActions = {
 
 	async signOut() {
 		try {
+			// Remove FCM device token before signing out
+			const idToken = authState.user ? await authState.user.getIdToken() : null;
+			if (idToken) {
+				removeDeviceToken(idToken).catch(() => {});
+			}
 			await signOut(auth);
 			authState.user = null;
 			goto('/login');
