@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { Plus, Loader2, Trash2, Users, Mail, Crown } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
+	import { isAllowedEmailDomain } from '$lib/configurations/auth';
 
 	type Member = {
 		userId: string;
@@ -52,7 +54,6 @@
 	let inviteRole = $state<string>('viewer');
 	let inviting = $state(false);
 	let inviteError = $state<string | null>(null);
-	let inviteSuccess = $state<string | null>(null);
 
 	// Role update
 	let updatingRole = $state<string | null>(null);
@@ -91,15 +92,19 @@
 
 	async function invite() {
 		if (!inviteEmail.trim()) return;
+		if (!isAllowedEmailDomain(inviteEmail.trim())) {
+			inviteError = 'Only Gmail addresses can be invited at this time';
+			return;
+		}
 		try {
 			inviting = true;
 			inviteError = null;
-			inviteSuccess = null;
+			const sentTo = inviteEmail.trim();
 			await api.post(`/businesses/${businessId}/invitations`, {
-				email: inviteEmail.trim().toLowerCase(),
+				email: sentTo.toLowerCase(),
 				policyKey: inviteRole
 			});
-			inviteSuccess = `Invitation sent to ${inviteEmail.trim()}.`;
+			toast.success(`Invitation sent to ${sentTo}`);
 			inviteEmail = '';
 			inviteRole = 'viewer';
 			showInvite = false;
@@ -118,8 +123,10 @@
 			members = members.map((m) =>
 				m.userId === userId ? { ...m, policyKey: newRole } : m
 			);
+			toast.success('Role updated');
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to update role';
+			const msg = e instanceof Error ? e.message : 'Failed to update role';
+			toast.error(msg);
 		} finally {
 			updatingRole = null;
 		}
@@ -131,8 +138,10 @@
 			await api.delete(`/businesses/${businessId}/members/${userId}`);
 			members = members.filter((m) => m.userId !== userId);
 			removeId = null;
+			toast.success('Member removed');
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to remove member';
+			const msg = e instanceof Error ? e.message : 'Failed to remove member';
+			toast.error(msg);
 		} finally {
 			removing = false;
 		}
@@ -144,8 +153,10 @@
 			await api.patch(`/businesses/${businessId}/invitations/${id}/cancel`, {});
 			invitations = invitations.filter((i) => i.id !== id);
 			cancelInviteId = null;
+			toast.success('Invitation cancelled');
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to cancel invitation';
+			const msg = e instanceof Error ? e.message : 'Failed to cancel invitation';
+			toast.error(msg);
 		} finally {
 			cancellingInvite = false;
 		}
@@ -175,7 +186,7 @@
 		</div>
 		{#if canInvite}
 		<button
-			onclick={() => { showInvite = !showInvite; inviteError = null; inviteSuccess = null; }}
+			onclick={() => { showInvite = !showInvite; inviteError = null; }}
 			disabled={seatsFull}
 			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 		>
@@ -200,10 +211,6 @@
 		</div>
 	{/if}
 
-	{#if inviteSuccess}
-		<div class="mb-4 p-3 rounded-md bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm">{inviteSuccess}</div>
-	{/if}
-
 	{#if showInvite}
 		<div class="rounded-lg border border-border bg-card p-4 mb-4">
 			<h3 class="text-sm font-semibold mb-3">Invite Member</h3>
@@ -214,7 +221,7 @@
 				<input
 					type="email"
 					bind:value={inviteEmail}
-					placeholder="Email address"
+					placeholder="Gmail address"
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 				/>
 				<select

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/client/api.svelte';
 	import { page } from '$app/stores';
+	import { toast } from 'svelte-sonner';
 	import { Building2, Plus, X, Loader2, ChevronsUpDown, Check, Crown, Mail } from '@lucide/svelte';
 	import { CURRENCIES } from '$lib/data/currencies';
 	import { PHONE_CODES } from '$lib/data/phoneCodes';
@@ -40,7 +41,6 @@
 	let createPhoneNumber = $state('');
 	let createTaxId       = $state('');
 	let creating          = $state(false);
-	let createError       = $state<string | null>(null);
 
 	// Currency combobox for create form
 	let createCurrencyOpen      = $state(false);
@@ -92,7 +92,6 @@
 		if (!createName.trim()) return;
 		try {
 			creating = true;
-			createError = null;
 			const created = await api.post<Business>('/businesses', {
 				name:        createName.trim(),
 				description: createDescription.trim() || undefined,
@@ -110,8 +109,9 @@
 			createPhoneCode   = '+1';
 			createPhoneNumber = '';
 			createTaxId       = '';
+			toast.success('Business created');
 		} catch (e) {
-			createError = e instanceof Error ? e.message : 'Failed to create business';
+			toast.error(e instanceof Error ? e.message : 'Failed to create business');
 		} finally {
 			creating = false;
 		}
@@ -151,10 +151,6 @@
 					<X class="size-4" />
 				</button>
 			</div>
-
-			{#if createError}
-				<p class="text-sm text-destructive mb-3">{createError}</p>
-			{/if}
 
 			<div class="flex flex-col gap-3">
 

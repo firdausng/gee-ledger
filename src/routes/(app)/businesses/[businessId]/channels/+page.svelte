@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
 	import { Plus, Loader2, Pencil, Trash2 } from '@lucide/svelte';
@@ -23,14 +24,12 @@
 	let createName = $state('');
 	let createType = $state<ChannelType>('custom');
 	let creating = $state(false);
-	let createError = $state<string | null>(null);
 
 	// Edit
 	let editId = $state<string | null>(null);
 	let editName = $state('');
 	let editType = $state<ChannelType>('custom');
 	let editing = $state(false);
-	let editError = $state<string | null>(null);
 
 	// Delete
 	let deleteId = $state<string | null>(null);
@@ -52,7 +51,6 @@
 		if (!createName.trim()) return;
 		try {
 			creating = true;
-			createError = null;
 			const ch = await api.post<Channel>(`/businesses/${businessId}/channels`, {
 				name: createName.trim(),
 				type: createType
@@ -61,8 +59,9 @@
 			showCreate = false;
 			createName = '';
 			createType = 'custom';
+			toast.success('Channel created');
 		} catch (e) {
-			createError = e instanceof Error ? e.message : 'Failed to create';
+			toast.error(e instanceof Error ? e.message : 'Failed to create');
 		} finally {
 			creating = false;
 		}
@@ -72,22 +71,21 @@
 		editId = ch.id;
 		editName = ch.name;
 		editType = ch.type as ChannelType;
-		editError = null;
 	}
 
 	async function saveEdit() {
 		if (!editId || !editName.trim()) return;
 		try {
 			editing = true;
-			editError = null;
 			const updated = await api.patch<Channel>(`/businesses/${businessId}/channels/${editId}`, {
 				name: editName.trim(),
 				type: editType
 			});
 			channels = channels.map((c) => (c.id === editId ? updated : c));
 			editId = null;
+			toast.success('Channel updated');
 		} catch (e) {
-			editError = e instanceof Error ? e.message : 'Failed to update';
+			toast.error(e instanceof Error ? e.message : 'Failed to update');
 		} finally {
 			editing = false;
 		}
@@ -99,8 +97,9 @@
 			await api.delete(`/businesses/${businessId}/channels/${id}`);
 			channels = channels.filter((c) => c.id !== id);
 			deleteId = null;
+			toast.success('Channel deleted');
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to delete';
+			toast.error(e instanceof Error ? e.message : 'Failed to delete');
 		} finally {
 			deleting = false;
 		}
@@ -113,7 +112,7 @@
 	<div class="flex items-center justify-between mb-4">
 		<h2 class="font-semibold text-foreground">Sales Channels</h2>
 		<button
-			onclick={() => { showCreate = !showCreate; createError = null; }}
+			onclick={() => { showCreate = !showCreate; }}
 			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
 		>
 			<Plus class="size-4" />
@@ -124,9 +123,6 @@
 	{#if showCreate}
 		<div class="rounded-lg border border-border bg-card p-4 mb-4">
 			<h3 class="text-sm font-semibold mb-3">New Sales Channel</h3>
-			{#if createError}
-				<p class="text-destructive text-sm mb-2">{createError}</p>
-			{/if}
 			<div class="flex flex-col gap-3">
 				<input
 					type="text"
@@ -154,7 +150,7 @@
 				</div>
 				<div class="flex justify-end gap-2">
 					<button
-						onclick={() => { showCreate = false; createError = null; }}
+						onclick={() => { showCreate = false; }}
 						class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
 					>
 						Cancel
@@ -192,9 +188,6 @@
 				{@const meta = channelMeta[ch.type as ChannelType] ?? channelMeta['custom']}
 				{#if editId === ch.id}
 					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
-						{#if editError}
-							<p class="text-destructive text-sm mb-2">{editError}</p>
-						{/if}
 						<div class="flex flex-col gap-2">
 							<input
 								type="text"

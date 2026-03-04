@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
 	import { Plus, Loader2, Pencil, Archive, ArchiveRestore, Package, Paperclip, FileText, Download, Crown, X } from '@lucide/svelte';
@@ -46,7 +47,6 @@
 	let createPrice = $state('');
 	let createQty = $state(1);
 	let creating = $state(false);
-	let createError = $state<string | null>(null);
 	let createAttachments = $state<Attachment[]>([]);
 	let createUploading = $state(false);
 
@@ -58,7 +58,6 @@
 	let editPrice = $state('');
 	let editQty = $state(1);
 	let editing = $state(false);
-	let editError = $state<string | null>(null);
 	let editAttachments = $state<Attachment[]>([]);
 	let editUploading = $state(false);
 	let editAttachmentsLoading = $state(false);
@@ -93,7 +92,6 @@
 		createDescription = '';
 		createPrice = '';
 		createQty = 1;
-		createError = null;
 		createAttachments = [];
 		showCreate = true;
 	}
@@ -111,7 +109,7 @@
 			const result = await api.upload<Attachment>(`/businesses/${businessId}/attachments`, fd);
 			createAttachments = [...createAttachments, result];
 		} catch (err) {
-			createError = err instanceof Error ? err.message : 'Upload failed';
+			toast.error(err instanceof Error ? err.message : 'Upload failed');
 		} finally {
 			createUploading = false;
 		}
@@ -126,7 +124,6 @@
 		const priceVal = Math.round((parseFloat(createPrice) || 0) * 100);
 		try {
 			creating = true;
-			createError = null;
 			const product = await api.post<Product>(`/businesses/${businessId}/products`, {
 				name: createName.trim(),
 				sku: createSku.trim() || undefined,
@@ -137,8 +134,9 @@
 			});
 			products = [...products, product];
 			showCreate = false;
+			toast.success('Product created');
 		} catch (e) {
-			createError = e instanceof Error ? e.message : 'Failed to create';
+			toast.error(e instanceof Error ? e.message : 'Failed to create');
 		} finally {
 			creating = false;
 		}
@@ -151,7 +149,6 @@
 		editDescription = p.description ?? '';
 		editPrice = formatPrice(p.defaultPrice);
 		editQty = p.defaultQty;
-		editError = null;
 		editAttachments = [];
 
 		if (canUploadAttachment) {
@@ -179,7 +176,7 @@
 			const result = await api.upload<Attachment>(`/businesses/${businessId}/attachments`, fd);
 			editAttachments = [...editAttachments, result];
 		} catch (err) {
-			editError = err instanceof Error ? err.message : 'Upload failed';
+			toast.error(err instanceof Error ? err.message : 'Upload failed');
 		} finally {
 			editUploading = false;
 		}
@@ -194,7 +191,6 @@
 		const priceVal = Math.round((parseFloat(editPrice) || 0) * 100);
 		try {
 			editing = true;
-			editError = null;
 			const payload: Record<string, unknown> = {
 				name: editName.trim(),
 				sku: editSku.trim() || null,
@@ -208,8 +204,9 @@
 			const updated = await api.patch<Product>(`/businesses/${businessId}/products/${editId}`, payload);
 			products = products.map((p) => (p.id === editId ? updated : p));
 			editId = null;
+			toast.success('Product updated');
 		} catch (e) {
-			editError = e instanceof Error ? e.message : 'Failed to update';
+			toast.error(e instanceof Error ? e.message : 'Failed to update');
 		} finally {
 			editing = false;
 		}
@@ -319,9 +316,6 @@
 	{#if showCreate}
 		<div class="rounded-lg border border-border bg-card p-4 mb-4">
 			<h3 class="text-sm font-semibold mb-3">New Product</h3>
-			{#if createError}
-				<p class="text-destructive text-sm mb-2">{createError}</p>
-			{/if}
 			<div class="flex flex-col gap-3">
 				<div>
 					<label class="text-sm font-medium block mb-1" for="create-name">
@@ -387,7 +381,7 @@
 
 				<div class="flex justify-end gap-2">
 					<button
-						onclick={() => { showCreate = false; createError = null; }}
+						onclick={() => { showCreate = false; }}
 						class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
 					>
 						Cancel
@@ -423,9 +417,6 @@
 			{#each displayProducts as product (product.id)}
 				{#if editId === product.id}
 					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
-						{#if editError}
-							<p class="text-destructive text-sm mb-2">{editError}</p>
-						{/if}
 						<div class="flex flex-col gap-3">
 							<div>
 								<label class="text-sm font-medium block mb-1" for="edit-name">Name</label>

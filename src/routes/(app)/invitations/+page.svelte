@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { Loader2, Mail, CheckCircle, XCircle } from '@lucide/svelte';
 
@@ -38,8 +39,10 @@
 			actionId = id;
 			await api.post(`/invitations/${id}/${action}`, {});
 			invitations = invitations.filter((i) => i.id !== id);
+			toast.success(action === 'accept' ? 'Invitation accepted' : 'Invitation declined');
 		} catch (e) {
-			error = e instanceof Error ? e.message : `Failed to ${action} invitation`;
+			const msg = e instanceof Error ? e.message : `Failed to ${action} invitation`;
+			toast.error(msg);
 		} finally {
 			actioning = false;
 			actionId = null;

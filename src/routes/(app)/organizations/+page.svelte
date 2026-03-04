@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { Building2, Plus, X, Loader2, Crown } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
@@ -20,7 +21,6 @@
 	// Create form
 	let createName = $state('');
 	let creating = $state(false);
-	let createError = $state<string | null>(null);
 
 	async function loadOrgs() {
 		try {
@@ -38,15 +38,15 @@
 		if (!createName.trim()) return;
 		try {
 			creating = true;
-			createError = null;
 			const created = await api.post<Organization>('/organizations', {
 				name: createName.trim(),
 			});
 			orgs = [created, ...orgs];
 			showCreate = false;
 			createName = '';
+			toast.success('Organization created');
 		} catch (e) {
-			createError = e instanceof Error ? e.message : 'Failed to create organization';
+			toast.error(e instanceof Error ? e.message : 'Failed to create organization');
 		} finally {
 			creating = false;
 		}
@@ -89,10 +89,6 @@
 					<X class="size-4" />
 				</button>
 			</div>
-
-			{#if createError}
-				<p class="text-sm text-destructive mb-3">{createError}</p>
-			{/if}
 
 			<div class="flex flex-col gap-3">
 				<div>

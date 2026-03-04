@@ -8,6 +8,7 @@ import { sendInvitationEmail } from '$lib/server/email/sendInvitationEmail';
 import { dispatchNotification } from '$lib/server/push/dispatcher';
 import { NOTIFICATION_TYPE } from '$lib/configurations/notifications';
 import { HTTPException } from 'hono/http-exception';
+import { isAllowedEmailDomain } from '$lib/configurations/auth';
 import type { InviteUserInput } from '$lib/schemas/invitation';
 
 export async function inviteUserHandler(
@@ -17,6 +18,10 @@ export async function inviteUserHandler(
 	env: Cloudflare.Env
 ) {
 	await requireBusinessPermission(user, businessId, 'user:invite', env);
+
+	if (!isAllowedEmailDomain(data.email)) {
+		throw new HTTPException(400, { message: 'Only Gmail addresses can be invited at this time' });
+	}
 
 	const db = drizzle(env.DB, { schema });
 

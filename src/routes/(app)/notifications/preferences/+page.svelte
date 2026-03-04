@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/client/api.svelte';
+	import { toast } from 'svelte-sonner';
 	import {
 		ALL_NOTIFICATION_TYPES,
 		NOTIFICATION_TYPE_LABELS,
@@ -43,9 +44,11 @@
 		preferences[type][field] = value;
 		try {
 			await api.put('/notifications/preferences', { type, [field]: value });
-		} catch {
+			toast.success('Preferences saved');
+		} catch (e) {
 			// Revert on error
 			preferences[type][field] = !value;
+			toast.error(e instanceof Error ? e.message : 'Failed to save preferences');
 		}
 	}
 </script>
