@@ -22,11 +22,8 @@
 		Crown,
 		Package,
 		Sparkles,
-		Sun,
-		Moon,
 		X
 	} from '@lucide/svelte';
-	import { toggleMode, mode } from 'mode-watcher';
 	import { Collapsible } from 'bits-ui';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import { onMount } from 'svelte';
@@ -202,14 +199,13 @@
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
-							<Sidebar.MenuButton onclick={toggleMode}>
-								{#if mode.current === 'dark'}
-									<Sun class="size-4" />
-									<span>Light mode</span>
-								{:else}
-									<Moon class="size-4" />
-									<span>Dark mode</span>
-								{/if}
+							<Sidebar.MenuButton>
+								{#snippet child({ props })}
+									<a href="/settings" {...props}>
+										<Settings2 class="size-4" />
+										<span>Settings</span>
+									</a>
+								{/snippet}
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
 					</Sidebar.Menu>
