@@ -30,7 +30,7 @@
 	<!-- Nav -->
 	<header class="border-b border-border/60">
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-			<a href="/" class="flex items-center gap-2 text-foreground [&_svg]:h-6 [&_svg]:w-auto">
+			<a href="/" class="flex items-center gap-2 text-foreground [&_svg]:h-8 [&_svg]:w-auto">
 				{@html logoSvg}
 				<span class="text-lg font-semibold tracking-tight">Gee Ledger</span>
 			</a>

@@ -97,7 +97,7 @@
 					<Sidebar.MenuButton size="lg">
 						{#snippet child({ props })}
 							<a href="/businesses" {...props}>
-								<div class="[&_svg]:h-5 [&_svg]:w-auto">
+								<div class="[&_svg]:h-7 [&_svg]:w-auto">
 									{@html logoSvg}
 								</div>
 								<span class="font-semibold text-sm">Gee Ledger</span>
@@ -258,7 +258,7 @@
 			{:else}
 				<a
 					href="/businesses"
-					class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto"
+					class="flex items-center gap-2 text-foreground [&_svg]:h-7 [&_svg]:w-auto"
 				>
 					{@html logoSvg}
 					<span class="font-semibold">Gee Ledger</span>

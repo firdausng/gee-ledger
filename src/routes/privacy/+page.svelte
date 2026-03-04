@@ -10,7 +10,7 @@
 	<!-- Nav -->
 	<header class="sticky top-0 z-50 backdrop-blur-sm bg-background/80 border-b border-border/60">
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-			<a href="/" class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto">
+			<a href="/" class="flex items-center gap-2 text-foreground [&_svg]:h-7 [&_svg]:w-auto">
 				{@html logoSvg}
 				<span class="font-semibold">Gee Ledger</span>
 			</a>
@@ -110,7 +110,7 @@
 	<footer class="border-t border-border/60">
 		<div class="mx-auto max-w-5xl px-6 py-8">
 			<div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-				<div class="flex items-center gap-2 text-foreground [&_svg]:h-4 [&_svg]:w-auto">
+				<div class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto">
 					{@html logoSvg}
 					<span class="text-sm font-semibold">Gee Ledger</span>
 				</div>

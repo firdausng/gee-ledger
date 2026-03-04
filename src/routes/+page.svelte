@@ -12,7 +12,7 @@
 <!-- ─── Nav ────────────────────────────────────────────────────────────────── -->
 <header class="sticky top-0 z-50 border-b border-border/60 backdrop-blur-sm bg-background/80">
 	<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-		<span class="flex items-center gap-2 text-foreground [&_svg]:h-6 [&_svg]:w-auto">
+		<span class="flex items-center gap-2 text-foreground [&_svg]:h-8 [&_svg]:w-auto">
 			{@html logoSvg}
 			<span class="text-lg font-semibold tracking-tight">Gee Ledger</span>
 		</span>
@@ -657,7 +657,7 @@
 <footer class="border-t border-border/60">
 	<div class="mx-auto max-w-5xl px-6 py-8">
 		<div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-			<div class="flex items-center gap-2 text-foreground [&_svg]:h-4 [&_svg]:w-auto">
+			<div class="flex items-center gap-2 text-foreground [&_svg]:h-5 [&_svg]:w-auto">
 				{@html logoSvg}
 				<span class="text-sm font-semibold">Gee Ledger</span>
 			</div>
