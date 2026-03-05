@@ -43,6 +43,29 @@
 			: null
 	);
 
+	type NavBusiness = (typeof data.navBusinesses)[number];
+	type OrgGroup = {
+		organizationId: string | null;
+		organizationName: string | null;
+		businesses: NavBusiness[];
+	};
+
+	const orgGroups = $derived.by(() => {
+		const groups = new Map<string | null, OrgGroup>();
+		for (const biz of data.navBusinesses) {
+			const key = biz.organizationId;
+			if (!groups.has(key)) {
+				groups.set(key, {
+					organizationId: biz.organizationId,
+					organizationName: biz.organizationName,
+					businesses: [],
+				});
+			}
+			groups.get(key)!.businesses.push(biz);
+		}
+		return [...groups.values()];
+	});
+
 	const bizTabs = [
 		{ href: '', label: 'Overview', icon: LayoutDashboard },
 		{ href: '/transactions', label: 'Transactions', icon: ReceiptText },
@@ -110,64 +133,82 @@
 
 		<!-- Content: Nav -->
 		<Sidebar.Content>
-			<!-- Businesses group -->
-			<Sidebar.Group>
-				<Sidebar.GroupLabel>
-					Businesses
-					<Sidebar.GroupAction>
-						{#snippet child({ props })}
-							<a href="/businesses" {...props} title="Manage businesses">
-								<Plus class="size-4" />
-							</a>
-						{/snippet}
-					</Sidebar.GroupAction>
-				</Sidebar.GroupLabel>
-				<Sidebar.GroupContent>
-					<Sidebar.Menu>
-						{#each data.navBusinesses as biz (biz.id)}
-							<Collapsible.Root open={currentBusinessId === biz.id}>
-								<Sidebar.MenuItem>
-									<Sidebar.MenuButton isActive={currentBusinessId === biz.id}>
-										{#snippet child({ props })}
-											<a href="/businesses/{biz.id}" {...props}>
-												<Building2 class="size-4" />
-												<span class="truncate flex-1">{biz.name}</span>
-												<Collapsible.Trigger
-													class="ml-auto"
-													onclick={(e: MouseEvent) => e.preventDefault()}
-												>
-													<ChevronRight
-														class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-													/>
-												</Collapsible.Trigger>
-											</a>
-										{/snippet}
-									</Sidebar.MenuButton>
-									<Collapsible.Content>
-										<Sidebar.MenuSub>
-											{#each bizTabs as tab}
-												<Sidebar.MenuSubItem>
-													<Sidebar.MenuSubButton
-														href="/businesses/{biz.id}{tab.href}"
-														isActive={isSubActive(biz.id, tab.href)}
+			<!-- Businesses grouped by organization -->
+			{#each orgGroups as group (group.organizationId ?? '__ungrouped')}
+				<Sidebar.Group>
+					<Sidebar.GroupLabel>
+						{group.organizationName ?? 'Personal'}
+						<Sidebar.GroupAction>
+							{#snippet child({ props })}
+								<a href="/businesses" {...props} title="Manage businesses">
+									<Plus class="size-4" />
+								</a>
+							{/snippet}
+						</Sidebar.GroupAction>
+					</Sidebar.GroupLabel>
+					<Sidebar.GroupContent>
+						<Sidebar.Menu>
+							{#each group.businesses as biz (biz.id)}
+								<Collapsible.Root open={currentBusinessId === biz.id}>
+									<Sidebar.MenuItem>
+										<Sidebar.MenuButton isActive={currentBusinessId === biz.id}>
+											{#snippet child({ props })}
+												<a href="/businesses/{biz.id}" {...props}>
+													<Building2 class="size-4" />
+													<span class="truncate flex-1">{biz.name}</span>
+													<Collapsible.Trigger
+														class="ml-auto"
+														onclick={(e: MouseEvent) => e.preventDefault()}
 													>
-														<tab.icon class="size-3.5" />
-														<span>{tab.label}</span>
-													</Sidebar.MenuSubButton>
-												</Sidebar.MenuSubItem>
-											{/each}
-										</Sidebar.MenuSub>
-									</Collapsible.Content>
-								</Sidebar.MenuItem>
-							</Collapsible.Root>
-						{:else}
+														<ChevronRight
+															class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+														/>
+													</Collapsible.Trigger>
+												</a>
+											{/snippet}
+										</Sidebar.MenuButton>
+										<Collapsible.Content>
+											<Sidebar.MenuSub>
+												{#each bizTabs as tab}
+													<Sidebar.MenuSubItem>
+														<Sidebar.MenuSubButton
+															href="/businesses/{biz.id}{tab.href}"
+															isActive={isSubActive(biz.id, tab.href)}
+														>
+															<tab.icon class="size-3.5" />
+															<span>{tab.label}</span>
+														</Sidebar.MenuSubButton>
+													</Sidebar.MenuSubItem>
+												{/each}
+											</Sidebar.MenuSub>
+										</Collapsible.Content>
+									</Sidebar.MenuItem>
+								</Collapsible.Root>
+							{/each}
+						</Sidebar.Menu>
+					</Sidebar.GroupContent>
+				</Sidebar.Group>
+			{:else}
+				<Sidebar.Group>
+					<Sidebar.GroupLabel>
+						Businesses
+						<Sidebar.GroupAction>
+							{#snippet child({ props })}
+								<a href="/businesses" {...props} title="Manage businesses">
+									<Plus class="size-4" />
+								</a>
+							{/snippet}
+						</Sidebar.GroupAction>
+					</Sidebar.GroupLabel>
+					<Sidebar.GroupContent>
+						<Sidebar.Menu>
 							<Sidebar.MenuItem>
 								<p class="px-2 py-1.5 text-sm text-muted-foreground">No businesses yet.</p>
 							</Sidebar.MenuItem>
-						{/each}
-					</Sidebar.Menu>
-				</Sidebar.GroupContent>
-			</Sidebar.Group>
+						</Sidebar.Menu>
+					</Sidebar.GroupContent>
+				</Sidebar.Group>
+			{/each}
 
 			<!-- General links -->
 			<Sidebar.Group class="mt-auto">

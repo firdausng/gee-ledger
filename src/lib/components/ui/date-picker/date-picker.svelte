@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CalendarDate, DateFormatter, getLocalTimeZone } from '@internationalized/date';
+	import { CalendarDate, DateFormatter, getLocalTimeZone, type DateValue } from '@internationalized/date';
 	import { CalendarIcon } from '@lucide/svelte';
 	import { cn } from '$lib/utils.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -28,7 +28,7 @@
 		return new CalendarDate(y, m, d);
 	});
 
-	function onSelect(date: CalendarDate | undefined) {
+	function onSelect(date: DateValue | undefined) {
 		if (!date) return;
 		const y = String(date.year);
 		const m = String(date.month).padStart(2, '0');

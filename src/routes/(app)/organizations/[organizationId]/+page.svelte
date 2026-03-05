@@ -337,155 +337,157 @@
 			</div>
 		</div>
 
-		<div class="grid gap-4 lg:grid-cols-2">
-			<!-- Subscription Info -->
-			<div class="rounded-lg border border-border bg-card p-5">
-				<h2 class="font-semibold text-foreground mb-4 flex items-center gap-2">
-					<Crown class="size-4" />
-					Subscription
-				</h2>
-				<div class="space-y-3">
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Current plan</span>
-						<span class="font-medium">{plan.name}</span>
-					</div>
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Businesses</span>
-						<span class="font-medium">
-							{org.businessCount} / {plan.limits.maxBusinesses === -1 ? 'Unlimited' : plan.limits.maxBusinesses}
-						</span>
-					</div>
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">Max attachment size</span>
-						<span class="font-medium">
-							{plan.limits.maxAttachmentSizeMb === 0 ? 'Not available' : `${plan.limits.maxAttachmentSizeMb} MB`}
-						</span>
-					</div>
-					<div class="flex justify-between text-sm">
-						<span class="text-muted-foreground">File attachments</span>
-						<span class="font-medium {plan.features.includes('attachment:upload') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}">
-							{plan.features.includes('attachment:upload') ? 'Enabled' : 'Disabled'}
-						</span>
-					</div>
-					{#if org.seatInfo}
+		<div class="grid gap-4 {isOwner ? 'lg:grid-cols-2' : ''}">
+			{#if isOwner}
+				<!-- Subscription Info (owner only) -->
+				<div class="rounded-lg border border-border bg-card p-5">
+					<h2 class="font-semibold text-foreground mb-4 flex items-center gap-2">
+						<Crown class="size-4" />
+						Subscription
+					</h2>
+					<div class="space-y-3">
 						<div class="flex justify-between text-sm">
-							<span class="text-muted-foreground">Seats</span>
-							<span class="font-medium" class:text-amber-600={org.seatInfo.usedSeats >= org.seatInfo.allowedSeats} class:dark:text-amber-400={org.seatInfo.usedSeats >= org.seatInfo.allowedSeats}>
-								{org.seatInfo.usedSeats} / {org.seatInfo.allowedSeats}
-								{#if org.seatInfo.extraSeats > 0}
-									<span class="text-xs text-muted-foreground">({org.seatInfo.includedSeats} + {org.seatInfo.extraSeats} extra)</span>
-								{/if}
+							<span class="text-muted-foreground">Current plan</span>
+							<span class="font-medium">{plan.name}</span>
+						</div>
+						<div class="flex justify-between text-sm">
+							<span class="text-muted-foreground">Businesses</span>
+							<span class="font-medium">
+								{org.businessCount} / {plan.limits.maxBusinesses === -1 ? 'Unlimited' : plan.limits.maxBusinesses}
 							</span>
 						</div>
-					{/if}
-					{#if org.subscription}
 						<div class="flex justify-between text-sm">
-							<span class="text-muted-foreground">Status</span>
-							<span class="font-medium capitalize">{org.subscription.status}</span>
+							<span class="text-muted-foreground">Max attachment size</span>
+							<span class="font-medium">
+								{plan.limits.maxAttachmentSizeMb === 0 ? 'Not available' : `${plan.limits.maxAttachmentSizeMb} MB`}
+							</span>
 						</div>
-						{#if org.subscription.currentPeriodEnd}
+						<div class="flex justify-between text-sm">
+							<span class="text-muted-foreground">File attachments</span>
+							<span class="font-medium {plan.features.includes('attachment:upload') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}">
+								{plan.features.includes('attachment:upload') ? 'Enabled' : 'Disabled'}
+							</span>
+						</div>
+						{#if org.seatInfo}
 							<div class="flex justify-between text-sm">
-								<span class="text-muted-foreground">Period ends</span>
-								<span class="font-medium">{new Date(org.subscription.currentPeriodEnd).toLocaleDateString()}</span>
+								<span class="text-muted-foreground">Seats</span>
+								<span class="font-medium" class:text-amber-600={org.seatInfo.usedSeats >= org.seatInfo.allowedSeats} class:dark:text-amber-400={org.seatInfo.usedSeats >= org.seatInfo.allowedSeats}>
+									{org.seatInfo.usedSeats} / {org.seatInfo.allowedSeats}
+									{#if org.seatInfo.extraSeats > 0}
+										<span class="text-xs text-muted-foreground">({org.seatInfo.includedSeats} + {org.seatInfo.extraSeats} extra)</span>
+									{/if}
+								</span>
+							</div>
+						{/if}
+						{#if org.subscription}
+							<div class="flex justify-between text-sm">
+								<span class="text-muted-foreground">Status</span>
+								<span class="font-medium capitalize">{org.subscription.status}</span>
+							</div>
+							{#if org.subscription.currentPeriodEnd}
+								<div class="flex justify-between text-sm">
+									<span class="text-muted-foreground">Period ends</span>
+									<span class="font-medium">{new Date(org.subscription.currentPeriodEnd).toLocaleDateString()}</span>
+								</div>
+							{/if}
+						{/if}
+					</div>
+
+					<!-- Cancel at period end warning -->
+					{#if org.subscription?.cancelAtPeriodEnd && org.subscription.currentPeriodEnd}
+						<div class="mt-4 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+							<p class="text-xs text-amber-700 dark:text-amber-300">
+								Your Pro plan will end on {new Date(org.subscription.currentPeriodEnd).toLocaleDateString()}. You'll be downgraded to Free after that.
+							</p>
+						</div>
+					{/if}
+
+					<!-- Upgrade section (Free plan + owner) -->
+					{#if org.planKey === PLAN_KEY.FREE}
+						<div class="mt-4 pt-4 border-t border-border">
+							<p class="text-xs text-muted-foreground mb-3">
+								Upgrade to Pro to unlock file attachments, email documents, CSV export, team invitations, and up to 5 businesses.
+							</p>
+
+							<!-- Interval toggle -->
+							<div class="flex rounded-md border border-border overflow-hidden mb-3">
+								<button
+									onclick={() => (selectedInterval = 'month')}
+									class="flex-1 px-3 py-2 text-xs font-medium transition-colors {selectedInterval === 'month' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
+								>
+									Monthly — $12/mo
+								</button>
+								<button
+									onclick={() => (selectedInterval = 'year')}
+									class="flex-1 px-3 py-2 text-xs font-medium transition-colors {selectedInterval === 'year' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
+								>
+									Yearly — $120/yr
+									<span class="text-[10px] opacity-75 ml-1">save $24</span>
+								</button>
+							</div>
+
+							<button
+								onclick={handleCheckout}
+								disabled={checkingOut}
+								class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+							>
+								{#if checkingOut}
+									<Loader2 class="size-4 animate-spin" />
+									Redirecting to checkout…
+								{:else}
+									Upgrade to Pro
+								{/if}
+							</button>
+						</div>
+
+					<!-- Manage section (Pro plan + owner) -->
+					{:else if org.planKey === PLAN_KEY.PRO && org.subscription?.stripeCustomerId}
+						<div class="mt-4 pt-4 border-t border-border">
+							<button
+								onclick={handlePortal}
+								disabled={openingPortal}
+								class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-border bg-background text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+							>
+								{#if openingPortal}
+									<Loader2 class="size-4 animate-spin" />
+								{:else}
+									<ExternalLink class="size-3.5" />
+								{/if}
+								Manage Subscription
+							</button>
+						</div>
+
+						<!-- Seat purchase section -->
+						{#if org.seatInfo && org.seatInfo.usedSeats >= org.seatInfo.allowedSeats}
+							<div class="mt-3 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+								<p class="text-xs text-amber-700 dark:text-amber-300 mb-3">
+									All seats are in use ({org.seatInfo.usedSeats}/{org.seatInfo.allowedSeats}). Purchase additional seats to invite more members.
+								</p>
+								<div class="flex items-center gap-2">
+									<select
+										bind:value={seatQuantity}
+										class="rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+									>
+										{#each [1, 2, 3, 5, 10] as qty}
+											<option value={qty}>{qty} seat{qty > 1 ? 's' : ''}</option>
+										{/each}
+									</select>
+									<button
+										onclick={handlePurchaseSeats}
+										disabled={purchasingSeats}
+										class="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+									>
+										{#if purchasingSeats}
+											<Loader2 class="size-4 animate-spin" />
+										{/if}
+										Add — ${seatQuantity * 5}/mo
+									</button>
+								</div>
 							</div>
 						{/if}
 					{/if}
 				</div>
-
-				<!-- Cancel at period end warning -->
-				{#if org.subscription?.cancelAtPeriodEnd && org.subscription.currentPeriodEnd}
-					<div class="mt-4 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-						<p class="text-xs text-amber-700 dark:text-amber-300">
-							Your Pro plan will end on {new Date(org.subscription.currentPeriodEnd).toLocaleDateString()}. You'll be downgraded to Free after that.
-						</p>
-					</div>
-				{/if}
-
-				<!-- Upgrade section (Free plan + owner) -->
-				{#if org.planKey === PLAN_KEY.FREE && isOwner}
-					<div class="mt-4 pt-4 border-t border-border">
-						<p class="text-xs text-muted-foreground mb-3">
-							Upgrade to Pro to unlock file attachments, email documents, CSV export, team invitations, and up to 5 businesses.
-						</p>
-
-						<!-- Interval toggle -->
-						<div class="flex rounded-md border border-border overflow-hidden mb-3">
-							<button
-								onclick={() => (selectedInterval = 'month')}
-								class="flex-1 px-3 py-2 text-xs font-medium transition-colors {selectedInterval === 'month' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
-							>
-								Monthly — $12/mo
-							</button>
-							<button
-								onclick={() => (selectedInterval = 'year')}
-								class="flex-1 px-3 py-2 text-xs font-medium transition-colors {selectedInterval === 'year' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'}"
-							>
-								Yearly — $120/yr
-								<span class="text-[10px] opacity-75 ml-1">save $24</span>
-							</button>
-						</div>
-
-						<button
-							onclick={handleCheckout}
-							disabled={checkingOut}
-							class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-						>
-							{#if checkingOut}
-								<Loader2 class="size-4 animate-spin" />
-								Redirecting to checkout…
-							{:else}
-								Upgrade to Pro
-							{/if}
-						</button>
-					</div>
-
-				<!-- Manage section (Pro plan + owner) -->
-				{:else if org.planKey === PLAN_KEY.PRO && isOwner && org.subscription?.stripeCustomerId}
-					<div class="mt-4 pt-4 border-t border-border">
-						<button
-							onclick={handlePortal}
-							disabled={openingPortal}
-							class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-border bg-background text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
-						>
-							{#if openingPortal}
-								<Loader2 class="size-4 animate-spin" />
-							{:else}
-								<ExternalLink class="size-3.5" />
-							{/if}
-							Manage Subscription
-						</button>
-					</div>
-
-					<!-- Seat purchase section -->
-					{#if org.seatInfo && org.seatInfo.usedSeats >= org.seatInfo.allowedSeats}
-						<div class="mt-3 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-							<p class="text-xs text-amber-700 dark:text-amber-300 mb-3">
-								All seats are in use ({org.seatInfo.usedSeats}/{org.seatInfo.allowedSeats}). Purchase additional seats to invite more members.
-							</p>
-							<div class="flex items-center gap-2">
-								<select
-									bind:value={seatQuantity}
-									class="rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-								>
-									{#each [1, 2, 3, 5, 10] as qty}
-										<option value={qty}>{qty} seat{qty > 1 ? 's' : ''}</option>
-									{/each}
-								</select>
-								<button
-									onclick={handlePurchaseSeats}
-									disabled={purchasingSeats}
-									class="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-								>
-									{#if purchasingSeats}
-										<Loader2 class="size-4 animate-spin" />
-									{/if}
-									Add — ${seatQuantity * 5}/mo
-								</button>
-							</div>
-						</div>
-					{/if}
-				{/if}
-			</div>
+			{/if}
 
 			<!-- Members -->
 			<div class="rounded-lg border border-border bg-card p-5">

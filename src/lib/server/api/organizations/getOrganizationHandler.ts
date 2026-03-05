@@ -3,7 +3,7 @@ import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { organizations, organizationMembers, subscriptions, businesses, users, userBusinessRoles } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { HTTPException } from 'hono/http-exception';
-import { PLAN_KEY, SUBSCRIPTION_STATUS } from '$lib/configurations/plans';
+import { PLAN_KEY, SUBSCRIPTION_STATUS, ORG_ROLE } from '$lib/configurations/plans';
 import { getOrgSeatInfo } from '$lib/server/utils/seatLimits';
 
 export async function getOrganizationHandler(
@@ -105,16 +105,23 @@ export async function getOrganizationHandler(
 		memberSummary: membersByBiz.get(b.id) ?? [],
 	}));
 
-	const seatInfo = await getOrgSeatInfo(organizationId, env);
+	const isOwner = membership.role === ORG_ROLE.OWNER;
+
+	// Non-owners only see businesses they belong to
+	const visibleBusinesses = isOwner
+		? businessesWithMembers
+		: businessesWithMembers.filter((b) =>
+				b.memberSummary.some((m) => m.userId === user.id)
+			);
 
 	return {
 		...org,
 		role: membership.role,
 		planKey: sub ? sub.planKey : PLAN_KEY.FREE,
-		subscription: sub ?? null,
+		subscription: isOwner ? (sub ?? null) : null,
 		members,
-		businesses: businessesWithMembers,
+		businesses: visibleBusinesses,
 		businessCount: orgBusinesses.length,
-		seatInfo,
+		seatInfo: isOwner ? await getOrgSeatInfo(organizationId, env) : null,
 	};
 }

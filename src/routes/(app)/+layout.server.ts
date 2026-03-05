@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, isNull, inArray, count } from 'drizzle-orm';
-import { businesses, userBusinessRoles, subscriptions, organizationMembers, invitations } from '$lib/server/db/schema';
+import { businesses, organizations, userBusinessRoles, subscriptions, organizationMembers, invitations } from '$lib/server/db/schema';
 import { PLAN_KEY, SUBSCRIPTION_STATUS } from '$lib/configurations/plans';
 import * as schema from '$lib/server/db/schema';
 import type { LayoutServerLoad } from './$types';
@@ -16,7 +16,18 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 		.from(userBusinessRoles)
 		.where(eq(userBusinessRoles.userId, locals.user.id));
 
-	let navBusinesses: { id: string; name: string; currency: string; planKey: string }[] = [];
+	// Get user's org memberships (used for sidebar grouping + upgrade banner)
+	const userOrgs = await db
+		.select({
+			organizationId: organizationMembers.organizationId,
+			role: organizationMembers.role,
+		})
+		.from(organizationMembers)
+		.where(eq(organizationMembers.userId, locals.user.id));
+
+	const orgRoleMap = new Map(userOrgs.map((o) => [o.organizationId, o.role]));
+
+	let navBusinesses: { id: string; name: string; currency: string; planKey: string; organizationId: string | null; organizationName: string | null; orgRole: string | null }[] = [];
 
 	if (roles.length > 0) {
 		const ids = roles.map((r) => r.businessId);
@@ -26,8 +37,10 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 				name: businesses.name,
 				currency: businesses.currency,
 				organizationId: businesses.organizationId,
+				organizationName: organizations.name,
 			})
 			.from(businesses)
+			.leftJoin(organizations, eq(businesses.organizationId, organizations.id))
 			.where(and(inArray(businesses.id, ids), isNull(businesses.deletedAt)));
 
 		// Collect unique org IDs to look up subscriptions
@@ -57,17 +70,11 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 			name: b.name,
 			currency: b.currency,
 			planKey: b.organizationId ? (planMap.get(b.organizationId) ?? PLAN_KEY.FREE) : PLAN_KEY.FREE,
+			organizationId: b.organizationId ?? null,
+			organizationName: b.organizationName ?? null,
+			orgRole: b.organizationId ? (orgRoleMap.get(b.organizationId) ?? null) : null,
 		}));
 	}
-
-	// Find user's orgs on Free plan (for upgrade banner)
-	const userOrgs = await db
-		.select({
-			organizationId: organizationMembers.organizationId,
-			role: organizationMembers.role,
-		})
-		.from(organizationMembers)
-		.where(eq(organizationMembers.userId, locals.user.id));
 
 	let upgradeOrgId: string | null = null;
 	if (userOrgs.length > 0) {
