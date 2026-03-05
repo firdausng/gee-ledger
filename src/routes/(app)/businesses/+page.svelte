@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/client/api.svelte';
 	import { page } from '$app/stores';
+	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { Building2, Plus, X, Loader2, ChevronsUpDown, Check, Crown, Mail } from '@lucide/svelte';
 	import { CURRENCIES } from '$lib/data/currencies';
@@ -110,6 +111,7 @@
 			createPhoneNumber = '';
 			createTaxId       = '';
 			toast.success('Business created');
+			invalidateAll();
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to create business');
 		} finally {

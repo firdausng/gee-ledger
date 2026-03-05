@@ -47,6 +47,7 @@
 	type OrgGroup = {
 		organizationId: string | null;
 		organizationName: string | null;
+		orgRole: string | null;
 		businesses: NavBusiness[];
 	};
 
@@ -58,6 +59,7 @@
 				groups.set(key, {
 					organizationId: biz.organizationId,
 					organizationName: biz.organizationName,
+					orgRole: biz.orgRole,
 					businesses: [],
 				});
 			}
@@ -65,6 +67,8 @@
 		}
 		return [...groups.values()];
 	});
+
+	const hasOwnerOrg = $derived(orgGroups.some((g) => g.orgRole === 'owner'));
 
 	const bizTabs = [
 		{ href: '', label: 'Overview', icon: LayoutDashboard },
@@ -138,13 +142,15 @@
 				<Sidebar.Group>
 					<Sidebar.GroupLabel>
 						{group.organizationName ?? 'Personal'}
-						<Sidebar.GroupAction>
-							{#snippet child({ props })}
-								<a href="/businesses" {...props} title="Manage businesses">
-									<Plus class="size-4" />
-								</a>
-							{/snippet}
-						</Sidebar.GroupAction>
+						{#if group.orgRole === 'owner'}
+							<Sidebar.GroupAction>
+								{#snippet child({ props })}
+									<a href="/businesses" {...props} title="Manage businesses">
+										<Plus class="size-4" />
+									</a>
+								{/snippet}
+							</Sidebar.GroupAction>
+						{/if}
 					</Sidebar.GroupLabel>
 					<Sidebar.GroupContent>
 						<Sidebar.Menu>
@@ -214,6 +220,18 @@
 			<Sidebar.Group class="mt-auto">
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
+						{#if !hasOwnerOrg}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet child({ props })}
+										<a href="/businesses" {...props}>
+											<Plus class="size-4" />
+											<span>New Business</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/if}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet child({ props })}
