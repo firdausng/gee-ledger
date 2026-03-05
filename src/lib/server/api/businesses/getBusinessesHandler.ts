@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
 import { businesses, userBusinessRoles } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 
@@ -20,7 +20,8 @@ export async function getBusinessesHandler(user: App.User, env: Cloudflare.Env) 
 	const result = await db
 		.select()
 		.from(businesses)
-		.where(and(inArray(businesses.id, businessIds), isNull(businesses.deletedAt)));
+		.where(and(inArray(businesses.id, businessIds), isNull(businesses.deletedAt)))
+		.orderBy(desc(businesses.createdAt));
 
 	return result.map((b) => ({ ...b, policyKey: roleMap.get(b.id) }));
 }

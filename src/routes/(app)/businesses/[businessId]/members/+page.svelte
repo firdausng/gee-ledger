@@ -4,6 +4,8 @@
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { Plus, Loader2, Trash2, Users, Mail, Crown } from '@lucide/svelte';
+	import * as Select from '$lib/components/ui/select';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { PLAN_KEY } from '$lib/configurations/plans';
 	import { isAllowedEmailDomain } from '$lib/configurations/auth';
 
@@ -42,6 +44,7 @@
 	const seatsFull = $derived(seatInfo ? seatInfo.usedSeats >= seatInfo.allowedSeats : false);
 
 	const ROLES = ['owner', 'manager', 'cashier', 'viewer'] as const;
+	const ASSIGNABLE_ROLES = ROLES.filter((r) => r !== 'owner');
 
 	let members = $state<Member[]>([]);
 	let invitations = $state<Invitation[]>([]);
@@ -57,6 +60,7 @@
 
 	// Role update
 	let updatingRole = $state<string | null>(null);
+	let pendingRoleChange = $state<{ userId: string; name: string; newRole: string } | null>(null);
 
 	// Remove
 	let removeId = $state<string | null>(null);
@@ -224,14 +228,16 @@
 					placeholder="Gmail address"
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 				/>
-				<select
-					bind:value={inviteRole}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				>
-					{#each ROLES as r}
-						<option value={r}>{r}</option>
-					{/each}
-				</select>
+				<Select.Root type="single" value={inviteRole} onValueChange={(v) => { if (v) inviteRole = v; }}>
+					<Select.Trigger class="w-full capitalize">
+						{inviteRole}
+					</Select.Trigger>
+					<Select.Content>
+						{#each ASSIGNABLE_ROLES as r}
+							<Select.Item value={r} class="capitalize">{r}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
 				<div class="flex justify-end gap-2">
 					<button
 						onclick={() => { showInvite = false; inviteError = null; }}
@@ -295,16 +301,16 @@
 								<p class="text-xs text-muted-foreground truncate">{member.user.email}</p>
 							</div>
 							{#if data.policyKey === 'owner' && member.policyKey !== 'owner'}
-								<select
-									value={member.policyKey}
-									onchange={(e) => updateRole(member.userId, (e.target as HTMLSelectElement).value)}
-									disabled={updatingRole === member.userId}
-									class="shrink-0 rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-								>
-									{#each ROLES as r}
-										<option value={r}>{r}</option>
-									{/each}
-								</select>
+								<Select.Root type="single" value={member.policyKey} onValueChange={(v) => { if (v && v !== member.policyKey) pendingRoleChange = { userId: member.userId, name: member.user.displayName ?? member.user.email, newRole: v }; }} disabled={updatingRole === member.userId}>
+									<Select.Trigger class="shrink-0 h-7 text-xs capitalize">
+										{member.policyKey}
+									</Select.Trigger>
+									<Select.Content>
+										{#each ASSIGNABLE_ROLES as r}
+											<Select.Item value={r} class="capitalize">{r}</Select.Item>
+										{/each}
+									</Select.Content>
+								</Select.Root>
 								<button
 									onclick={() => (removeId = member.userId)}
 									class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -355,54 +361,69 @@
 	{/if}
 </div>
 
+<!-- Change role confirmation -->
+<AlertDialog.Root open={!!pendingRoleChange} onOpenChange={(open) => { if (!open) pendingRoleChange = null; }}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Change Role?</AlertDialog.Title>
+			<AlertDialog.Description>
+				{#if pendingRoleChange}
+					Change <span class="font-medium text-foreground">{pendingRoleChange.name}</span>'s role to <span class="font-medium text-foreground capitalize">{pendingRoleChange.newRole}</span>? This will change their permissions immediately.
+				{/if}
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<button
+				onclick={() => { if (pendingRoleChange) { updateRole(pendingRoleChange.userId, pendingRoleChange.newRole); pendingRoleChange = null; } }}
+				disabled={!!updatingRole}
+				class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+			>
+				{#if updatingRole}<Loader2 class="size-4 animate-spin" />{/if}
+				Confirm
+			</button>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
 <!-- Remove member confirmation -->
-{#if removeId}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-		<div class="bg-card rounded-lg border border-border p-6 max-w-sm w-full shadow-lg">
-			<h3 class="font-semibold text-foreground mb-2">Remove Member?</h3>
-			<p class="text-sm text-muted-foreground mb-5">This member will lose access to this business.</p>
-			<div class="flex justify-end gap-2">
-				<button
-					onclick={() => (removeId = null)}
-					class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={() => removeMember(removeId!)}
-					disabled={removing}
-					class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
-				>
-					{#if removing}<Loader2 class="size-4 animate-spin" />{/if}
-					Remove
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<AlertDialog.Root open={!!removeId} onOpenChange={(open) => { if (!open) removeId = null; }}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Remove Member?</AlertDialog.Title>
+			<AlertDialog.Description>This member will lose access to this business.</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<button
+				onclick={() => removeMember(removeId!)}
+				disabled={removing}
+				class="inline-flex items-center justify-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors"
+			>
+				{#if removing}<Loader2 class="size-4 animate-spin" />{/if}
+				Remove
+			</button>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <!-- Cancel invitation confirmation -->
-{#if cancelInviteId}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-		<div class="bg-card rounded-lg border border-border p-6 max-w-sm w-full shadow-lg">
-			<h3 class="font-semibold text-foreground mb-2">Cancel Invitation?</h3>
-			<p class="text-sm text-muted-foreground mb-5">The invited person will no longer be able to join.</p>
-			<div class="flex justify-end gap-2">
-				<button
-					onclick={() => (cancelInviteId = null)}
-					class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-				>
-					Keep
-				</button>
-				<button
-					onclick={() => cancelInvitation(cancelInviteId!)}
-					disabled={cancellingInvite}
-					class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
-				>
-					{#if cancellingInvite}<Loader2 class="size-4 animate-spin" />{/if}
-					Cancel Invite
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<AlertDialog.Root open={!!cancelInviteId} onOpenChange={(open) => { if (!open) cancelInviteId = null; }}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Cancel Invitation?</AlertDialog.Title>
+			<AlertDialog.Description>The invited person will no longer be able to join.</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Keep</AlertDialog.Cancel>
+			<button
+				onclick={() => cancelInvitation(cancelInviteId!)}
+				disabled={cancellingInvite}
+				class="inline-flex items-center justify-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors"
+			>
+				{#if cancellingInvite}<Loader2 class="size-4 animate-spin" />{/if}
+				Cancel Invite
+			</button>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

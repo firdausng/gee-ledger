@@ -10,11 +10,13 @@
 		value = $bindable(''),
 		placeholder = 'Pick a date',
 		id,
+		onchange,
 		class: className
 	}: {
 		value?: string;
 		placeholder?: string;
 		id?: string;
+		onchange?: () => void;
 		class?: string;
 	} = $props();
 
@@ -35,6 +37,7 @@
 		const d = String(date.day).padStart(2, '0');
 		value = `${y}-${m}-${d}`;
 		open = false;
+		onchange?.();
 	}
 
 	let displayText = $derived(

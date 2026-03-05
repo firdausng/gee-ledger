@@ -83,7 +83,7 @@
 	let showDeleteConfirm = $state(false);
 	let deleting = $state(false);
 
-	let filteredCategories  = $derived(categories.filter((c) => c.type === type));
+	let filteredCategories  = $derived(categories.filter((c) => c.type === type || c.type === 'general'));
 	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
 	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
 

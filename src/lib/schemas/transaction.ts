@@ -64,8 +64,8 @@ export const TransactionFiltersSchema = v.object({
 	type: v.optional(TransactionTypeSchema),
 	from: v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
 	to: v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
-	cursor: v.optional(v.string()),
-	limit: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(100)), 50)
+	page: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), 1),
+	perPage: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(100)), 10)
 });
 
 export const TransactionItemSchema = v.object({

@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { userBusinessRoles, users } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
@@ -25,7 +25,8 @@ export async function listMembersHandler(
 		})
 		.from(userBusinessRoles)
 		.leftJoin(users, eq(userBusinessRoles.userId, users.id))
-		.where(eq(userBusinessRoles.businessId, businessId));
+		.where(eq(userBusinessRoles.businessId, businessId))
+		.orderBy(desc(userBusinessRoles.createdAt));
 
 	return rows.map((r) => ({
 		userId: r.userId,

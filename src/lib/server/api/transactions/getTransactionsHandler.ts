@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, gte, lte, gt, inArray, count } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, inArray, count, desc } from 'drizzle-orm';
 import { transactions, transactionAttachments, attachments, contacts } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
@@ -14,7 +14,9 @@ export async function getTransactionsHandler(
 	await requireBusinessPermission(user, businessId, 'transaction:view', env);
 
 	const db = drizzle(env.DB, { schema });
-	const limit = filters.limit ?? 50;
+	const page = filters.page ?? 1;
+	const perPage = filters.perPage ?? 10;
+	const offset = (page - 1) * perPage;
 
 	const conditions = [eq(transactions.businessId, businessId), isNull(transactions.deletedAt)];
 
@@ -23,24 +25,29 @@ export async function getTransactionsHandler(
 	if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
 	if (filters.type) conditions.push(eq(transactions.type, filters.type));
 	if (filters.from) conditions.push(gte(transactions.transactionDate, filters.from));
-	if (filters.to) conditions.push(lte(transactions.transactionDate, filters.to));
-	if (filters.cursor) conditions.push(gt(transactions.transactionDate, filters.cursor));
+	if (filters.to) conditions.push(lte(transactions.transactionDate, `${filters.to}T23:59:59`));
 
-	const rows = await db
-		.select()
-		.from(transactions)
-		.where(and(...conditions))
-		.orderBy(transactions.transactionDate)
-		.limit(limit + 1);
+	// Get total count and rows in parallel
+	const [totalResult, rows] = await Promise.all([
+		db
+			.select({ total: count() })
+			.from(transactions)
+			.where(and(...conditions)),
+		db
+			.select()
+			.from(transactions)
+			.where(and(...conditions))
+			.orderBy(desc(transactions.transactionDate))
+			.limit(perPage)
+			.offset(offset)
+	]);
 
-	const hasMore = rows.length > limit;
-	const data = hasMore ? rows.slice(0, limit) : rows;
-	const nextCursor = hasMore ? data[data.length - 1].transactionDate : null;
+	const total = totalResult[0]?.total ?? 0;
 
 	// Fetch attachment counts for the returned transactions
 	const attachmentCounts: Record<string, number> = {};
-	if (data.length > 0) {
-		const txIds = data.map((t) => t.id);
+	if (rows.length > 0) {
+		const txIds = rows.map((t) => t.id);
 		const counts = await db
 			.select({
 				transactionId: transactionAttachments.transactionId,
@@ -58,7 +65,7 @@ export async function getTransactionsHandler(
 
 	// Resolve contact names — separate query, no JOIN (service-extraction boundary)
 	const contactNames: Record<string, string> = {};
-	const contactIds = [...new Set(data.map((t) => t.contactId).filter(Boolean) as string[])];
+	const contactIds = [...new Set(rows.map((t) => t.contactId).filter(Boolean) as string[])];
 	if (contactIds.length > 0) {
 		const contactRows = await db
 			.select({ id: contacts.id, name: contacts.name })
@@ -69,11 +76,11 @@ export async function getTransactionsHandler(
 		}
 	}
 
-	const dataWithCounts = data.map((t) => ({
+	const data = rows.map((t) => ({
 		...t,
 		attachmentCount: attachmentCounts[t.id] ?? 0,
 		contactName: t.contactId ? (contactNames[t.contactId] ?? null) : null
 	}));
 
-	return { data: dataWithCounts, nextCursor, hasMore };
+	return { data, total, page, perPage };
 }

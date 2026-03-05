@@ -4,7 +4,9 @@
 	import { api, formatAmount } from '$lib/client/api.svelte';
 	import { Plus, Loader2, Trash2, Paperclip, ScrollText, Download, Crown } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
-	import { DateRangePicker } from '$lib/components/ui/date-picker';
+	import { DateRangeFilter } from '$lib/components/ui/date-picker';
+	import * as Select from '$lib/components/ui/select';
+	import * as Pagination from '$lib/components/ui/pagination';
 
 	let { data } = $props();
 
@@ -31,9 +33,11 @@
 
 	let transactions = $state<Transaction[]>([]);
 	let loading = $state(true);
+	let fetching = $state(false);
 	let error = $state<string | null>(null);
-	let hasMore = $state(false);
-	let nextCursor = $state<string | null>(null);
+	let totalCount = $state(0);
+	let currentPage = $state(1);
+	let perPage = $state(10);
 
 	// Filters
 	let filterType = $state('');
@@ -57,24 +61,27 @@
 		if (filterType) q.set('type', filterType);
 		if (filterFrom) q.set('from', filterFrom);
 		if (filterTo) q.set('to', filterTo);
+		q.set('page', String(currentPage));
+		q.set('perPage', String(perPage));
 		return q.toString();
 	}
 
-	async function loadTransactions(append = false) {
+	async function loadTransactions(isInitial = false) {
 		try {
-			if (!append) loading = true;
+			if (isInitial) loading = true;
+			fetching = true;
 			error = null;
 			const query = buildQuery();
-			const res = await api.get<{ data: Transaction[]; hasMore: boolean; nextCursor: string | null }>(
-				`/businesses/${businessId}/transactions${query ? '?' + query : ''}`
+			const res = await api.get<{ data: Transaction[]; total: number; page: number; perPage: number }>(
+				`/businesses/${businessId}/transactions?${query}`
 			);
-			transactions = append ? [...transactions, ...res.data] : res.data;
-			hasMore = res.hasMore;
-			nextCursor = res.nextCursor;
+			transactions = res.data;
+			totalCount = res.total;
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load';
 		} finally {
 			loading = false;
+			fetching = false;
 		}
 	}
 
@@ -83,6 +90,7 @@
 			deleting = true;
 			await api.delete(`/businesses/${businessId}/transactions/${id}`);
 			transactions = transactions.filter((t) => t.id !== id);
+			totalCount = Math.max(0, totalCount - 1);
 			deleteId = null;
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to delete';
@@ -91,7 +99,18 @@
 		}
 	}
 
-	onMount(() => loadTransactions());
+	function goToPage(p: number) {
+		currentPage = p;
+		loadTransactions();
+	}
+
+	function changePerPage(value: string) {
+		perPage = Number(value);
+		currentPage = 1;
+		loadTransactions();
+	}
+
+	onMount(() => loadTransactions(true));
 </script>
 
 <div>
@@ -135,23 +154,38 @@
 	</div>
 
 	<!-- Filters -->
-	<div class="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mb-4">
-		<select
-			bind:value={filterType}
-			onchange={() => loadTransactions()}
-			class="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-		>
-			<option value="">All types</option>
-			<option value="income">Income</option>
-			<option value="expense">Expense</option>
-		</select>
-		<DateRangePicker
+	<div class="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mb-4 items-center">
+		<Select.Root type="single" value={filterType} onValueChange={(v) => { filterType = v ?? ''; currentPage = 1; loadTransactions(); }}>
+			<Select.Trigger class="w-full sm:w-auto">
+				{filterType ? filterType.charAt(0).toUpperCase() + filterType.slice(1) : 'All types'}
+			</Select.Trigger>
+			<Select.Content>
+				<Select.Item value="">All types</Select.Item>
+				<Select.Item value="income">Income</Select.Item>
+				<Select.Item value="expense">Expense</Select.Item>
+			</Select.Content>
+		</Select.Root>
+		<DateRangeFilter
 			bind:from={filterFrom}
 			bind:to={filterTo}
-			onchange={() => loadTransactions()}
+			onchange={() => { currentPage = 1; loadTransactions(); }}
 			class="w-full sm:w-auto"
 		/>
 	</div>
+
+	{#if filterFrom || filterTo}
+		<p class="text-xs text-muted-foreground mb-3">
+			Showing transactions
+			{#if filterFrom && filterTo}
+				from <span class="font-medium text-foreground">{new Date(filterFrom).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+				to <span class="font-medium text-foreground">{new Date(filterTo).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+			{:else if filterFrom}
+				from <span class="font-medium text-foreground">{new Date(filterFrom).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+			{:else}
+				until <span class="font-medium text-foreground">{new Date(filterTo).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+			{/if}
+		</p>
+	{/if}
 
 	{#if loading}
 		<div class="flex justify-center py-16"><Loader2 class="size-7 animate-spin text-muted-foreground" /></div>
@@ -169,7 +203,7 @@
 			</a>
 		</div>
 	{:else}
-		<div class="rounded-lg border border-border overflow-hidden">
+		<div class="rounded-lg border border-border overflow-hidden transition-opacity" class:opacity-50={fetching}>
 			{#each transactions as tx (tx.id)}
 				<div class="flex items-center border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
 					<a
@@ -187,7 +221,7 @@
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground truncate">{tx.note ?? '—'}</p>
 							<p class="text-xs text-muted-foreground">
-							{tx.transactionDate}{#if tx.contactName} · {tx.contactName}{/if}
+							{new Date(tx.transactionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{#if tx.contactName} · {tx.contactName}{/if}
 						</p>
 						</div>
 						<span
@@ -217,14 +251,49 @@
 			{/each}
 		</div>
 
-		{#if hasMore}
-			<div class="text-center mt-4">
-				<button
-					onclick={() => loadTransactions(true)}
-					class="text-sm text-primary hover:underline"
-				>
-					Load more
-				</button>
+		<!-- Pagination -->
+		{#if totalCount > 0}
+			<div class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+				<div class="flex items-center gap-2 text-sm text-muted-foreground">
+					<span>Rows per page</span>
+					<Select.Root type="single" value={String(perPage)} onValueChange={(v) => { if (v) changePerPage(v); }}>
+						<Select.Trigger class="w-[70px] h-8 text-sm">
+							{perPage}
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="10">10</Select.Item>
+							<Select.Item value="20">20</Select.Item>
+							<Select.Item value="50">50</Select.Item>
+							<Select.Item value="100">100</Select.Item>
+						</Select.Content>
+					</Select.Root>
+					<span class="text-xs whitespace-nowrap">
+						{(currentPage - 1) * perPage + 1}–{Math.min(currentPage * perPage, totalCount)} of {totalCount}
+					</span>
+				</div>
+				<Pagination.Root count={totalCount} {perPage} bind:page={currentPage} onPageChange={(p) => goToPage(p)} siblingCount={1}>
+					{#snippet children({ pages })}
+						<Pagination.Content>
+							<Pagination.Item>
+								<Pagination.Previous />
+							</Pagination.Item>
+							{#each pages as p (p.key)}
+								{#if p.type === 'ellipsis'}
+									<Pagination.Item>
+										<Pagination.Ellipsis />
+									</Pagination.Item>
+								{:else}
+									<Pagination.Item>
+										<Pagination.Link page={p} isActive={currentPage === p.value} />
+									</Pagination.Item>
+								{/if}
+							{/each}
+							<Pagination.Item>
+								<Pagination.Next />
+							</Pagination.Item>
+						</Pagination.Content>
+					{/snippet}
+				</Pagination.Root>
 			</div>
 		{/if}
 	{/if}

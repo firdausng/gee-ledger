@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
 import { organizations, organizationMembers, subscriptions } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { PLAN_KEY, SUBSCRIPTION_STATUS } from '$lib/configurations/plans';
@@ -24,7 +24,8 @@ export async function getOrganizationsHandler(user: App.User, env: Cloudflare.En
 	const orgs = await db
 		.select()
 		.from(organizations)
-		.where(and(inArray(organizations.id, orgIds), isNull(organizations.deletedAt)));
+		.where(and(inArray(organizations.id, orgIds), isNull(organizations.deletedAt)))
+		.orderBy(desc(organizations.createdAt));
 
 	// Get subscriptions for these orgs
 	const subs = await db

@@ -31,11 +31,12 @@ export const transactionsApi = new Hono<App.Api>()
 		const query = c.req.query();
 		const filtersResult = v.safeParse(TransactionFiltersSchema, {
 			...query,
-			limit: query.limit ? Number(query.limit) : undefined
+			page: query.page ? Number(query.page) : undefined,
+			perPage: query.perPage ? Number(query.perPage) : undefined
 		});
 		if (!filtersResult.success) throw new HTTPException(400, { message: 'Invalid query parameters' });
-		const data = await getTransactionsHandler(user, c.req.param('businessId'), filtersResult.output, c.env);
-		return c.json({ data });
+		const result = await getTransactionsHandler(user, c.req.param('businessId'), filtersResult.output, c.env);
+		return c.json({ data: result });
 	})
 
 	.get('/businesses/:businessId/transactions/export', async (c) => {
@@ -43,7 +44,8 @@ export const transactionsApi = new Hono<App.Api>()
 		const query = c.req.query();
 		const filtersResult = v.safeParse(TransactionFiltersSchema, {
 			...query,
-			limit: query.limit ? Number(query.limit) : undefined
+			page: query.page ? Number(query.page) : undefined,
+			perPage: query.perPage ? Number(query.perPage) : undefined
 		});
 		if (!filtersResult.success) throw new HTTPException(400, { message: 'Invalid query parameters' });
 		const currency = query.currency ?? 'USD';

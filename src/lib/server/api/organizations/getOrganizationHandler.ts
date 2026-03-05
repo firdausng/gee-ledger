@@ -119,7 +119,7 @@ export async function getOrganizationHandler(
 		role: membership.role,
 		planKey: sub ? sub.planKey : PLAN_KEY.FREE,
 		subscription: isOwner ? (sub ?? null) : null,
-		members,
+		members: isOwner ? members : [],
 		businesses: visibleBusinesses,
 		businessCount: orgBusinesses.length,
 		seatInfo: isOwner ? await getOrgSeatInfo(organizationId, env) : null,

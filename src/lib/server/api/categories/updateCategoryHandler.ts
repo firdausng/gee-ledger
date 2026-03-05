@@ -22,6 +22,7 @@ export async function updateCategoryHandler(
 		.update(categories)
 		.set({
 			...(data.name !== undefined && { name: data.name }),
+			...(data.type !== undefined && { type: data.type }),
 			...(data.color !== undefined && { color: data.color }),
 			...(data.icon !== undefined && { icon: data.icon }),
 			updatedAt: now,

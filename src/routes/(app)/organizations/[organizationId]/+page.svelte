@@ -489,7 +489,8 @@
 				</div>
 			{/if}
 
-			<!-- Members -->
+			<!-- Members (owner only) -->
+			{#if isOwner}
 			<div class="rounded-lg border border-border bg-card p-5">
 				<h2 class="font-semibold text-foreground mb-4 flex items-center gap-2">
 					<Users class="size-4" />
@@ -536,10 +537,34 @@
 					</div>
 				{/if}
 			</div>
+			{/if}
 		</div>
 
-		<!-- Per-Business Member Management -->
-		{#if org.businesses.length > 0}
+		<!-- Businesses (non-owner: simple list) -->
+		{#if !isOwner && org.businesses.length > 0}
+			<div class="rounded-lg border border-border bg-card p-5 mt-4">
+				<h2 class="font-semibold text-foreground mb-4 flex items-center gap-2">
+					<Building2 class="size-4" />
+					Your Businesses
+				</h2>
+				<div class="space-y-2">
+					{#each org.businesses as biz (biz.id)}
+						<a
+							href="/businesses/{biz.id}"
+							class="flex items-center gap-3 p-3 rounded-md border border-border hover:border-primary/50 hover:bg-accent/50 transition-colors"
+						>
+							<div class="size-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+								<Building2 class="size-4 text-primary" />
+							</div>
+							<span class="text-sm font-medium truncate">{biz.name}</span>
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Per-Business Member Management (owner only) -->
+		{#if isOwner && org.businesses.length > 0}
 			<div class="rounded-lg border border-border bg-card p-5 mt-4">
 				<div class="flex items-center justify-between mb-4">
 					<h2 class="font-semibold text-foreground flex items-center gap-2">
@@ -694,7 +719,7 @@
 	</div>
 
 	<!-- Remove member confirmation modal -->
-	{#if removeTarget}
+	{#if isOwner && removeTarget}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onclick={() => (removeTarget = null)} role="presentation">
 			<div class="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 shadow-lg" onclick={(e) => e.stopPropagation()} role="dialog">
 				<h3 class="font-semibold text-foreground mb-2">Remove Member</h3>
@@ -722,7 +747,7 @@
 	{/if}
 
 	<!-- Cancel invitation confirmation modal -->
-	{#if cancelTarget}
+	{#if isOwner && cancelTarget}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onclick={() => (cancelTarget = null)} role="presentation">
 			<div class="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 shadow-lg" onclick={(e) => e.stopPropagation()} role="dialog">
 				<h3 class="font-semibold text-foreground mb-2">Cancel Invitation</h3>

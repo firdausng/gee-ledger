@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, desc } from 'drizzle-orm';
 import { categories } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
@@ -16,5 +16,6 @@ export async function getCategoriesHandler(
 	return db
 		.select()
 		.from(categories)
-		.where(and(eq(categories.businessId, businessId), isNull(categories.deletedAt)));
+		.where(and(eq(categories.businessId, businessId), isNull(categories.deletedAt)))
+		.orderBy(desc(categories.createdAt));
 }

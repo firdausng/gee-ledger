@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, desc } from 'drizzle-orm';
 import { salesChannels } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
@@ -16,5 +16,6 @@ export async function getChannelsHandler(
 	return db
 		.select()
 		.from(salesChannels)
-		.where(and(eq(salesChannels.businessId, businessId), isNull(salesChannels.deletedAt)));
+		.where(and(eq(salesChannels.businessId, businessId), isNull(salesChannels.deletedAt)))
+		.orderBy(desc(salesChannels.createdAt));
 }

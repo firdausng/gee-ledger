@@ -26,7 +26,7 @@ export async function exportTransactionsHandler(
 	if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
 	if (filters.type) conditions.push(eq(transactions.type, filters.type));
 	if (filters.from) conditions.push(gte(transactions.transactionDate, filters.from));
-	if (filters.to) conditions.push(lte(transactions.transactionDate, filters.to));
+	if (filters.to) conditions.push(lte(transactions.transactionDate, `${filters.to}T23:59:59`));
 
 	const rows = await db
 		.select()

@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { invitations, businesses } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 
@@ -19,7 +19,8 @@ export async function listInvitationsHandler(user: App.User, env: Cloudflare.Env
 		})
 		.from(invitations)
 		.leftJoin(businesses, eq(invitations.businessId, businesses.id))
-		.where(and(eq(invitations.email, user.email ?? ''), eq(invitations.status, 'pending')));
+		.where(and(eq(invitations.email, user.email ?? ''), eq(invitations.status, 'pending')))
+		.orderBy(desc(invitations.createdAt));
 
 	return rows.map((r) => ({
 		...r,

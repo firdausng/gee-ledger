@@ -2,15 +2,22 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
+	import { toast } from 'svelte-sonner';
 	import { Plus, Loader2, Pencil, Trash2, Tag } from '@lucide/svelte';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+
+	type CategoryType = 'income' | 'expense' | 'general';
 
 	type Category = {
 		id: string;
 		name: string;
-		type: 'income' | 'expense';
+		type: CategoryType;
 		color: string | null;
 		icon: string | null;
 	};
+
+	const TYPES: CategoryType[] = ['income', 'expense', 'general'];
 
 	const businessId = $page.params.businessId!;
 
@@ -18,27 +25,32 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	// Tabs
-	let activeTab = $state<'income' | 'expense'>('income');
+	// Filter
+	let activeFilter = $state<'all' | CategoryType>('all');
+	let filteredCategories = $derived(
+		activeFilter === 'all' ? categories : categories.filter((c) => c.type === activeFilter)
+	);
 
-	let filteredCategories = $derived(categories.filter((c) => c.type === activeTab));
-
-	// Create form
-	let showCreate = $state(false);
-	let createName = $state('');
-	let createType = $state<'income' | 'expense'>('income');
-	let creating = $state(false);
-	let createError = $state<string | null>(null);
-
-	// Edit
-	let editId = $state<string | null>(null);
-	let editName = $state('');
-	let editing = $state(false);
-	let editError = $state<string | null>(null);
+	// Dialog state
+	let dialogOpen = $state(false);
+	let dialogMode = $state<'create' | 'edit'>('create');
+	let dialogName = $state('');
+	let dialogType = $state<CategoryType>('general');
+	let dialogId = $state<string | null>(null);
+	let saving = $state(false);
+	let dialogError = $state<string | null>(null);
 
 	// Delete
-	let deleteId = $state<string | null>(null);
+	let deleteTarget = $state<Category | null>(null);
 	let deleting = $state(false);
+
+	function typeBadgeClass(type: CategoryType) {
+		switch (type) {
+			case 'income': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+			case 'expense': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+			default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+		}
+	}
 
 	async function load() {
 		try {
@@ -52,56 +64,62 @@
 		}
 	}
 
-	async function create() {
-		if (!createName.trim()) return;
+	function openCreate() {
+		dialogMode = 'create';
+		dialogName = '';
+		dialogType = 'general';
+		dialogId = null;
+		dialogError = null;
+		dialogOpen = true;
+	}
+
+	function openEdit(cat: Category) {
+		dialogMode = 'edit';
+		dialogName = cat.name;
+		dialogType = cat.type;
+		dialogId = cat.id;
+		dialogError = null;
+		dialogOpen = true;
+	}
+
+	async function saveDialog() {
+		if (!dialogName.trim()) return;
 		try {
-			creating = true;
-			createError = null;
-			const cat = await api.post<Category>(`/businesses/${businessId}/categories`, {
-				name: createName.trim(),
-				type: createType
-			});
-			categories = [...categories, cat];
-			showCreate = false;
-			createName = '';
+			saving = true;
+			dialogError = null;
+			if (dialogMode === 'create') {
+				const cat = await api.post<Category>(`/businesses/${businessId}/categories`, {
+					name: dialogName.trim(),
+					type: dialogType
+				});
+				categories = [...categories, cat];
+				toast.success('Category created');
+			} else if (dialogId) {
+				const updated = await api.patch<Category>(`/businesses/${businessId}/categories/${dialogId}`, {
+					name: dialogName.trim(),
+					type: dialogType
+				});
+				categories = categories.map((c) => (c.id === dialogId ? updated : c));
+				toast.success('Category updated');
+			}
+			dialogOpen = false;
 		} catch (e) {
-			createError = e instanceof Error ? e.message : 'Failed to create';
+			dialogError = e instanceof Error ? e.message : 'Failed to save';
 		} finally {
-			creating = false;
+			saving = false;
 		}
 	}
 
-	function startEdit(cat: Category) {
-		editId = cat.id;
-		editName = cat.name;
-		editError = null;
-	}
-
-	async function saveEdit() {
-		if (!editId || !editName.trim()) return;
-		try {
-			editing = true;
-			editError = null;
-			const updated = await api.patch<Category>(`/businesses/${businessId}/categories/${editId}`, {
-				name: editName.trim()
-			});
-			categories = categories.map((c) => (c.id === editId ? updated : c));
-			editId = null;
-		} catch (e) {
-			editError = e instanceof Error ? e.message : 'Failed to update';
-		} finally {
-			editing = false;
-		}
-	}
-
-	async function deleteCategory(id: string) {
+	async function deleteCategory() {
+		if (!deleteTarget) return;
 		try {
 			deleting = true;
-			await api.delete(`/businesses/${businessId}/categories/${id}`);
-			categories = categories.filter((c) => c.id !== id);
-			deleteId = null;
+			await api.delete(`/businesses/${businessId}/categories/${deleteTarget.id}`);
+			categories = categories.filter((c) => c.id !== deleteTarget!.id);
+			toast.success('Category deleted');
+			deleteTarget = null;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to delete';
+			toast.error(e instanceof Error ? e.message : 'Failed to delete');
 		} finally {
 			deleting = false;
 		}
@@ -112,13 +130,15 @@
 
 <div>
 	<div class="flex items-center justify-between mb-4">
-		<h2 class="font-semibold text-foreground">Categories</h2>
+		<div class="flex items-center gap-2">
+			<Tag class="size-5 text-muted-foreground" />
+			<div>
+				<h2 class="font-semibold text-foreground">Categories</h2>
+				<p class="text-xs text-muted-foreground mt-0.5">Organize transactions by type</p>
+			</div>
+		</div>
 		<button
-			onclick={() => {
-				showCreate = !showCreate;
-				createType = activeTab;
-				createError = null;
-			}}
+			onclick={openCreate}
 			class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
 		>
 			<Plus class="size-4" />
@@ -126,63 +146,18 @@
 		</button>
 	</div>
 
-	<!-- Tabs -->
+	<!-- Filter -->
 	<div class="flex gap-1 p-1 rounded-lg bg-muted mb-4 w-fit">
-		{#each ['income', 'expense'] as tab}
+		{#each ['all', ...TYPES] as tab}
 			<button
-				onclick={() => (activeTab = tab as 'income' | 'expense')}
+				onclick={() => (activeFilter = tab as 'all' | CategoryType)}
 				class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors
-					{activeTab === tab ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
+					{activeFilter === tab ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
 			>
 				{tab.charAt(0).toUpperCase() + tab.slice(1)}
 			</button>
 		{/each}
 	</div>
-
-	{#if showCreate}
-		<div class="rounded-lg border border-border bg-card p-4 mb-4">
-			<h3 class="text-sm font-semibold mb-3">New Category</h3>
-			{#if createError}
-				<p class="text-destructive text-sm mb-2">{createError}</p>
-			{/if}
-			<div class="flex flex-col gap-3">
-				<input
-					type="text"
-					bind:value={createName}
-					placeholder="Category name"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
-				<div class="flex gap-2">
-					{#each ['income', 'expense'] as t}
-						<button
-							type="button"
-							onclick={() => (createType = t as 'income' | 'expense')}
-							class="flex-1 py-1.5 rounded-md border text-sm font-medium capitalize transition-colors
-								{createType === t ? 'border-primary bg-primary/10 text-primary' : 'border-input text-muted-foreground hover:border-muted-foreground'}"
-						>
-							{t}
-						</button>
-					{/each}
-				</div>
-				<div class="flex justify-end gap-2">
-					<button
-						onclick={() => { showCreate = false; createError = null; }}
-						class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-					>
-						Cancel
-					</button>
-					<button
-						onclick={create}
-						disabled={creating || !createName.trim()}
-						class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-					>
-						{#if creating}<Loader2 class="size-4 animate-spin" />{/if}
-						Create
-					</button>
-				</div>
-			</div>
-		</div>
-	{/if}
 
 	{#if error}
 		<p class="text-destructive text-sm mb-4">{error}</p>
@@ -195,91 +170,128 @@
 	{:else if filteredCategories.length === 0}
 		<div class="rounded-lg border border-border bg-card p-10 text-center">
 			<Tag class="size-8 text-muted-foreground mx-auto mb-2" />
-			<p class="text-muted-foreground text-sm">No {activeTab} categories yet.</p>
+			<p class="text-muted-foreground text-sm">{activeFilter === 'all' ? 'No categories yet.' : `No ${activeFilter} categories yet.`}</p>
+			{#if categories.length === 0}
+			<button
+				onclick={openCreate}
+				class="mt-3 text-sm text-primary hover:underline"
+			>
+				Create your first category
+			</button>
+		{/if}
 		</div>
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each filteredCategories as cat (cat.id)}
-				{#if editId === cat.id}
-					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
-						{#if editError}
-							<p class="text-destructive text-sm mb-2">{editError}</p>
-						{/if}
-						<div class="flex gap-2">
-							<input
-								type="text"
-								bind:value={editName}
-								class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-							/>
-							<button
-								onclick={() => (editId = null)}
-								class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-							>
-								Cancel
-							</button>
-							<button
-								onclick={saveEdit}
-								disabled={editing || !editName.trim()}
-								class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-							>
-								{#if editing}<Loader2 class="size-4 animate-spin" />{/if}
-								Save
-							</button>
-						</div>
-					</div>
-				{:else}
-					<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
-						<Tag class="size-4 text-muted-foreground shrink-0" />
-						<p class="flex-1 text-sm font-medium text-foreground">{cat.name}</p>
-						<span
-							class="text-xs px-2 py-0.5 rounded-full shrink-0
-								{cat.type === 'income' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}"
+				<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+					<Tag class="size-4 text-muted-foreground shrink-0" />
+					<p class="flex-1 text-sm font-medium text-foreground truncate">{cat.name}</p>
+					<span class="text-xs px-2 py-0.5 rounded-full shrink-0 capitalize {typeBadgeClass(cat.type)}">
+						{cat.type}
+					</span>
+					<div class="flex items-center gap-1 shrink-0">
+						<button
+							onclick={() => openEdit(cat)}
+							class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
 						>
-							{cat.type}
-						</span>
-						<div class="flex items-center gap-1 shrink-0">
-							<button
-								onclick={() => startEdit(cat)}
-								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-							>
-								<Pencil class="size-3.5" />
-							</button>
-							<button
-								onclick={() => (deleteId = cat.id)}
-								class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-							>
-								<Trash2 class="size-3.5" />
-							</button>
-						</div>
+							<Pencil class="size-3.5" />
+						</button>
+						<button
+							onclick={() => (deleteTarget = cat)}
+							class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+						>
+							<Trash2 class="size-3.5" />
+						</button>
 					</div>
-				{/if}
+				</div>
 			{/each}
 		</div>
 	{/if}
 </div>
 
-<!-- Delete confirmation -->
-{#if deleteId}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-		<div class="bg-card rounded-lg border border-border p-6 max-w-sm w-full shadow-lg">
-			<h3 class="font-semibold text-foreground mb-2">Delete Category?</h3>
-			<p class="text-sm text-muted-foreground mb-5">This action cannot be undone.</p>
-			<div class="flex justify-end gap-2">
-				<button
-					onclick={() => (deleteId = null)}
-					class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={() => deleteCategory(deleteId!)}
-					disabled={deleting}
-					class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
-				>
-					{#if deleting}<Loader2 class="size-4 animate-spin" />{/if}
-					Delete
-				</button>
+<!-- Create / Edit dialog -->
+<Dialog.Root bind:open={dialogOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>{dialogMode === 'create' ? 'New Category' : 'Edit Category'}</Dialog.Title>
+			<Dialog.Description>
+				{dialogMode === 'create' ? 'Add a new category to organize your transactions.' : 'Update the category name or type.'}
+			</Dialog.Description>
+		</Dialog.Header>
+		{#if dialogError}
+			<p class="text-destructive text-sm">{dialogError}</p>
+		{/if}
+		<div class="flex flex-col gap-4 py-2">
+			<div>
+				<label class="block text-sm font-medium text-foreground mb-1.5" for="cat-name">Name</label>
+				<input
+					id="cat-name"
+					type="text"
+					bind:value={dialogName}
+					placeholder="e.g. Food & Beverage"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+			</div>
+			<div>
+				<label class="block text-sm font-medium text-foreground mb-1.5">Type</label>
+				<div class="flex gap-2">
+					{#each TYPES as t}
+						<button
+							type="button"
+							onclick={() => (dialogType = t)}
+							class="flex-1 py-2 rounded-md border text-sm font-medium capitalize transition-colors
+								{dialogType === t ? 'border-primary bg-primary/10 text-primary' : 'border-input text-muted-foreground hover:border-muted-foreground'}"
+						>
+							{t}
+						</button>
+					{/each}
+				</div>
+				<p class="text-xs text-muted-foreground mt-1.5">
+					{#if dialogType === 'general'}
+						Appears in both income and expense transactions.
+					{:else}
+						Only appears in {dialogType} transactions.
+					{/if}
+				</p>
 			</div>
 		</div>
-	</div>
-{/if}
+		<Dialog.Footer>
+			<Dialog.Close class="px-4 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted">
+				Cancel
+			</Dialog.Close>
+			<button
+				onclick={saveDialog}
+				disabled={saving || !dialogName.trim()}
+				class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+			>
+				{#if saving}<Loader2 class="size-4 animate-spin" />{/if}
+				{dialogMode === 'create' ? 'Create' : 'Save'}
+			</button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Delete confirmation -->
+<AlertDialog.Root open={!!deleteTarget} onOpenChange={(open) => { if (!open) deleteTarget = null; }}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Delete Category?</AlertDialog.Title>
+			<AlertDialog.Description>
+				{#if deleteTarget}
+					<span class="font-medium text-foreground">{deleteTarget.name}</span> will be permanently deleted. This cannot be undone.
+				{/if}
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<button
+				onclick={deleteCategory}
+				disabled={deleting}
+				class="inline-flex items-center justify-center gap-2 rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors"
+			>
+				{#if deleting}<Loader2 class="size-4 animate-spin" />{/if}
+				Delete
+			</button>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

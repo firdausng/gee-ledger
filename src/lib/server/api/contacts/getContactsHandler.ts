@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, desc } from 'drizzle-orm';
 import { contacts, clients, suppliers } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
@@ -18,7 +18,8 @@ export async function getContactsHandler(
 	let rows = await db
 		.select()
 		.from(contacts)
-		.where(and(eq(contacts.businessId, businessId), isNull(contacts.deletedAt)));
+		.where(and(eq(contacts.businessId, businessId), isNull(contacts.deletedAt)))
+		.orderBy(desc(contacts.createdAt));
 
 	if (rows.length === 0) return [];
 
