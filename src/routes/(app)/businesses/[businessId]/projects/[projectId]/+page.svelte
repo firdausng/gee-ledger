@@ -54,7 +54,9 @@
 		id: string;
 		type: 'quote' | 'transaction';
 		docId: string | null;
-		amount: number;
+		originalAmount: number;
+		originalCurrency: string;
+		amount: number | null;
 		date: string;
 		docNo: string | null;
 		note: string | null;
@@ -765,7 +767,7 @@
 									</p>
 								</div>
 								<span class="text-xs font-semibold text-foreground shrink-0">
-									{formatAmount(conv.amount, data.business.currency)}
+									{formatAmount(conv.originalAmount ?? conv.amount, conv.originalCurrency ?? data.business.currency)}
 								</span>
 								<ExternalLink class="size-3 text-muted-foreground shrink-0" />
 							</a>

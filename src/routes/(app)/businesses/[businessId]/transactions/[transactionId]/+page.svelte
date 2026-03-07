@@ -13,18 +13,22 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { PLAN_KEY } from '$lib/configurations/plans';
+	import { currencyList } from '$lib/configurations/currencies';
 	import { DatePicker } from '$lib/components/ui/date-picker';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
-	type Contact  = { id: string; name: string; isClient: boolean; isSupplier: boolean };
+	type Contact  = { id: string; name: string; isClient: boolean; isSupplier: boolean; defaultCurrency: string | null };
 	type Transaction = {
 		id: string;
 		type: 'income' | 'expense';
 		lineItemMode: 'items' | 'services';
 		transactionDate: string;
-		amount: number;
+		originalAmount: number;
+		originalCurrency: string;
+		exchangeRate: number | null;
+		amount: number | null;
 		locationId: string;
 		salesChannelId: string | null;
 		categoryId: string | null;
@@ -49,6 +53,7 @@
 
 	const businessId = $page.params.businessId!;
 	const transactionId = $page.params.transactionId!;
+	const businessCurrency = $derived(($page.data as any).business?.currency ?? 'USD');
 	const canUploadAttachment = $derived(
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
@@ -73,6 +78,8 @@
 	let categoryId = $state('');
 	let contactId = $state('');
 	let dueDate = $state('');
+	let originalCurrency = $state('');
+	let exchangeRateStr = $state('');
 	let note = $state('');
 	let referenceNo = $state('');
 	let invoiceNo = $state('');
@@ -85,6 +92,7 @@
 	let showDeleteConfirm = $state(false);
 	let deleting = $state(false);
 
+	const isSameCurrency = $derived(originalCurrency === businessCurrency);
 	let filteredCategories  = $derived(categories.filter((c) => c.type === type || c.type === 'general'));
 	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
 	let supplierContacts = $derived(contacts.filter((c) => c.isSupplier));
@@ -149,6 +157,10 @@
 			contactId = tx.contactId ?? '';
 			dueDate = tx.dueDate ?? '';
 			note = tx.note ?? '';
+			originalCurrency = tx.originalCurrency ?? businessCurrency;
+			exchangeRateStr = tx.exchangeRate != null && tx.originalCurrency !== businessCurrency
+				? (tx.exchangeRate / 1_000_000).toString()
+				: '';
 			referenceNo = tx.referenceNo ?? '';
 			invoiceNo = tx.invoiceNo ?? '';
 			featuredImageId = tx.featuredImageId ?? null;
@@ -200,12 +212,15 @@
 			const total = lineItemMode === 'items'
 				? items.reduce((sum, i) => sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0)
 				: serviceItems.reduce((sum, i) => sum + Math.round(i.hours * Math.round(parseFloat(i.rate || '0') * 100)), 0);
+			const parsedRate = parseFloat(exchangeRateStr);
 			await api.patch(`/businesses/${businessId}/transactions/${transactionId}`, {
 				type,
 				lineItemMode,
 				transactionDate,
 				dueDate: dueDate || null,
 				amount: total,
+				originalCurrency,
+				exchangeRate: !isSameCurrency && parsedRate > 0 ? Math.round(parsedRate * 1_000_000) : undefined,
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
@@ -531,6 +546,44 @@
 								</div>
 							{/if}
 						</div>
+					</Card.Content>
+				</Card.Root>
+
+				<!-- Card: Currency -->
+				<Card.Root>
+					<Card.Header class="pb-3">
+						<Card.Title class="text-base">Currency</Card.Title>
+					</Card.Header>
+					<Card.Content class="flex flex-col gap-3">
+						<div class="space-y-1.5">
+							<Label>Currency</Label>
+							<Select.Root type="single" bind:value={originalCurrency}>
+								<Select.Trigger>
+									{originalCurrency || 'Select currency'}
+								</Select.Trigger>
+								<Select.Content>
+									{#each currencyList as cur (cur.code)}
+										<Select.Item value={cur.code}>{cur.code} — {cur.name}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						</div>
+						{#if !isSameCurrency && originalCurrency}
+							<div class="space-y-1.5">
+								<Label for="tx-rate">Exchange Rate</Label>
+								<Input
+									id="tx-rate"
+									type="number"
+									step="0.000001"
+									min="0"
+									bind:value={exchangeRateStr}
+									placeholder="e.g. 4.45"
+								/>
+								<p class="text-xs text-muted-foreground">
+									1 {originalCurrency} = ? {businessCurrency}
+								</p>
+							</div>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 

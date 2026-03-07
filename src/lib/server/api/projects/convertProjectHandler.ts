@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, isNull, inArray, sum } from 'drizzle-orm';
 import {
 	projects, projectTasks, projectConversions, projectConversionItems,
-	projectTimeEntries,
+	projectTimeEntries, businesses,
 	quotes, transactions, quoteItems,
 	quoteServiceItems, transactionServiceItems, locations, salesChannels
 } from '$lib/server/db/schema';
@@ -10,6 +10,7 @@ import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import { HTTPException } from 'hono/http-exception';
 import type { ConvertProjectInput } from '$lib/schemas/project';
+import { SAME_CURRENCY_RATE } from '$lib/server/utils/currency';
 
 export async function convertProjectHandler(
 	user: App.User,
@@ -96,6 +97,14 @@ export async function convertProjectHandler(
 		}
 	}
 
+	// Get business currency
+	const [biz] = await db
+		.select({ currency: businesses.currency })
+		.from(businesses)
+		.where(eq(businesses.id, businessId))
+		.limit(1);
+	const baseCurrency = biz?.currency ?? 'USD';
+
 	// Get location
 	const [loc] = await db
 		.select({ id: locations.id })
@@ -127,6 +136,9 @@ export async function convertProjectHandler(
 			locationId: loc.id,
 			contactId: project.contactId,
 			projectId,
+			originalAmount: totalAmount,
+			originalCurrency: baseCurrency,
+			exchangeRate: SAME_CURRENCY_RATE,
 			amount: totalAmount,
 			note: data.note ?? project.name,
 			quoteDate: today,
@@ -184,6 +196,9 @@ export async function convertProjectHandler(
 			salesChannelId: channelId,
 			projectId,
 			type: 'income',
+			originalAmount: totalAmount,
+			originalCurrency: baseCurrency,
+			exchangeRate: SAME_CURRENCY_RATE,
 			amount: totalAmount,
 			note: data.note ?? project.name,
 			transactionDate: today,

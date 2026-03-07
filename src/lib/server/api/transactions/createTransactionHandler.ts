@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { transactions, transactionAttachments, attachments, userBusinessRoles } from '$lib/server/db/schema';
+import { transactions, transactionAttachments, attachments, userBusinessRoles, businesses } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import type { CreateTransactionInput } from '$lib/schemas/transaction';
@@ -7,6 +7,7 @@ import { eq, and, ne, isNull, inArray } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { dispatchNotification } from '$lib/server/push/dispatcher';
 import { NOTIFICATION_TYPE } from '$lib/configurations/notifications';
+import { computeBaseAmount, SAME_CURRENCY_RATE } from '$lib/server/utils/currency';
 
 export async function createTransactionHandler(
 	user: App.User,
@@ -38,6 +39,17 @@ export async function createTransactionHandler(
 		}
 	}
 
+	// Resolve business base currency to determine if same-currency
+	const [biz] = await db
+		.select({ currency: businesses.currency })
+		.from(businesses)
+		.where(eq(businesses.id, businessId))
+		.limit(1);
+	const baseCurrency = biz?.currency ?? 'USD';
+	const isSameCurrency = data.originalCurrency === baseCurrency;
+	const effectiveRate = isSameCurrency ? SAME_CURRENCY_RATE : (data.exchangeRate ?? null);
+	const baseAmount = computeBaseAmount(data.amount, effectiveRate);
+
 	const [transaction] = await db
 		.insert(transactions)
 		.values({
@@ -49,7 +61,10 @@ export async function createTransactionHandler(
 			contactId: data.contactId ?? null,
 			type: data.type,
 			lineItemMode: data.lineItemMode ?? 'items',
-			amount: data.amount,
+			originalAmount: data.amount,
+			originalCurrency: data.originalCurrency,
+			exchangeRate: effectiveRate,
+			amount: baseAmount,
 			note: data.note ?? null,
 			referenceNo: data.referenceNo ?? null,
 			transactionDate: data.transactionDate,
@@ -79,7 +94,7 @@ export async function createTransactionHandler(
 		);
 
 	if (otherMembers.length > 0) {
-		const amountStr = (Math.abs(data.amount) / 100).toFixed(2);
+		const amountStr = `${data.originalCurrency} ${(Math.abs(data.amount) / 100).toFixed(2)}`;
 		await dispatchNotification({
 			recipientUserIds: otherMembers.map((m) => m.userId),
 			type: NOTIFICATION_TYPE.TRANSACTION_CREATED,

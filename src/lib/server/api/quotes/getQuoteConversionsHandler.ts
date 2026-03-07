@@ -26,6 +26,8 @@ export async function getQuoteConversionsHandler(
 	const txRows = await db
 		.select({
 			id: transactions.id,
+			originalAmount: transactions.originalAmount,
+			originalCurrency: transactions.originalCurrency,
 			amount: transactions.amount,
 			transactionDate: transactions.transactionDate,
 			invoiceNo: transactions.invoiceNo,

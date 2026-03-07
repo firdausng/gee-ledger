@@ -14,12 +14,13 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { PLAN_KEY } from '$lib/configurations/plans';
+	import { currencyList } from '$lib/configurations/currencies';
 	import { DatePicker } from '$lib/components/ui/date-picker';
 
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
-	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean };
+	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean; defaultCurrency: string | null };
 	type Product = { id: string; name: string; sku: string | null; description: string | null; defaultPrice: number; defaultQty: number };
 	type Quote = {
 		id: string;
@@ -27,7 +28,10 @@
 		quoteDate: string;
 		expiryDate: string | null;
 		dueDate: string | null;
-		amount: number;
+		amount: number | null;
+		originalAmount: number;
+		originalCurrency: string;
+		exchangeRate: number | null;
 		locationId: string;
 		salesChannelId: string | null;
 		categoryId: string | null;
@@ -51,6 +55,7 @@
 
 	const businessId = $page.params.businessId!;
 	const quoteId = $page.params.quoteId!;
+	const businessCurrency = $derived(($page.data as any).business?.currency ?? 'USD');
 	const canUploadAttachment = $derived(
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
@@ -75,6 +80,8 @@
 	let note = $state('');
 	let referenceNo = $state('');
 	let quoteNo = $state('');
+	let originalCurrency = $state('');
+	let exchangeRateStr = $state('');
 	let status = $state('draft');
 	let conversions = $state<Conversion[]>([]);
 	let convertNote = $state('');
@@ -93,6 +100,8 @@
 	let deleting = $state(false);
 	let converting = $state(false);
 	let updatingStatus = $state(false);
+
+	const isSameCurrency = $derived(originalCurrency === businessCurrency);
 
 	let filteredCategories = $derived(categories.filter((c) => c.type === 'income' || c.type === 'general'));
 	let clientContacts = $derived(contacts.filter((c) => c.isClient));
@@ -147,11 +156,15 @@
 			note = q.note ?? '';
 			referenceNo = q.referenceNo ?? '';
 			quoteNo = q.quoteNo ?? '';
+			originalCurrency = q.originalCurrency ?? businessCurrency;
+			exchangeRateStr = q.exchangeRate != null && q.originalCurrency !== businessCurrency
+				? (q.exchangeRate / 1_000_000).toString()
+				: '';
 			status = q.status;
-			quoteAmount = q.amount;
+			quoteAmount = q.originalAmount;
 			conversions = convs;
 			const convTotal = convs.reduce((s: number, c: Conversion) => s + (c.transaction?.amount ?? 0), 0);
-			convertAmountStr = ((q.amount - convTotal) / 100).toFixed(2);
+			convertAmountStr = ((q.originalAmount - convTotal) / 100).toFixed(2);
 
 			if (lineItemMode === 'items') {
 				const qItems = await api.get<{ id: string; description: string; quantity: number; unitPrice: number; sortOrder: number; productId: string; attachments: ItemAttachment[] }[]>(
@@ -196,12 +209,15 @@
 			const total = lineItemMode === 'items'
 				? items.reduce((sum, i) => sum + Math.round(parseFloat(i.unitPrice || '0') * 100) * i.quantity, 0)
 				: serviceItems.reduce((sum, i) => sum + Math.round(i.hours * Math.round(parseFloat(i.rate || '0') * 100)), 0);
+			const parsedRate = parseFloat(exchangeRateStr);
 			await api.patch(`/businesses/${businessId}/quotes/${quoteId}`, {
 				lineItemMode,
 				quoteDate,
 				expiryDate: expiryDate || null,
 				dueDate: dueDate || null,
 				amount: total,
+				originalCurrency,
+				exchangeRate: !isSameCurrency && parsedRate > 0 ? Math.round(parsedRate * 1_000_000) : undefined,
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
@@ -380,7 +396,7 @@
 							{/if}
 							{#if conv.transaction}
 								<span class="text-sm font-medium text-foreground shrink-0">
-									{formatAmount(conv.transaction.amount, ($page.data.navBusinesses as { id: string; currency: string }[])?.find((b) => b.id === businessId)?.currency ?? 'USD')}
+									{formatAmount(conv.transaction.amount, originalCurrency || businessCurrency)}
 								</span>
 							{/if}
 						</a>
@@ -409,8 +425,8 @@
 							</Button>
 						</div>
 						<p class="text-xs text-muted-foreground">
-							Remaining: <span class="font-medium text-foreground">{formatAmount(remaining, ($page.data.navBusinesses as { id: string; currency: string }[])?.find((b) => b.id === businessId)?.currency ?? 'USD')}</span>
-							of {formatAmount(quoteAmount, ($page.data.navBusinesses as { id: string; currency: string }[])?.find((b) => b.id === businessId)?.currency ?? 'USD')}
+							Remaining: <span class="font-medium text-foreground">{formatAmount(remaining, originalCurrency || businessCurrency)}</span>
+							of {formatAmount(quoteAmount, originalCurrency || businessCurrency)}
 						</p>
 					</div>
 				{:else if status === 'accepted' && remaining <= 0}
@@ -543,6 +559,44 @@
 								</Select.Root>
 							</div>
 						</div>
+					</Card.Content>
+				</Card.Root>
+
+				<!-- Currency -->
+				<Card.Root>
+					<Card.Header class="pb-3">
+						<Card.Title class="text-base">Currency</Card.Title>
+					</Card.Header>
+					<Card.Content class="flex flex-col gap-3">
+						<div class="space-y-1.5">
+							<Label>Currency</Label>
+							<Select.Root type="single" bind:value={originalCurrency}>
+								<Select.Trigger>
+									{originalCurrency || 'Select currency'}
+								</Select.Trigger>
+								<Select.Content>
+									{#each currencyList as cur (cur.code)}
+										<Select.Item value={cur.code}>{cur.code} — {cur.name}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						</div>
+						{#if !isSameCurrency && originalCurrency}
+							<div class="space-y-1.5">
+								<Label for="q-rate">Exchange Rate</Label>
+								<Input
+									id="q-rate"
+									type="number"
+									step="0.000001"
+									min="0"
+									bind:value={exchangeRateStr}
+									placeholder="e.g. 4.45"
+								/>
+								<p class="text-xs text-muted-foreground">
+									1 {originalCurrency} = ? {businessCurrency}
+								</p>
+							</div>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 

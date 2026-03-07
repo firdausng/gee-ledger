@@ -14,7 +14,9 @@
 	type Transaction = {
 		id: string;
 		type: string;
-		amount: number;
+		originalAmount: number;
+		originalCurrency: string;
+		amount: number | null;
 		note: string | null;
 		referenceNo: string | null;
 		transactionDate: string;
@@ -237,7 +239,7 @@
 								{tx.type === 'income' ? 'text-success-fg' :
 								 tx.type === 'expense' ? 'text-destructive' : 'text-foreground'}"
 						>
-							{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.amount, data.business.currency)}
+							{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.originalAmount, tx.originalCurrency)}
 						</span>
 						{#if tx.attachmentCount > 0}
 							<span class="flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">

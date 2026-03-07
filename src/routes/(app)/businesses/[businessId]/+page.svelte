@@ -21,7 +21,7 @@
 
 	type TrendRow = { period: string; income: number; expense: number };
 	type CategoryRow = { categoryId: string; categoryName: string; type: string; total: number };
-	type DueInvoice = { id: string; type: string; amount: number; note: string | null; dueDate: string; contactName: string | null };
+	type DueInvoice = { id: string; type: string; amount: number; originalAmount: number; originalCurrency: string; note: string | null; dueDate: string; contactName: string | null };
 
 	type Period = 'week' | 'month' | 'year' | 'custom';
 
@@ -305,7 +305,7 @@
 									<p class="text-xs text-destructive">{days} day{days !== 1 ? 's' : ''} overdue</p>
 								</div>
 								<span class="text-sm font-semibold tabular-nums shrink-0 {inv.type === 'income' ? 'text-success-fg' : 'text-destructive'}">
-									{formatAmount(inv.amount, currency)}
+									{formatAmount(inv.originalAmount, inv.originalCurrency)}
 								</span>
 							</a>
 						{/each}
@@ -335,7 +335,7 @@
 									</p>
 								</div>
 								<span class="text-sm font-semibold tabular-nums shrink-0 {inv.type === 'income' ? 'text-success-fg' : 'text-destructive'}">
-									{formatAmount(inv.amount, currency)}
+									{formatAmount(inv.originalAmount, inv.originalCurrency)}
 								</span>
 							</a>
 						{/each}
@@ -494,7 +494,7 @@
 							{tx.type === 'income' ? 'text-success-fg' :
 							 tx.type === 'expense' ? 'text-destructive' : 'text-foreground'}"
 					>
-						{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.amount, currency)}
+						{tx.type === 'expense' ? '−' : '+'}{formatAmount(tx.originalAmount ?? tx.amount, tx.originalCurrency ?? currency)}
 					</span>
 				</a>
 			{/each}

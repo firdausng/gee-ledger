@@ -15,6 +15,8 @@ type BillTo = {
 type Transaction = {
 	type: string;
 	amount: number;
+	originalAmount?: number;
+	originalCurrency?: string;
 	transactionDate: string;
 	note?: string | null;
 	referenceNo?: string | null;
@@ -54,7 +56,9 @@ function buildHtml(opts: {
 }): string {
 	const { business, transaction, location, category, channel, billTo, appDomain, items = [] } = opts;
 	const title = docTitle(transaction.type, transaction.documentType);
-	const amount = formatAmount(transaction.amount, business.currency);
+	const txCurrency = transaction.originalCurrency ?? business.currency;
+	const txAmount = transaction.originalAmount ?? transaction.amount;
+	const amount = formatAmount(txAmount, txCurrency);
 	const hasItems = items.length > 0;
 
 	const row = (label: string, value: string) => value
@@ -97,14 +101,14 @@ function buildHtml(opts: {
               <tr style="border-bottom:1px solid #f3f4f6">
                 <td style="padding:8px 12px;color:#111827">${item.description}</td>
                 <td style="padding:8px 12px;text-align:right;color:#6b7280">${item.quantity}</td>
-                <td style="padding:8px 12px;text-align:right;color:#6b7280">${formatAmount(item.unitPrice, business.currency)}</td>
-                <td style="padding:8px 12px;text-align:right;color:#111827">${formatAmount(item.quantity * item.unitPrice, business.currency)}</td>
+                <td style="padding:8px 12px;text-align:right;color:#6b7280">${formatAmount(item.unitPrice, txCurrency)}</td>
+                <td style="padding:8px 12px;text-align:right;color:#111827">${formatAmount(item.quantity * item.unitPrice, txCurrency)}</td>
               </tr>`).join('')}
             </tbody>
             <tfoot>
               <tr style="background:#f3f4f6;border-top:1px solid #e5e7eb">
                 <td colspan="3" style="padding:10px 12px;text-align:right;font-weight:600;color:#6b7280">Total</td>
-                <td style="padding:10px 12px;text-align:right;font-weight:700;font-size:16px;color:#111827">${formatAmount(itemsTotal, business.currency)}</td>
+                <td style="padding:10px 12px;text-align:right;font-weight:700;font-size:16px;color:#111827">${formatAmount(itemsTotal, txCurrency)}</td>
               </tr>
             </tfoot>
           </table>

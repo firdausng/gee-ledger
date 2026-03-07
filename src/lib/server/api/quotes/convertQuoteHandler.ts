@@ -39,14 +39,14 @@ export async function convertQuoteHandler(
 
 	if (!quote) throw new HTTPException(404, { message: 'Quote not found' });
 
-	// Calculate already-converted total
+	// Calculate already-converted total (in original currency)
 	const [convertedResult] = await db
-		.select({ total: sum(transactions.amount) })
+		.select({ total: sum(transactions.originalAmount) })
 		.from(quoteConversions)
 		.innerJoin(transactions, eq(quoteConversions.transactionId, transactions.id))
 		.where(eq(quoteConversions.quoteId, quoteId));
 	const convertedTotal = Number(convertedResult?.total ?? 0);
-	const remaining = quote.amount - convertedTotal;
+	const remaining = quote.originalAmount - convertedTotal;
 
 	const convertAmount = data?.amount ?? remaining;
 
@@ -57,7 +57,7 @@ export async function convertQuoteHandler(
 		throw new HTTPException(400, { message: `Amount exceeds remaining balance. Remaining: ${remaining}` });
 	}
 
-	// Create transaction from quote
+	// Create transaction from quote — inherit currency fields
 	const transactionId = crypto.randomUUID();
 	await db.insert(transactions).values({
 		id: transactionId,
@@ -67,7 +67,10 @@ export async function convertQuoteHandler(
 		categoryId: quote.categoryId,
 		contactId: quote.contactId,
 		type: 'income',
-		amount: convertAmount,
+		originalAmount: convertAmount,
+		originalCurrency: quote.originalCurrency,
+		exchangeRate: quote.exchangeRate,
+		amount: quote.exchangeRate != null ? Math.round((convertAmount * quote.exchangeRate) / 1_000_000) : null,
 		note: [quote.note, data?.note].filter(Boolean).join(' - ') || null,
 		referenceNo: quote.referenceNo,
 		featuredImageId: quote.featuredImageId,

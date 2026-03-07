@@ -15,6 +15,8 @@
 		transaction: {
 			type: string;
 			amount: number;
+			originalAmount?: number;
+			originalCurrency?: string;
 			transactionDate: string;
 			note?: string | null;
 			referenceNo?: string | null;
@@ -67,7 +69,9 @@
 	}
 
 	const title  = $derived(docTitle(tx.type, documentType));
-	const amount = $derived(formatAmount(tx.amount, biz.currency));
+	const displayCurrency = $derived(tx.originalCurrency ?? biz.currency);
+	const displayAmount = $derived(tx.originalAmount ?? tx.amount);
+	const amount = $derived(formatAmount(displayAmount, displayCurrency));
 
 	const hasItems = $derived(items.length > 0);
 
@@ -192,15 +196,15 @@
 						<tr class="border-b border-gray-100 last:border-0">
 							<td class="{compact ? 'px-2 py-2' : 'px-4 py-2.5'} text-gray-800">{item.description}</td>
 							<td class="{compact ? 'px-1.5 py-2' : 'px-4 py-2.5'} text-right text-gray-600">{item.quantity}</td>
-							<td class="{compact ? 'px-1.5 py-2' : 'px-4 py-2.5'} text-right text-gray-600">{formatAmount(item.unitPrice, biz.currency)}</td>
-							<td class="{compact ? 'px-2 py-2' : 'px-4 py-2.5'} text-right text-gray-800">{formatAmount(item.quantity * item.unitPrice, biz.currency)}</td>
+							<td class="{compact ? 'px-1.5 py-2' : 'px-4 py-2.5'} text-right text-gray-600">{formatAmount(item.unitPrice, displayCurrency)}</td>
+							<td class="{compact ? 'px-2 py-2' : 'px-4 py-2.5'} text-right text-gray-800">{formatAmount(item.quantity * item.unitPrice, displayCurrency)}</td>
 						</tr>
 					{/each}
 				</tbody>
 				<tfoot>
 					<tr class="bg-gray-50 border-t border-gray-200">
 						<td colspan="3" class="{compact ? 'px-2 py-2' : 'px-4 py-3'} text-right font-semibold text-gray-600">Total</td>
-						<td class="{compact ? 'px-2 py-2' : 'px-4 py-3'} text-right font-bold text-gray-900 {compact ? 'text-sm' : 'text-lg'}">{formatAmount(itemsTotal, biz.currency)}</td>
+						<td class="{compact ? 'px-2 py-2' : 'px-4 py-3'} text-right font-bold text-gray-900 {compact ? 'text-sm' : 'text-lg'}">{formatAmount(itemsTotal, displayCurrency)}</td>
 					</tr>
 				</tfoot>
 			</table>

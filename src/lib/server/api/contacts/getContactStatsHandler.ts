@@ -91,6 +91,8 @@ export async function getContactStatsHandler(
 		db.select({
 			id: transactions.id,
 			type: transactions.type,
+			originalAmount: transactions.originalAmount,
+			originalCurrency: transactions.originalCurrency,
 			amount: transactions.amount,
 			note: transactions.note,
 			transactionDate: transactions.transactionDate,

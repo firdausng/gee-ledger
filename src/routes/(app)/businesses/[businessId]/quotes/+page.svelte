@@ -13,6 +13,8 @@
 	type Quote = {
 		id: string;
 		amount: number;
+		originalAmount: number;
+		originalCurrency: string;
 		note: string | null;
 		referenceNo: string | null;
 		quoteNo: string | null;
@@ -187,7 +189,7 @@
 							</p>
 						</div>
 						<span class="text-sm font-semibold shrink-0 text-foreground">
-							{formatAmount(q.amount, data.business.currency)}
+							{formatAmount(q.originalAmount, q.originalCurrency)}
 						</span>
 					</a>
 					<div class="flex items-center gap-1 px-2 shrink-0">

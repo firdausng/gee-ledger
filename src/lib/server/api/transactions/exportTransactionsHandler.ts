@@ -64,8 +64,8 @@ export async function exportTransactionsHandler(
 	const csvRows = rows.map((t) => [
 		t.transactionDate,
 		t.type,
-		(t.amount / 100).toFixed(2),
-		currency,
+		(t.originalAmount / 100).toFixed(2),
+		t.originalCurrency,
 		t.note ?? '',
 		t.referenceNo ?? '',
 		t.invoiceNo ?? '',

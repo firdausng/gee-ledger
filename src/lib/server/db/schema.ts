@@ -281,8 +281,15 @@ export const transactions = sqliteTable(
 		contactId: text('contact_id'),
 		// 'income' | 'expense'
 		type: text('type').notNull(),
-		// Stored as integer cents (e.g. 1000 = MYR 10.00)
-		amount: integer('amount').notNull(),
+		// Original amount in the transaction's currency (integer cents)
+		originalAmount: integer('original_amount').notNull(),
+		// ISO 4217 currency code for the transaction
+		originalCurrency: text('original_currency').notNull(),
+		// Exchange rate × 1,000,000 (original → base). NULL until rate is set.
+		exchangeRate: integer('exchange_rate'),
+		// Base currency equivalent (integer cents). NULL until rate is set.
+		// For same-currency transactions, equals originalAmount with rate = 1000000.
+		amount: integer('amount'),
 		note: text('note'),
 		referenceNo: text('reference_no'),
 		invoiceNo:       text('invoice_no'),
@@ -428,7 +435,14 @@ export const quotes = sqliteTable(
 		locationId: text('location_id').notNull(),
 		salesChannelId: text('sales_channel_id'),
 		categoryId: text('category_id'),
-		amount: integer('amount').notNull(),
+		// Original amount in the quote's currency (integer cents)
+		originalAmount: integer('original_amount').notNull(),
+		// ISO 4217 currency code for the quote
+		originalCurrency: text('original_currency').notNull(),
+		// Exchange rate × 1,000,000 (original → base). NULL until rate is set.
+		exchangeRate: integer('exchange_rate'),
+		// Base currency equivalent (integer cents). NULL until rate is set.
+		amount: integer('amount'),
 		quoteNo: text('quote_no'),
 		quoteDate: text('quote_date').notNull(),
 		expiryDate: text('expiry_date'),
@@ -630,6 +644,8 @@ export const contacts = sqliteTable(
 		phone:      text('phone'),
 		address:    text('address'),
 		taxId:      text('tax_id'),
+		// ISO 4217 currency code — the currency this contact operates in
+		defaultCurrency: text('default_currency'),
 		createdAt:  text('created_at').notNull(),
 		createdBy:  text('created_by').notNull(),
 		updatedAt:  text('updated_at').notNull(),

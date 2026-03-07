@@ -27,7 +27,7 @@
 		return new Intl.NumberFormat('en-MY', { style: 'currency', currency }).format(cents / 100);
 	}
 
-	const amount = $derived(formatAmount(tx.amount, biz.currency));
+	const amount = $derived(formatAmount(tx.originalAmount ?? tx.amount, tx.originalCurrency ?? biz.currency));
 
 	const contact    = $derived(data.contact);
 	// Form defaults — intentionally captured once (not reactive)

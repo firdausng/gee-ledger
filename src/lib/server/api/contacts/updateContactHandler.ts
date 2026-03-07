@@ -26,6 +26,7 @@ export async function updateContactHandler(
 			...(data.phone    !== undefined && { phone:   data.phone }),
 			...(data.address  !== undefined && { address: data.address }),
 			...(data.taxId    !== undefined && { taxId:   data.taxId }),
+			...(data.defaultCurrency !== undefined && { defaultCurrency: data.defaultCurrency }),
 			updatedAt: now,
 			updatedBy: user.id,
 		})

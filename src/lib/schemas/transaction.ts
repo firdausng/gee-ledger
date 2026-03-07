@@ -11,8 +11,12 @@ export const CreateTransactionSchema = v.pipe(
 		contactId: v.optional(v.string()),
 		type: TransactionTypeSchema,
 		lineItemMode: LineItemModeSchema,
-		// Positive integer cents (e.g. 1000 = MYR 10.00)
+		// Positive integer cents in original currency
 		amount: v.pipe(v.number(), v.integer(), v.minValue(1)),
+		// ISO 4217 currency code
+		originalCurrency: v.pipe(v.string(), v.minLength(3), v.maxLength(3)),
+		// Exchange rate × 1,000,000 (original → base). Null if rate not yet known.
+		exchangeRate: v.optional(v.nullable(v.pipe(v.number(), v.integer(), v.minValue(1)))),
 		note: v.optional(v.pipe(v.string(), v.maxLength(500))),
 		referenceNo: v.optional(v.pipe(v.string(), v.maxLength(100))),
 		// YYYY-MM-DD
@@ -41,6 +45,8 @@ export const UpdateTransactionSchema = v.pipe(
 		type: v.optional(TransactionTypeSchema),
 		lineItemMode: v.optional(v.picklist(['items', 'services'])),
 		amount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
+		originalCurrency: v.optional(v.pipe(v.string(), v.minLength(3), v.maxLength(3))),
+		exchangeRate: v.optional(v.nullable(v.pipe(v.number(), v.integer(), v.minValue(1)))),
 		note: v.optional(v.pipe(v.string(), v.maxLength(500))),
 		referenceNo: v.optional(v.pipe(v.string(), v.maxLength(100))),
 		transactionDate: v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),

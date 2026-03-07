@@ -30,29 +30,29 @@ export async function getProjectConversionsHandler(
 
 	const result = [];
 	for (const conv of conversionRows) {
-		let docInfo: { amount: number; date: string; docNo: string | null } | null = null;
+		let docInfo: { originalAmount: number; originalCurrency: string; amount: number | null; date: string; docNo: string | null } | null = null;
 
 		if (conv.quoteId) {
 			const [q] = await db
-				.select({ amount: quotes.amount, quoteDate: quotes.quoteDate, quoteNo: quotes.quoteNo })
+				.select({ originalAmount: quotes.originalAmount, originalCurrency: quotes.originalCurrency, amount: quotes.amount, quoteDate: quotes.quoteDate, quoteNo: quotes.quoteNo })
 				.from(quotes)
 				.where(eq(quotes.id, conv.quoteId))
 				.limit(1);
-			if (q) docInfo = { amount: q.amount, date: q.quoteDate, docNo: q.quoteNo };
+			if (q) docInfo = { originalAmount: q.originalAmount, originalCurrency: q.originalCurrency, amount: q.amount, date: q.quoteDate, docNo: q.quoteNo };
 		} else if (conv.transactionId) {
 			const [t] = await db
-				.select({ amount: transactions.amount, transactionDate: transactions.transactionDate, invoiceNo: transactions.invoiceNo })
+				.select({ originalAmount: transactions.originalAmount, originalCurrency: transactions.originalCurrency, amount: transactions.amount, transactionDate: transactions.transactionDate, invoiceNo: transactions.invoiceNo })
 				.from(transactions)
 				.where(eq(transactions.id, conv.transactionId))
 				.limit(1);
-			if (t) docInfo = { amount: t.amount, date: t.transactionDate, docNo: t.invoiceNo };
+			if (t) docInfo = { originalAmount: t.originalAmount, originalCurrency: t.originalCurrency, amount: t.amount, date: t.transactionDate, docNo: t.invoiceNo };
 		}
 
 		result.push({
 			...conv,
 			type: conv.quoteId ? 'quote' : 'transaction',
 			docId: conv.quoteId ?? conv.transactionId,
-			...(docInfo ?? { amount: 0, date: '', docNo: null }),
+			...(docInfo ?? { originalAmount: 0, originalCurrency: 'USD', amount: 0, date: '', docNo: null }),
 		});
 	}
 

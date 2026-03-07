@@ -1,10 +1,11 @@
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, isNull } from 'drizzle-orm';
-import { quotes } from '$lib/server/db/schema';
+import { quotes, businesses } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import { HTTPException } from 'hono/http-exception';
 import type { UpdateQuoteInput } from '$lib/schemas/quote';
+import { computeBaseAmount, SAME_CURRENCY_RATE } from '$lib/server/utils/currency';
 
 export async function updateQuoteHandler(
 	user: App.User,
@@ -18,6 +19,32 @@ export async function updateQuoteHandler(
 	const db = drizzle(env.DB, { schema });
 	const now = new Date().toISOString();
 
+	// If amount or currency or exchangeRate changed, recompute base amount
+	let currencyFields: Record<string, unknown> = {};
+	if (data.amount !== undefined || data.originalCurrency !== undefined || data.exchangeRate !== undefined) {
+		const [[existing], [biz]] = await Promise.all([
+			db.select().from(quotes)
+				.where(and(eq(quotes.id, quoteId), eq(quotes.businessId, businessId), isNull(quotes.deletedAt)))
+				.limit(1),
+			db.select({ currency: businesses.currency }).from(businesses).where(eq(businesses.id, businessId)).limit(1),
+		]);
+		if (!existing) throw new HTTPException(404, { message: 'Quote not found' });
+
+		const baseCurrency = biz?.currency ?? 'USD';
+		const newAmount = data.amount ?? existing.originalAmount;
+		const newCurrency = data.originalCurrency ?? existing.originalCurrency;
+		const isSameCurrency = newCurrency === baseCurrency;
+		const newRate = isSameCurrency ? SAME_CURRENCY_RATE : (data.exchangeRate !== undefined ? data.exchangeRate : existing.exchangeRate);
+		const baseAmount = computeBaseAmount(newAmount, newRate);
+
+		currencyFields = {
+			originalAmount: newAmount,
+			originalCurrency: newCurrency,
+			exchangeRate: newRate,
+			amount: baseAmount,
+		};
+	}
+
 	const [updated] = await db
 		.update(quotes)
 		.set({
@@ -26,7 +53,6 @@ export async function updateQuoteHandler(
 			...(data.categoryId !== undefined && { categoryId: data.categoryId }),
 			...(data.contactId !== undefined && { contactId: data.contactId }),
 			...(data.lineItemMode !== undefined && { lineItemMode: data.lineItemMode }),
-			...(data.amount !== undefined && { amount: data.amount }),
 			...(data.note !== undefined && { note: data.note }),
 			...(data.referenceNo !== undefined && { referenceNo: data.referenceNo }),
 			...(data.quoteDate !== undefined && { quoteDate: data.quoteDate }),
@@ -35,6 +61,7 @@ export async function updateQuoteHandler(
 			...(data.status !== undefined && { status: data.status }),
 			...(data.featuredImageId !== undefined && { featuredImageId: data.featuredImageId }),
 			...(data.quoteNo !== undefined && { quoteNo: data.quoteNo }),
+			...currencyFields,
 			updatedAt: now,
 			updatedBy: user.id
 		})

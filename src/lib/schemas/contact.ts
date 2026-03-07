@@ -6,6 +6,7 @@ export const CreateContactSchema = v.object({
 	phone:      v.optional(v.pipe(v.string(), v.maxLength(50))),
 	address:    v.optional(v.pipe(v.string(), v.maxLength(300))),
 	taxId:      v.optional(v.pipe(v.string(), v.maxLength(50))),
+	defaultCurrency: v.optional(v.nullable(v.pipe(v.string(), v.minLength(3), v.maxLength(3)))),
 	isClient:   v.optional(v.boolean(), false),
 	isSupplier: v.optional(v.boolean(), false),
 });
@@ -16,6 +17,7 @@ export const UpdateContactSchema = v.object({
 	phone:      v.optional(v.pipe(v.string(), v.maxLength(50))),
 	address:    v.optional(v.pipe(v.string(), v.maxLength(300))),
 	taxId:      v.optional(v.pipe(v.string(), v.maxLength(50))),
+	defaultCurrency: v.optional(v.nullable(v.pipe(v.string(), v.minLength(3), v.maxLength(3)))),
 	isClient:   v.optional(v.boolean()),
 	isSupplier: v.optional(v.boolean()),
 });

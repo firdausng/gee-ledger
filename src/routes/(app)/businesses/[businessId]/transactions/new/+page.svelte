@@ -8,6 +8,7 @@
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
 	import ServicesEditor from '$lib/components/ServicesEditor.svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
+	import { currencyList } from '$lib/configurations/currencies';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -18,7 +19,7 @@
 	type Location = { id: string; name: string; type: string };
 	type Channel = { id: string; name: string; type: string };
 	type Category = { id: string; name: string; type: string };
-	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean };
+	type Contact = { id: string; name: string; isClient: boolean; isSupplier: boolean; defaultCurrency: string | null };
 	type Product = { id: string; name: string; sku: string | null; description: string | null; defaultPrice: number; defaultQty: number };
 	type PendingAttachment = { id: string; fileName: string; mimeType: string; fileSize: number };
 	type ItemAttachment = { id: string; fileName: string; mimeType: string };
@@ -26,6 +27,7 @@
 	type ServiceItem = { description: string; hours: number; rate: string; attachments: ItemAttachment[] };
 
 	const businessId = $page.params.businessId!;
+	const businessCurrency = $derived(($page.data as any).business?.currency ?? 'USD');
 	const canUploadAttachment = $derived(
 		($page.data.navBusinesses as { id: string; planKey: string }[])
 			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
@@ -46,6 +48,8 @@
 	let categoryId = $state('');
 	let contactId = $state('');
 	let dueDate = $state('');
+	let originalCurrency = $state('');
+	let exchangeRateStr = $state('');
 	let note = $state('');
 	let referenceNo = $state('');
 
@@ -58,6 +62,18 @@
 	let uploadError = $state<string | null>(null);
 
 	const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+	const isSameCurrency = $derived(originalCurrency === businessCurrency);
+
+	// When contact changes, update currency from contact's default
+	$effect(() => {
+		if (contactId) {
+			const contact = contacts.find((c) => c.id === contactId);
+			if (contact?.defaultCurrency) {
+				originalCurrency = contact.defaultCurrency;
+			}
+		}
+	});
 
 	let filteredCategories = $derived(categories.filter((c) => c.type === type || c.type === 'general'));
 	let clientContacts   = $derived(contacts.filter((c) => c.isClient));
@@ -253,6 +269,7 @@
 			contacts = ctcts;
 			products = prods;
 			if (locs.length > 0) locationId = locs[0].id;
+			originalCurrency = businessCurrency;
 		} catch {
 			// non-critical
 		} finally {
@@ -308,11 +325,14 @@
 		try {
 			submitting = true;
 			submitError = null;
+			const parsedRate = parseFloat(exchangeRateStr);
 			const tx = await api.post<{ id: string }>(`/businesses/${businessId}/transactions`, {
 				type,
 				lineItemMode,
 				transactionDate,
 				amount: itemsTotal,
+				originalCurrency,
+				exchangeRate: !isSameCurrency && parsedRate > 0 ? Math.round(parsedRate * 1_000_000) : undefined,
 				locationId,
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
@@ -570,6 +590,39 @@
 						><Plus class="size-4" /></button>
 					</div>
 				</div>
+
+				<!-- Currency -->
+				<div class="space-y-1.5">
+					<Label>Currency <span class="text-destructive">*</span></Label>
+					<Select.Root type="single" bind:value={originalCurrency}>
+						<Select.Trigger>
+							{originalCurrency || 'Select currency'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each currencyList as cur (cur.code)}
+								<Select.Item value={cur.code}>{cur.code} — {cur.name}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+
+				<!-- Exchange Rate (only for foreign currency) -->
+				{#if !isSameCurrency && originalCurrency}
+					<div class="space-y-1.5">
+						<Label for="tx-rate">Exchange Rate</Label>
+						<Input
+							id="tx-rate"
+							type="number"
+							step="0.000001"
+							min="0"
+							bind:value={exchangeRateStr}
+							placeholder="e.g. 4.45 (set later if unknown)"
+						/>
+						<p class="text-xs text-muted-foreground">
+							1 {originalCurrency} = ? {businessCurrency}. Leave blank to set after payment.
+						</p>
+					</div>
+				{/if}
 
 				<!-- Reference No. -->
 				<div class="space-y-1.5">

@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
 	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
+	import { currencyList } from '$lib/configurations/currencies';
 	import {
 		ArrowLeft, Loader2, ReceiptText, FileText, FolderKanban,
 		ShoppingBag, Clock, TrendingUp, TrendingDown, Pencil, X, Check
@@ -19,6 +20,7 @@
 		taxId: string | null;
 		isClient: boolean;
 		isSupplier: boolean;
+		defaultCurrency: string | null;
 	};
 	type Stats = {
 		transactions: {
@@ -36,6 +38,8 @@
 			id: string;
 			type: string;
 			amount: number;
+			originalAmount: number;
+			originalCurrency: string;
 			note: string | null;
 			transactionDate: string;
 			invoiceNo: string | null;
@@ -62,6 +66,7 @@
 	let editTaxId = $state('');
 	let editIsClient = $state(false);
 	let editIsSupplier = $state(false);
+	let editDefaultCurrency = $state('');
 	let editing = $state(false);
 	let editError = $state<string | null>(null);
 
@@ -76,6 +81,7 @@
 		editTaxId = contact.taxId ?? '';
 		editIsClient = contact.isClient;
 		editIsSupplier = contact.isSupplier;
+		editDefaultCurrency = contact.defaultCurrency ?? '';
 		editError = null;
 		showEdit = true;
 	}
@@ -96,6 +102,7 @@
 				taxId: editTaxId.trim() || null,
 				isClient: editIsClient,
 				isSupplier: editIsSupplier,
+				defaultCurrency: editDefaultCurrency || null,
 			});
 			showEdit = false;
 		} catch (e) {
@@ -159,6 +166,7 @@
 					{#if contact.email}<span>{contact.email}</span>{/if}
 					{#if contact.phone}<span>{contact.phone}</span>{/if}
 					{#if contact.taxId}<span>Tax ID: {contact.taxId}</span>{/if}
+					{#if contact.defaultCurrency}<span>Currency: {contact.defaultCurrency}</span>{/if}
 				</div>
 				{#if contact.address}
 					<p class="text-sm text-muted-foreground mt-1">{contact.address}</p>
@@ -201,6 +209,13 @@
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
 					<input type="text" bind:value={editTaxId} placeholder="Tax ID / SST No."
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+					<select bind:value={editDefaultCurrency}
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
+						<option value="">Default Currency (none)</option>
+						{#each currencyList as cur (cur.code)}
+							<option value={cur.code}>{cur.code} — {cur.name}</option>
+						{/each}
+					</select>
 					<div class="flex gap-4">
 						<label class="flex items-center gap-2 text-sm cursor-pointer">
 							<input type="checkbox" bind:checked={editIsClient} class="accent-primary" />
@@ -340,7 +355,7 @@
 								</p>
 							</div>
 							<span class="text-sm font-semibold shrink-0 {tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}">
-								{formatAmount(tx.amount, currency)}
+								{formatAmount(tx.originalAmount, tx.originalCurrency)}
 							</span>
 						</a>
 					{/each}

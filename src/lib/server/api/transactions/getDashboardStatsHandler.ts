@@ -6,7 +6,7 @@ import { requireBusinessPermission } from '$lib/server/utils/businessPermissions
 
 type TrendRow = { period: string; income: number; expense: number };
 type CategoryRow = { categoryName: string; type: string; total: number };
-type DueInvoice = { id: string; type: string; amount: number; note: string | null; dueDate: string; contactName: string | null };
+type DueInvoice = { id: string; type: string; originalAmount: number; originalCurrency: string; amount: number | null; note: string | null; dueDate: string; contactName: string | null };
 
 export async function getDashboardStatsHandler(
 	user: App.User,
@@ -33,6 +33,7 @@ export async function getDashboardStatsHandler(
 		FROM ${transactions}
 		WHERE ${transactions.businessId} = ${businessId}
 			AND ${transactions.deletedAt} IS NULL
+			AND ${transactions.amount} IS NOT NULL
 			AND ${transactions.transactionDate} >= ${params.from}
 			AND ${transactions.transactionDate} <= ${params.to}
 		GROUP BY period, type
@@ -51,7 +52,7 @@ export async function getDashboardStatsHandler(
 	}
 	const trend = Array.from(trendMap.values());
 
-	// Query 2: Category breakdown — top 8 per type (income + expense)
+	// Query 2: Category breakdown — top 8 per type (income + expense), base currency only
 	const categoryBreakdown = await db.all<CategoryRow>(
 		sql`SELECT
 			COALESCE(${categories.name}, 'Uncategorized') AS categoryName,
@@ -61,6 +62,7 @@ export async function getDashboardStatsHandler(
 		LEFT JOIN ${categories} ON ${categories.id} = ${transactions.categoryId}
 		WHERE ${transactions.businessId} = ${businessId}
 			AND ${transactions.deletedAt} IS NULL
+			AND ${transactions.amount} IS NOT NULL
 			AND ${transactions.transactionDate} >= ${params.from}
 			AND ${transactions.transactionDate} <= ${params.to}
 		GROUP BY ${transactions.categoryId}, ${transactions.type}
@@ -74,6 +76,8 @@ export async function getDashboardStatsHandler(
 		sql`SELECT
 			${transactions.id} AS id,
 			${transactions.type} AS type,
+			${transactions.originalAmount} AS originalAmount,
+			${transactions.originalCurrency} AS originalCurrency,
 			${transactions.amount} AS amount,
 			${transactions.note} AS note,
 			${transactions.dueDate} AS dueDate,
@@ -93,6 +97,8 @@ export async function getDashboardStatsHandler(
 		sql`SELECT
 			${transactions.id} AS id,
 			${transactions.type} AS type,
+			${transactions.originalAmount} AS originalAmount,
+			${transactions.originalCurrency} AS originalCurrency,
 			${transactions.amount} AS amount,
 			${transactions.note} AS note,
 			${transactions.dueDate} AS dueDate,

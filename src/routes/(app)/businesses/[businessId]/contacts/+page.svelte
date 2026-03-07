@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
+	import { currencyList } from '$lib/configurations/currencies';
 	import { Plus, Loader2, Pencil, Trash2, UsersRound, Download, Crown, Search } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
 
@@ -15,6 +16,7 @@
 		taxId: string | null;
 		isClient: boolean;
 		isSupplier: boolean;
+		defaultCurrency: string | null;
 	};
 
 	const businessId = $page.params.businessId!;
@@ -57,6 +59,7 @@
 	let createTaxId    = $state('');
 	let createIsClient   = $state(false);
 	let createIsSupplier = $state(false);
+	let createDefaultCurrency = $state('');
 	let creating       = $state(false);
 	let createError    = $state<string | null>(null);
 
@@ -70,6 +73,7 @@
 	let editTaxId      = $state('');
 	let editIsClient   = $state(false);
 	let editIsSupplier = $state(false);
+	let editDefaultCurrency = $state('');
 	let editing        = $state(false);
 	let editError      = $state<string | null>(null);
 
@@ -116,6 +120,7 @@
 				taxId:      createTaxId.trim() || undefined,
 				isClient:   createIsClient,
 				isSupplier: createIsSupplier,
+				defaultCurrency: createDefaultCurrency || undefined,
 			});
 			contacts = [...contacts, c];
 			showCreate   = false;
@@ -127,6 +132,7 @@
 			createTaxId  = '';
 			createIsClient   = false;
 			createIsSupplier = false;
+			createDefaultCurrency = '';
 		} catch (e) {
 			createError = e instanceof Error ? e.message : 'Failed to create';
 		} finally {
@@ -145,6 +151,7 @@
 		editTaxId      = c.taxId ?? '';
 		editIsClient   = c.isClient;
 		editIsSupplier = c.isSupplier;
+		editDefaultCurrency = c.defaultCurrency ?? '';
 		editError      = null;
 	}
 
@@ -164,6 +171,7 @@
 				taxId:      editTaxId.trim() || null,
 				isClient:   editIsClient,
 				isSupplier: editIsSupplier,
+				defaultCurrency: editDefaultCurrency || null,
 			});
 			contacts = contacts.map((c) => (c.id === editId ? updated : c));
 			editId = null;
@@ -272,6 +280,13 @@
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
 				<input type="text" bind:value={createTaxId} placeholder="Tax ID / SST No."
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+				<select bind:value={createDefaultCurrency}
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
+					<option value="">Default Currency (none)</option>
+					{#each currencyList as cur (cur.code)}
+						<option value={cur.code}>{cur.code} — {cur.name}</option>
+					{/each}
+				</select>
 				<div class="flex gap-4">
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<input type="checkbox" bind:checked={createIsClient} class="accent-primary" />
@@ -333,6 +348,13 @@
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
 							<input type="text" bind:value={editTaxId} placeholder="Tax ID / SST No."
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+							<select bind:value={editDefaultCurrency}
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
+								<option value="">Default Currency (none)</option>
+								{#each currencyList as cur (cur.code)}
+									<option value={cur.code}>{cur.code} — {cur.name}</option>
+								{/each}
+							</select>
 							<div class="flex gap-4">
 								<label class="flex items-center gap-2 text-sm cursor-pointer">
 									<input type="checkbox" bind:checked={editIsClient} class="accent-primary" />
