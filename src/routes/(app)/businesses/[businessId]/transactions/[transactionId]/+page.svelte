@@ -13,7 +13,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { PLAN_KEY } from '$lib/configurations/plans';
-	import { currencyList } from '$lib/configurations/currencies';
+	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import { DatePicker } from '$lib/components/ui/date-picker';
 
 	type Location = { id: string; name: string; type: string };
@@ -557,16 +557,7 @@
 					<Card.Content class="flex flex-col gap-3">
 						<div class="space-y-1.5">
 							<Label>Currency</Label>
-							<Select.Root type="single" bind:value={originalCurrency}>
-								<Select.Trigger>
-									{originalCurrency || 'Select currency'}
-								</Select.Trigger>
-								<Select.Content>
-									{#each currencyList as cur (cur.code)}
-										<Select.Item value={cur.code}>{cur.code} — {cur.name}</Select.Item>
-									{/each}
-								</Select.Content>
-							</Select.Root>
+							<CurrencyCombobox bind:value={originalCurrency} />
 						</div>
 						{#if !isSameCurrency && originalCurrency}
 							<div class="space-y-1.5">

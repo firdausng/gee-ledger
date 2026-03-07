@@ -12,7 +12,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Separator } from '$lib/components/ui/separator';
-	import { CURRENCIES } from '$lib/data/currencies';
+	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
 
 	let { data } = $props();
@@ -195,26 +195,7 @@
 				</div>
 				<div class="space-y-2">
 					<Label>Currency</Label>
-					<Select.Root type="single" bind:value={infoCurrency}>
-						<Select.Trigger class="w-full">
-							{#if infoCurrency}
-								<span class="font-mono">{infoCurrency}</span>
-								{#each CURRENCIES.filter(c => c.code === infoCurrency) as c}
-									<span class="text-muted-foreground">— {c.name}</span>
-								{/each}
-							{:else}
-								Select currency
-							{/if}
-						</Select.Trigger>
-						<Select.Content>
-							{#each CURRENCIES as c (c.code)}
-								<Select.Item value={c.code} label="{c.code} — {c.name}">
-									<span class="font-mono w-10 shrink-0">{c.code}</span>
-									<span class="text-muted-foreground">{c.name}</span>
-								</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
+					<CurrencyCombobox bind:value={infoCurrency} />
 				</div>
 			</Card.Content>
 			<Card.Footer class="flex items-center gap-3">

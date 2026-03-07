@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
-	import { currencyList } from '$lib/configurations/currencies';
+	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import { Plus, Loader2, Pencil, Trash2, UsersRound, Download, Crown, Search } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
 
@@ -280,13 +280,7 @@
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
 				<input type="text" bind:value={createTaxId} placeholder="Tax ID / SST No."
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-				<select bind:value={createDefaultCurrency}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
-					<option value="">Default Currency (none)</option>
-					{#each currencyList as cur (cur.code)}
-						<option value={cur.code}>{cur.code} — {cur.name}</option>
-					{/each}
-				</select>
+				<CurrencyCombobox bind:value={createDefaultCurrency} placeholder="Default Currency (none)" />
 				<div class="flex gap-4">
 					<label class="flex items-center gap-2 text-sm cursor-pointer">
 						<input type="checkbox" bind:checked={createIsClient} class="accent-primary" />
@@ -348,13 +342,7 @@
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
 							<input type="text" bind:value={editTaxId} placeholder="Tax ID / SST No."
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-							<select bind:value={editDefaultCurrency}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring text-foreground">
-								<option value="">Default Currency (none)</option>
-								{#each currencyList as cur (cur.code)}
-									<option value={cur.code}>{cur.code} — {cur.name}</option>
-								{/each}
-							</select>
+							<CurrencyCombobox bind:value={editDefaultCurrency} placeholder="Default Currency (none)" />
 							<div class="flex gap-4">
 								<label class="flex items-center gap-2 text-sm cursor-pointer">
 									<input type="checkbox" bind:checked={editIsClient} class="accent-primary" />

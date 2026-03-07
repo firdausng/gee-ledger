@@ -8,7 +8,7 @@
 	import LineItemsEditor from '$lib/components/LineItemsEditor.svelte';
 	import ServicesEditor from '$lib/components/ServicesEditor.svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
-	import { currencyList } from '$lib/configurations/currencies';
+	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -594,16 +594,7 @@
 				<!-- Currency -->
 				<div class="space-y-1.5">
 					<Label>Currency <span class="text-destructive">*</span></Label>
-					<Select.Root type="single" bind:value={originalCurrency}>
-						<Select.Trigger>
-							{originalCurrency || 'Select currency'}
-						</Select.Trigger>
-						<Select.Content>
-							{#each currencyList as cur (cur.code)}
-								<Select.Item value={cur.code}>{cur.code} — {cur.name}</Select.Item>
-							{/each}
-						</Select.Content>
-					</Select.Root>
+					<CurrencyCombobox bind:value={originalCurrency} />
 				</div>
 
 				<!-- Exchange Rate (only for foreign currency) -->
