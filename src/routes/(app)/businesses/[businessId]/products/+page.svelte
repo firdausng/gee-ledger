@@ -4,7 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
-	import { Plus, Loader2, Pencil, Archive, ArchiveRestore, Package, Paperclip, FileText, Download, Crown, X } from '@lucide/svelte';
+	import { Plus, Loader2, Archive, ArchiveRestore, Package, Paperclip, FileText, Download, Crown, X } from '@lucide/svelte';
 
 	type Product = {
 		id: string;
@@ -49,18 +49,6 @@
 	let creating = $state(false);
 	let createAttachments = $state<Attachment[]>([]);
 	let createUploading = $state(false);
-
-	// Edit
-	let editId = $state<string | null>(null);
-	let editName = $state('');
-	let editSku = $state('');
-	let editDescription = $state('');
-	let editPrice = $state('');
-	let editQty = $state(1);
-	let editing = $state(false);
-	let editAttachments = $state<Attachment[]>([]);
-	let editUploading = $state(false);
-	let editAttachmentsLoading = $state(false);
 
 	let archiving = $state<string | null>(null);
 
@@ -142,77 +130,9 @@
 		}
 	}
 
-	async function startEdit(p: Product) {
-		editId = p.id;
-		editName = p.name;
-		editSku = p.sku ?? '';
-		editDescription = p.description ?? '';
-		editPrice = formatPrice(p.defaultPrice);
-		editQty = p.defaultQty;
-		editAttachments = [];
-
-		if (canUploadAttachment) {
-			try {
-				editAttachmentsLoading = true;
-				editAttachments = await api.get<Attachment[]>(`/businesses/${businessId}/products/${p.id}/attachments`);
-			} catch {
-				// Non-critical — just show empty
-			} finally {
-				editAttachmentsLoading = false;
-			}
-		}
-	}
-
-	async function uploadEditFile(e: Event) {
-		const input = e.target as HTMLInputElement;
-		const file = input.files?.[0];
-		if (!file) return;
-		input.value = '';
-
-		const fd = new FormData();
-		fd.append('file', file);
-		try {
-			editUploading = true;
-			const result = await api.upload<Attachment>(`/businesses/${businessId}/attachments`, fd);
-			editAttachments = [...editAttachments, result];
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Upload failed');
-		} finally {
-			editUploading = false;
-		}
-	}
-
-	function removeEditAttachment(id: string) {
-		editAttachments = editAttachments.filter((a) => a.id !== id);
-	}
-
-	async function saveEdit() {
-		if (!editId || !editName.trim()) return;
-		const priceVal = Math.round((parseFloat(editPrice) || 0) * 100);
-		try {
-			editing = true;
-			const payload: Record<string, unknown> = {
-				name: editName.trim(),
-				sku: editSku.trim() || null,
-				description: editDescription.trim() || null,
-				defaultPrice: priceVal,
-				defaultQty: editQty
-			};
-			if (canUploadAttachment) {
-				payload.attachmentIds = editAttachments.map((a) => a.id);
-			}
-			const updated = await api.patch<Product>(`/businesses/${businessId}/products/${editId}`, payload);
-			products = products.map((p) => (p.id === editId ? updated : p));
-			editId = null;
-			toast.success('Product updated');
-		} catch (e) {
-			toast.error(e instanceof Error ? e.message : 'Failed to update');
-		} finally {
-			editing = false;
-		}
-	}
-
-	async function toggleArchive(product: Product) {
+	async function toggleArchive(e: Event, product: Product) {
+		e.preventDefault();
+		e.stopPropagation();
 		try {
 			archiving = product.id;
 			const updated = await api.patch<Product>(`/businesses/${businessId}/products/${product.id}`, {
@@ -415,91 +335,11 @@
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each displayProducts as product (product.id)}
-				{#if editId === product.id}
-					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
-						<div class="flex flex-col gap-3">
-							<div>
-								<label class="text-sm font-medium block mb-1" for="edit-name">Name</label>
-								<input
-									id="edit-name"
-									type="text"
-									bind:value={editName}
-									class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-								/>
-							</div>
-							<div class="grid grid-cols-2 gap-3">
-								<div>
-									<label class="text-sm font-medium block mb-1" for="edit-price">Default Price</label>
-									<input
-										id="edit-price"
-										type="number"
-										bind:value={editPrice}
-										min="0"
-										step="0.01"
-										class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-									/>
-								</div>
-								<div>
-									<label class="text-sm font-medium block mb-1" for="edit-qty">Default Qty</label>
-									<input
-										id="edit-qty"
-										type="number"
-										bind:value={editQty}
-										min="1"
-										step="1"
-										class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-									/>
-								</div>
-							</div>
-							<div>
-								<label class="text-sm font-medium block mb-1" for="edit-sku">SKU</label>
-								<input
-									id="edit-sku"
-									type="text"
-									bind:value={editSku}
-									placeholder="Optional"
-									class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-								/>
-							</div>
-							<div>
-								<label class="text-sm font-medium block mb-1" for="edit-desc">Description</label>
-								<input
-									id="edit-desc"
-									type="text"
-									bind:value={editDescription}
-									placeholder="Optional"
-									class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-								/>
-							</div>
-							{#if editAttachmentsLoading}
-								<div class="flex items-center gap-2 text-xs text-muted-foreground">
-									<Loader2 class="size-3 animate-spin" />
-									Loading attachments...
-								</div>
-							{:else}
-								{@render attachmentSection(editAttachments, editUploading, uploadEditFile, removeEditAttachment)}
-							{/if}
-
-							<div class="flex justify-end gap-2">
-								<button
-									onclick={() => (editId = null)}
-									class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-								>
-									Cancel
-								</button>
-								<button
-									onclick={saveEdit}
-									disabled={editing || !editName.trim()}
-									class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-								>
-									{#if editing}<Loader2 class="size-4 animate-spin" />{/if}
-									Save
-								</button>
-							</div>
-						</div>
-					</div>
-				{:else}
-					<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors {!product.isActive ? 'opacity-50' : ''}">
+				<div class="flex items-center border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors {!product.isActive ? 'opacity-50' : ''}">
+					<a
+						href="/businesses/{businessId}/products/{product.id}"
+						class="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
+					>
 						<Package class="size-4 text-muted-foreground shrink-0" />
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground truncate">
@@ -518,33 +358,25 @@
 						{#if !product.isActive}
 							<span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">Inactive</span>
 						{/if}
-						<div class="flex items-center gap-1 shrink-0">
-							<button
-								onclick={() => startEdit(product)}
-								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-								title="Edit"
-							>
-								<Pencil class="size-3.5" />
-							</button>
-							<button
-								onclick={() => toggleArchive(product)}
-								disabled={archiving === product.id}
-								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50"
-								title={product.isActive ? 'Archive' : 'Unarchive'}
-							>
-								{#if archiving === product.id}
-									<Loader2 class="size-3.5 animate-spin" />
-								{:else if product.isActive}
-									<Archive class="size-3.5" />
-								{:else}
-									<ArchiveRestore class="size-3.5" />
-								{/if}
-							</button>
-						</div>
+					</a>
+					<div class="flex items-center gap-1 px-2 shrink-0">
+						<button
+							onclick={(e) => toggleArchive(e, product)}
+							disabled={archiving === product.id}
+							class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50"
+							title={product.isActive ? 'Archive' : 'Unarchive'}
+						>
+							{#if archiving === product.id}
+								<Loader2 class="size-3.5 animate-spin" />
+							{:else if product.isActive}
+								<Archive class="size-3.5" />
+							{:else}
+								<ArchiveRestore class="size-3.5" />
+							{/if}
+						</button>
 					</div>
-				{/if}
+				</div>
 			{/each}
 		</div>
 	{/if}
 </div>
-

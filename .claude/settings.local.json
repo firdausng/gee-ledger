@@ -15,7 +15,11 @@
       "Bash(npx svelte-check:*)",
       "Bash(npx vite:*)",
       "Bash(cat:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(for f in locations/+page.svelte categories/+page.svelte channels/+page.svelte)",
+      "Bash(do echo \"=== $f ===\")",
+      "Read(//d/projects/gee-ledger/src/routes/\\(app\\)/businesses/[businessId]/**)",
+      "Bash(done)"
     ]
   }
 }

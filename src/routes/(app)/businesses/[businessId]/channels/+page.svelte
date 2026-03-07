@@ -4,7 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import { api } from '$lib/client/api.svelte';
 	import { CHANNEL_TYPES, channelMeta, type ChannelType } from '$lib/client/channelMeta';
-	import { Plus, Loader2, Pencil, Trash2 } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2 } from '@lucide/svelte';
 
 	type Channel = {
 		id: string;
@@ -24,12 +24,6 @@
 	let createName = $state('');
 	let createType = $state<ChannelType>('custom');
 	let creating = $state(false);
-
-	// Edit
-	let editId = $state<string | null>(null);
-	let editName = $state('');
-	let editType = $state<ChannelType>('custom');
-	let editing = $state(false);
 
 	// Delete
 	let deleteId = $state<string | null>(null);
@@ -64,30 +58,6 @@
 			toast.error(e instanceof Error ? e.message : 'Failed to create');
 		} finally {
 			creating = false;
-		}
-	}
-
-	function startEdit(ch: Channel) {
-		editId = ch.id;
-		editName = ch.name;
-		editType = ch.type as ChannelType;
-	}
-
-	async function saveEdit() {
-		if (!editId || !editName.trim()) return;
-		try {
-			editing = true;
-			const updated = await api.patch<Channel>(`/businesses/${businessId}/channels/${editId}`, {
-				name: editName.trim(),
-				type: editType
-			});
-			channels = channels.map((c) => (c.id === editId ? updated : c));
-			editId = null;
-			toast.success('Channel updated');
-		} catch (e) {
-			toast.error(e instanceof Error ? e.message : 'Failed to update');
-		} finally {
-			editing = false;
 		}
 	}
 
@@ -186,52 +156,11 @@
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each channels as ch (ch.id)}
 				{@const meta = channelMeta[ch.type as ChannelType] ?? channelMeta['custom']}
-				{#if editId === ch.id}
-					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
-						<div class="flex flex-col gap-2">
-							<input
-								type="text"
-								bind:value={editName}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-							/>
-							<!-- Type picker -->
-							<div class="grid grid-cols-5 gap-1.5">
-								{#each CHANNEL_TYPES as t}
-									{@const m = channelMeta[t]}
-									<button
-										type="button"
-										onclick={() => (editType = t)}
-										class="flex flex-col items-center gap-1 px-1 py-2 rounded-md border text-xs font-medium transition-colors
-											{editType === t
-											? 'border-primary bg-primary/10 text-primary'
-											: 'border-input text-muted-foreground hover:border-muted-foreground hover:text-foreground'}"
-										title={m.label}
-									>
-										<m.icon class="size-4 shrink-0" />
-										<span class="truncate w-full text-center">{m.label}</span>
-									</button>
-								{/each}
-							</div>
-							<div class="flex justify-end gap-2">
-								<button
-									onclick={() => (editId = null)}
-									class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-								>
-									Cancel
-								</button>
-								<button
-									onclick={saveEdit}
-									disabled={editing || !editName.trim()}
-									class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-								>
-									{#if editing}<Loader2 class="size-4 animate-spin" />{/if}
-									Save
-								</button>
-							</div>
-						</div>
-					</div>
-				{:else}
-					<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+				<div class="flex items-center border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+					<a
+						href="/businesses/{businessId}/channels/{ch.id}"
+						class="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
+					>
 						<svelte:component this={meta.icon} class="size-4 text-muted-foreground shrink-0" />
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground">{ch.name}</p>
@@ -239,22 +168,16 @@
 						<span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
 							{meta.label}
 						</span>
-						<div class="flex items-center gap-1 shrink-0">
-							<button
-								onclick={() => startEdit(ch)}
-								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-							>
-								<Pencil class="size-3.5" />
-							</button>
-							<button
-								onclick={() => (deleteId = ch.id)}
-								class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-							>
-								<Trash2 class="size-3.5" />
-							</button>
-						</div>
+					</a>
+					<div class="flex items-center gap-1 px-2 shrink-0">
+						<button
+							onclick={() => (deleteId = ch.id)}
+							class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+						>
+							<Trash2 class="size-3.5" />
+						</button>
 					</div>
-				{/if}
+				</div>
 			{/each}
 		</div>
 	{/if}

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import * as v from 'valibot';
 import { CreateProductSchema, UpdateProductSchema } from '$lib/schemas/product';
 import { getProductsHandler } from './getProductsHandler';
+import { getProductHandler } from './getProductHandler';
 import { createProductHandler } from './createProductHandler';
 import { updateProductHandler } from './updateProductHandler';
 import { deleteProductHandler } from './deleteProductHandler';
@@ -13,6 +14,17 @@ export const productsApi = new Hono<App.Api>()
 	.get('/businesses/:businessId/products/:productId/attachments', async (c) => {
 		const user = c.get('currentUser');
 		const data = await getProductAttachmentsHandler(
+			user,
+			c.req.param('businessId'),
+			c.req.param('productId'),
+			c.env
+		);
+		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/products/:productId', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getProductHandler(
 			user,
 			c.req.param('businessId'),
 			c.req.param('productId'),

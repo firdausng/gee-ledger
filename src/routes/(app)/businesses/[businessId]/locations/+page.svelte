@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Pencil, Trash2, MapPin } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2, MapPin } from '@lucide/svelte';
 	import AddressInput from '$lib/components/AddressInput.svelte';
 	import { formatAddress } from '$lib/utils/address';
 
@@ -39,19 +39,6 @@
 	let createAddrCountry = $state('');
 	let creating = $state(false);
 	let createError = $state<string | null>(null);
-
-	// Edit
-	let editId = $state<string | null>(null);
-	let editName = $state('');
-	let editType = $state('');
-	let editAddrLine1 = $state('');
-	let editAddrLine2 = $state('');
-	let editAddrCity = $state('');
-	let editAddrState = $state('');
-	let editAddrPostalCode = $state('');
-	let editAddrCountry = $state('');
-	let editing = $state(false);
-	let editError = $state<string | null>(null);
 
 	// Delete
 	let deleteId = $state<string | null>(null);
@@ -98,43 +85,6 @@
 			createError = e instanceof Error ? e.message : 'Failed to create';
 		} finally {
 			creating = false;
-		}
-	}
-
-	function startEdit(loc: Location) {
-		editId = loc.id;
-		editName = loc.name;
-		editType = loc.type;
-		editAddrLine1 = loc.addressLine1 ?? '';
-		editAddrLine2 = loc.addressLine2 ?? '';
-		editAddrCity = loc.addressCity ?? '';
-		editAddrState = loc.addressState ?? '';
-		editAddrPostalCode = loc.addressPostalCode ?? '';
-		editAddrCountry = loc.addressCountry ?? '';
-		editError = null;
-	}
-
-	async function saveEdit() {
-		if (!editId || !editName.trim()) return;
-		try {
-			editing = true;
-			editError = null;
-			const updated = await api.patch<Location>(`/businesses/${businessId}/locations/${editId}`, {
-				name: editName.trim(),
-				type: editType,
-				addressLine1: editAddrLine1.trim() || undefined,
-				addressLine2: editAddrLine2.trim() || undefined,
-				addressCity: editAddrCity.trim() || undefined,
-				addressState: editAddrState.trim() || undefined,
-				addressPostalCode: editAddrPostalCode.trim() || undefined,
-				addressCountry: editAddrCountry.trim() || undefined
-			});
-			locations = locations.map((l) => (l.id === editId ? updated : l));
-			editId = null;
-		} catch (e) {
-			editError = e instanceof Error ? e.message : 'Failed to update';
-		} finally {
-			editing = false;
 		}
 	}
 
@@ -224,47 +174,12 @@
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each locations as loc (loc.id)}
-				{#if editId === loc.id}
-					<div class="p-4 border-b border-border last:border-0 bg-muted/30">
-						{#if editError}
-							<p class="text-destructive text-sm mb-2">{editError}</p>
-						{/if}
-						<div class="flex flex-col gap-2">
-							<input
-								type="text"
-								bind:value={editName}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-							/>
-							<select
-								bind:value={editType}
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-							>
-								{#each LOCATION_TYPES as t}
-									<option value={t}>{t}</option>
-								{/each}
-							</select>
-						<AddressInput bind:line1={editAddrLine1} bind:line2={editAddrLine2} bind:city={editAddrCity} bind:region={editAddrState} bind:postalCode={editAddrPostalCode} bind:country={editAddrCountry} />
-							<div class="flex justify-end gap-2">
-								<button
-									onclick={() => (editId = null)}
-									class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-muted"
-								>
-									Cancel
-								</button>
-								<button
-									onclick={saveEdit}
-									disabled={editing || !editName.trim()}
-									class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-								>
-									{#if editing}<Loader2 class="size-4 animate-spin" />{/if}
-									Save
-								</button>
-							</div>
-						</div>
-					</div>
-				{:else}
-					{@const addr = formatAddress({ line1: loc.addressLine1, line2: loc.addressLine2, city: loc.addressCity, state: loc.addressState, postalCode: loc.addressPostalCode, country: loc.addressCountry })}
-					<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+				{@const addr = formatAddress({ line1: loc.addressLine1, line2: loc.addressLine2, city: loc.addressCity, state: loc.addressState, postalCode: loc.addressPostalCode, country: loc.addressCountry })}
+				<div class="flex items-center border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+					<a
+						href="/businesses/{businessId}/locations/{loc.id}"
+						class="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
+					>
 						<MapPin class="size-4 text-muted-foreground shrink-0" />
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground">{loc.name}</p>
@@ -275,22 +190,16 @@
 						<span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize shrink-0">
 							{loc.type}
 						</span>
-						<div class="flex items-center gap-1 shrink-0">
-							<button
-								onclick={() => startEdit(loc)}
-								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-							>
-								<Pencil class="size-3.5" />
-							</button>
-							<button
-								onclick={() => (deleteId = loc.id)}
-								class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-							>
-								<Trash2 class="size-3.5" />
-							</button>
-						</div>
+					</a>
+					<div class="flex items-center gap-1 px-2 shrink-0">
+						<button
+							onclick={() => (deleteId = loc.id)}
+							class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+						>
+							<Trash2 class="size-3.5" />
+						</button>
 					</div>
-				{/if}
+				</div>
 			{/each}
 		</div>
 	{/if}

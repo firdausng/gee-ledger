@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import * as v from 'valibot';
 import { CreateLocationSchema, UpdateLocationSchema } from '$lib/schemas/location';
 import { getLocationsHandler } from './getLocationsHandler';
+import { getLocationHandler } from './getLocationHandler';
 import { createLocationHandler } from './createLocationHandler';
 import { updateLocationHandler } from './updateLocationHandler';
 import { deleteLocationHandler } from './deleteLocationHandler';
@@ -12,6 +13,12 @@ export const locationsApi = new Hono<App.Api>()
 	.get('/businesses/:businessId/locations', async (c) => {
 		const user = c.get('currentUser');
 		const data = await getLocationsHandler(user, c.req.param('businessId'), c.env);
+		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/locations/:locationId', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getLocationHandler(user, c.req.param('businessId'), c.req.param('locationId'), c.env);
 		return c.json({ data });
 	})
 

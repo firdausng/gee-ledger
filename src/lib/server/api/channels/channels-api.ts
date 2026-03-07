@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import * as v from 'valibot';
 import { CreateChannelSchema, UpdateChannelSchema } from '$lib/schemas/channel';
 import { getChannelsHandler } from './getChannelsHandler';
+import { getChannelHandler } from './getChannelHandler';
 import { createChannelHandler } from './createChannelHandler';
 import { updateChannelHandler } from './updateChannelHandler';
 import { deleteChannelHandler } from './deleteChannelHandler';
@@ -12,6 +13,12 @@ export const channelsApi = new Hono<App.Api>()
 	.get('/businesses/:businessId/channels', async (c) => {
 		const user = c.get('currentUser');
 		const data = await getChannelsHandler(user, c.req.param('businessId'), c.env);
+		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/channels/:channelId', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getChannelHandler(user, c.req.param('businessId'), c.req.param('channelId'), c.env);
 		return c.json({ data });
 	})
 

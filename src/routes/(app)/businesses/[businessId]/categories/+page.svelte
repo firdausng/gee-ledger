@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Plus, Loader2, Pencil, Trash2, Tag } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2, Tag } from '@lucide/svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 
@@ -31,12 +31,10 @@
 		activeFilter === 'all' ? categories : categories.filter((c) => c.type === activeFilter)
 	);
 
-	// Dialog state
+	// Create dialog
 	let dialogOpen = $state(false);
-	let dialogMode = $state<'create' | 'edit'>('create');
 	let dialogName = $state('');
 	let dialogType = $state<CategoryType>('general');
-	let dialogId = $state<string | null>(null);
 	let saving = $state(false);
 	let dialogError = $state<string | null>(null);
 
@@ -65,19 +63,8 @@
 	}
 
 	function openCreate() {
-		dialogMode = 'create';
 		dialogName = '';
 		dialogType = 'general';
-		dialogId = null;
-		dialogError = null;
-		dialogOpen = true;
-	}
-
-	function openEdit(cat: Category) {
-		dialogMode = 'edit';
-		dialogName = cat.name;
-		dialogType = cat.type;
-		dialogId = cat.id;
 		dialogError = null;
 		dialogOpen = true;
 	}
@@ -87,21 +74,12 @@
 		try {
 			saving = true;
 			dialogError = null;
-			if (dialogMode === 'create') {
-				const cat = await api.post<Category>(`/businesses/${businessId}/categories`, {
-					name: dialogName.trim(),
-					type: dialogType
-				});
-				categories = [...categories, cat];
-				toast.success('Category created');
-			} else if (dialogId) {
-				const updated = await api.patch<Category>(`/businesses/${businessId}/categories/${dialogId}`, {
-					name: dialogName.trim(),
-					type: dialogType
-				});
-				categories = categories.map((c) => (c.id === dialogId ? updated : c));
-				toast.success('Category updated');
-			}
+			const cat = await api.post<Category>(`/businesses/${businessId}/categories`, {
+				name: dialogName.trim(),
+				type: dialogType
+			});
+			categories = [...categories, cat];
+			toast.success('Category created');
 			dialogOpen = false;
 		} catch (e) {
 			dialogError = e instanceof Error ? e.message : 'Failed to save';
@@ -183,19 +161,18 @@
 	{:else}
 		<div class="rounded-lg border border-border overflow-hidden">
 			{#each filteredCategories as cat (cat.id)}
-				<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
-					<Tag class="size-4 text-muted-foreground shrink-0" />
-					<p class="flex-1 text-sm font-medium text-foreground truncate">{cat.name}</p>
-					<span class="text-xs px-2 py-0.5 rounded-full shrink-0 capitalize {typeBadgeClass(cat.type)}">
-						{cat.type}
-					</span>
-					<div class="flex items-center gap-1 shrink-0">
-						<button
-							onclick={() => openEdit(cat)}
-							class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-						>
-							<Pencil class="size-3.5" />
-						</button>
+				<div class="flex items-center border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+					<a
+						href="/businesses/{businessId}/categories/{cat.id}"
+						class="flex items-center gap-3 px-4 py-3 flex-1 min-w-0"
+					>
+						<Tag class="size-4 text-muted-foreground shrink-0" />
+						<p class="flex-1 text-sm font-medium text-foreground truncate">{cat.name}</p>
+						<span class="text-xs px-2 py-0.5 rounded-full shrink-0 capitalize {typeBadgeClass(cat.type)}">
+							{cat.type}
+						</span>
+					</a>
+					<div class="flex items-center gap-1 px-2 shrink-0">
 						<button
 							onclick={() => (deleteTarget = cat)}
 							class="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -209,14 +186,12 @@
 	{/if}
 </div>
 
-<!-- Create / Edit dialog -->
+<!-- Create dialog -->
 <Dialog.Root bind:open={dialogOpen}>
 	<Dialog.Content class="sm:max-w-md">
 		<Dialog.Header>
-			<Dialog.Title>{dialogMode === 'create' ? 'New Category' : 'Edit Category'}</Dialog.Title>
-			<Dialog.Description>
-				{dialogMode === 'create' ? 'Add a new category to organize your transactions.' : 'Update the category name or type.'}
-			</Dialog.Description>
+			<Dialog.Title>New Category</Dialog.Title>
+			<Dialog.Description>Add a new category to organize your transactions.</Dialog.Description>
 		</Dialog.Header>
 		{#if dialogError}
 			<p class="text-destructive text-sm">{dialogError}</p>
@@ -265,7 +240,7 @@
 				class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
 			>
 				{#if saving}<Loader2 class="size-4 animate-spin" />{/if}
-				{dialogMode === 'create' ? 'Create' : 'Save'}
+				Create
 			</button>
 		</Dialog.Footer>
 	</Dialog.Content>
