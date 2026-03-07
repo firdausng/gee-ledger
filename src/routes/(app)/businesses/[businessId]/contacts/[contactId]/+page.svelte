@@ -6,10 +6,9 @@
 	import PhoneCodeCombobox from '$lib/components/PhoneCodeCombobox.svelte';
 	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import AddressInput from '$lib/components/AddressInput.svelte';
-	import { formatAddress } from '$lib/utils/address';
 	import {
 		ArrowLeft, Loader2, ReceiptText, FileText, FolderKanban,
-		ShoppingBag, Clock, TrendingUp, TrendingDown, Pencil, X, Check
+		ShoppingBag, Clock, TrendingUp, TrendingDown
 	} from '@lucide/svelte';
 
 	let { data } = $props();
@@ -64,8 +63,7 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	// ── Edit ─────────────────────────────────────────────────────────────────────
-	let showEdit = $state(false);
+	// ── Editable fields (always visible) ─────────────────────────────────────────
 	let editName = $state('');
 	let editEmail = $state('');
 	let editPhoneCode = $state('+1');
@@ -80,35 +78,58 @@
 	let editIsClient = $state(false);
 	let editIsSupplier = $state(false);
 	let editDefaultCurrency = $state('');
-	let editing = $state(false);
-	let editError = $state<string | null>(null);
+	let saving = $state(false);
+	let saveError = $state<string | null>(null);
+	let saveSuccess = $state(false);
 
-	function startEdit() {
-		if (!contact) return;
-		const parsed = parsePhone(contact.phone ?? '');
-		editName = contact.name;
-		editEmail = contact.email ?? '';
+	function populateFields(c: Contact) {
+		const parsed = parsePhone(c.phone ?? '');
+		editName = c.name;
+		editEmail = c.email ?? '';
 		editPhoneCode = parsed.code;
 		editPhoneNumber = parsed.number;
-		editAddrLine1 = contact.addressLine1 ?? '';
-		editAddrLine2 = contact.addressLine2 ?? '';
-		editAddrCity = contact.addressCity ?? '';
-		editAddrState = contact.addressState ?? '';
-		editAddrPostalCode = contact.addressPostalCode ?? '';
-		editAddrCountry = contact.addressCountry ?? '';
-		editTaxId = contact.taxId ?? '';
-		editIsClient = contact.isClient;
-		editIsSupplier = contact.isSupplier;
-		editDefaultCurrency = contact.defaultCurrency ?? '';
-		editError = null;
-		showEdit = true;
+		editAddrLine1 = c.addressLine1 ?? '';
+		editAddrLine2 = c.addressLine2 ?? '';
+		editAddrCity = c.addressCity ?? '';
+		editAddrState = c.addressState ?? '';
+		editAddrPostalCode = c.addressPostalCode ?? '';
+		editAddrCountry = c.addressCountry ?? '';
+		editTaxId = c.taxId ?? '';
+		editIsClient = c.isClient;
+		editIsSupplier = c.isSupplier;
+		editDefaultCurrency = c.defaultCurrency ?? '';
 	}
 
-	async function saveEdit() {
+	const hasChanges = $derived.by(() => {
+		if (!contact) return false;
+		const parsed = parsePhone(contact.phone ?? '');
+		const currentPhone = editPhoneNumber.trim()
+			? `${editPhoneCode}${editPhoneNumber.trim()}`
+			: null;
+		const originalPhone = contact.phone || null;
+		return (
+			editName.trim() !== contact.name ||
+			(editEmail.trim() || null) !== (contact.email || null) ||
+			currentPhone !== originalPhone ||
+			(editAddrLine1.trim() || null) !== (contact.addressLine1 || null) ||
+			(editAddrLine2.trim() || null) !== (contact.addressLine2 || null) ||
+			(editAddrCity.trim() || null) !== (contact.addressCity || null) ||
+			(editAddrState.trim() || null) !== (contact.addressState || null) ||
+			(editAddrPostalCode.trim() || null) !== (contact.addressPostalCode || null) ||
+			(editAddrCountry.trim() || null) !== (contact.addressCountry || null) ||
+			(editTaxId.trim() || null) !== (contact.taxId || null) ||
+			editIsClient !== contact.isClient ||
+			editIsSupplier !== contact.isSupplier ||
+			(editDefaultCurrency || null) !== (contact.defaultCurrency || null)
+		);
+	});
+
+	async function save() {
 		if (!editName.trim()) return;
 		try {
-			editing = true;
-			editError = null;
+			saving = true;
+			saveError = null;
+			saveSuccess = false;
 			const phone = editPhoneNumber.trim()
 				? `${editPhoneCode}${editPhoneNumber.trim()}`
 				: null;
@@ -127,12 +148,19 @@
 				isSupplier: editIsSupplier,
 				defaultCurrency: editDefaultCurrency || null,
 			});
-			showEdit = false;
+			populateFields(contact);
+			saveSuccess = true;
+			setTimeout(() => (saveSuccess = false), 2000);
 		} catch (e) {
-			editError = e instanceof Error ? e.message : 'Failed to update';
+			saveError = e instanceof Error ? e.message : 'Failed to update';
 		} finally {
-			editing = false;
+			saving = false;
 		}
+	}
+
+	function discard() {
+		if (contact) populateFields(contact);
+		saveError = null;
 	}
 
 	function formatTime(minutes: number): string {
@@ -151,6 +179,7 @@
 			]);
 			contact = c;
 			stats = s;
+			populateFields(c);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load';
 		} finally {
@@ -167,96 +196,89 @@
 	{:else if error && !contact}
 		<p class="text-destructive text-sm text-center py-8">{error}</p>
 	{:else if contact && stats}
-		<!-- Header -->
-		<div class="flex items-start gap-3 mb-6">
+		<!-- Back link -->
+		<div class="flex items-center gap-2 mb-4">
 			<a
 				href="/businesses/{businessId}/contacts"
-				class="p-1 rounded text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
+				class="p-1 rounded text-muted-foreground hover:text-foreground shrink-0"
 			>
 				<ArrowLeft class="size-4" />
 			</a>
-			<div class="flex-1 min-w-0">
-				<div class="flex items-center gap-2 flex-wrap">
-					<h2 class="text-lg font-semibold text-foreground">{contact.name}</h2>
-					{#if contact.isClient}
-						<span class="text-xs px-2 py-0.5 rounded-full bg-info-bg text-info-fg">Client</span>
-					{/if}
-					{#if contact.isSupplier}
-						<span class="text-xs px-2 py-0.5 rounded-full bg-warning-bg text-warning-fg">Supplier</span>
-					{/if}
-				</div>
-				<div class="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-sm text-muted-foreground">
-					{#if contact.email}<span>{contact.email}</span>{/if}
-					{#if contact.phone}<span>{contact.phone}</span>{/if}
-					{#if contact.taxId}<span>Tax ID: {contact.taxId}</span>{/if}
-					{#if contact.defaultCurrency}<span>Currency: {contact.defaultCurrency}</span>{/if}
-				</div>
-				
-				{#if formatAddress({ line1: contact.addressLine1, line2: contact.addressLine2, city: contact.addressCity, state: contact.addressState, postalCode: contact.addressPostalCode, country: contact.addressCountry })}
-					<p class="text-sm text-muted-foreground mt-1 whitespace-pre-line">{formatAddress({ line1: contact.addressLine1, line2: contact.addressLine2, city: contact.addressCity, state: contact.addressState, postalCode: contact.addressPostalCode, country: contact.addressCountry })}</p>
-				{/if}
-			</div>
-			<button
-				onclick={startEdit}
-				class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
-			>
-				<Pencil class="size-4" />
-			</button>
+			<h2 class="text-lg font-semibold text-foreground">Contact Details</h2>
 		</div>
 
-		<!-- Edit Form -->
-		{#if showEdit}
-			<div class="rounded-lg border border-border bg-card p-4 mb-6">
-				<div class="flex items-center justify-between mb-3">
-					<h3 class="text-sm font-semibold">Edit Contact</h3>
-					<button onclick={() => (showEdit = false)} class="p-1 text-muted-foreground hover:text-foreground">
-						<X class="size-4" />
-					</button>
+		<!-- Contact form (always editable) -->
+		<div class="rounded-lg border border-border bg-card p-4 mb-6">
+			{#if saveError}<p class="text-destructive text-sm mb-3">{saveError}</p>{/if}
+			<div class="flex flex-col gap-3">
+				<div>
+					<label for="contact-name" class="text-xs font-medium text-muted-foreground mb-1 block">Name *</label>
+					<input id="contact-name" type="text" bind:value={editName} placeholder="Name"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 				</div>
-				{#if editError}<p class="text-destructive text-sm mb-2">{editError}</p>{/if}
-				<div class="flex flex-col gap-3">
-					<input type="text" bind:value={editName} placeholder="Name *"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-					<input type="email" bind:value={editEmail} placeholder="Email"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-					<div class="flex rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring overflow-hidden">
-						<PhoneCodeCombobox bind:value={editPhoneCode} />
-						<input type="tel" bind:value={editPhoneNumber} placeholder="Phone"
-							class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
+				<div class="grid sm:grid-cols-2 gap-3">
+					<div>
+						<label for="contact-email" class="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
+						<input id="contact-email" type="email" bind:value={editEmail} placeholder="Email"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 					</div>
+					<div>
+						<label class="text-xs font-medium text-muted-foreground mb-1 block">Phone</label>
+						<div class="flex rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring overflow-hidden">
+							<PhoneCodeCombobox bind:value={editPhoneCode} />
+							<input type="tel" bind:value={editPhoneNumber} placeholder="Phone"
+								class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
+						</div>
+					</div>
+				</div>
+				<div>
+					<label class="text-xs font-medium text-muted-foreground mb-1 block">Address</label>
 					<AddressInput bind:line1={editAddrLine1} bind:line2={editAddrLine2} bind:city={editAddrCity} bind:region={editAddrState} bind:postalCode={editAddrPostalCode} bind:country={editAddrCountry} />
-					<input type="text" bind:value={editTaxId} placeholder="Tax ID / SST No."
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-					<CurrencyCombobox bind:value={editDefaultCurrency} placeholder="Default Currency (none)" />
-					<div class="flex gap-4">
-						<label class="flex items-center gap-2 text-sm cursor-pointer">
-							<input type="checkbox" bind:checked={editIsClient} class="accent-primary" />
-							Client
-						</label>
-						<label class="flex items-center gap-2 text-sm cursor-pointer">
-							<input type="checkbox" bind:checked={editIsSupplier} class="accent-primary" />
-							Supplier
-						</label>
+				</div>
+				<div class="grid sm:grid-cols-2 gap-3">
+					<div>
+						<label for="contact-taxid" class="text-xs font-medium text-muted-foreground mb-1 block">Tax ID / SST No.</label>
+						<input id="contact-taxid" type="text" bind:value={editTaxId} placeholder="Tax ID / SST No."
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 					</div>
-					<div class="flex gap-2 justify-end">
+					<div>
+						<label class="text-xs font-medium text-muted-foreground mb-1 block">Default Currency</label>
+						<CurrencyCombobox bind:value={editDefaultCurrency} placeholder="Default Currency (none)" />
+					</div>
+				</div>
+				<div class="flex gap-4">
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<input type="checkbox" bind:checked={editIsClient} class="accent-primary" />
+						Client
+					</label>
+					<label class="flex items-center gap-2 text-sm cursor-pointer">
+						<input type="checkbox" bind:checked={editIsSupplier} class="accent-primary" />
+						Supplier
+					</label>
+				</div>
+				{#if hasChanges}
+					<div class="flex items-center gap-2 justify-end pt-1">
 						<button
-							onclick={() => (showEdit = false)}
-							class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground"
+							onclick={discard}
+							class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted"
 						>
-							Cancel
+							Discard
 						</button>
 						<button
-							onclick={saveEdit}
-							disabled={editing || !editName.trim()}
+							onclick={save}
+							disabled={saving || !editName.trim()}
 							class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
 						>
-							{#if editing}<Loader2 class="size-3.5 animate-spin" />{/if}
-							Save
+							{#if saving}<Loader2 class="size-3.5 animate-spin" />{/if}
+							Save changes
 						</button>
 					</div>
-				</div>
+				{/if}
+				{#if saveSuccess}
+					<p class="text-xs text-success-fg text-right">Saved!</p>
+				{/if}
 			</div>
-		{/if}
+		</div>
 
 		<!-- Stats Grid -->
 		<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
