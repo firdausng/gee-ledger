@@ -40,7 +40,7 @@
 				Your finances,<br />clearly organised.
 			</h1>
 			<p class="text-muted-foreground mx-auto mb-10 max-w-xl text-lg leading-relaxed">
-				Track income, send invoices, manage products, and collaborate with your team — across all
+				Track income, send quotes, manage projects, and collaborate with your team — across all
 				your businesses, from one dashboard.
 			</p>
 			<div class="flex flex-wrap items-center justify-center gap-3 mb-6">
@@ -388,6 +388,217 @@
 		</div>
 	</section>
 
+	<!-- ─── Quotes & Estimates ────────────────────────────────────────────── -->
+	<section class="bg-secondary/30">
+		<div class="mx-auto max-w-5xl px-6 py-20">
+			<div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+				<!-- Left: text -->
+				<div>
+					<p class="text-sm font-medium tracking-widest uppercase text-primary mb-2">Quotes & Estimates</p>
+					<h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+						Win the deal before the work begins
+					</h2>
+					<p class="text-muted-foreground mb-8 leading-relaxed">
+						Create professional quotes, track their status, and convert accepted ones into invoices with a single click.
+					</p>
+
+					<div class="grid sm:grid-cols-2 gap-5">
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Create Quotes</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Product and service line items with auto-numbering.</p>
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<circle cx="12" cy="12" r="10"/><path d="M8 12l2.5 2.5L16 9"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Status Tracking</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Draft, sent, accepted, rejected, or expired.</p>
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Quote → Invoice</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Convert accepted quotes to invoices instantly.</p>
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<rect x="6" y="3" width="12" height="18" rx="1"/><path d="M6 8h12"/><path d="M6 16h12"/><path d="M10 21v-2"/><path d="M14 21v-2"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Print & Share</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Print quotes as polished PDF documents.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right: mockup -->
+				<div class="rounded-xl border border-border bg-card p-5 shadow-sm">
+					<p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Recent Quotes</p>
+					<div class="space-y-2.5">
+						<div class="rounded-lg border border-success-fg/30 bg-success-bg/30 p-3.5 flex items-center gap-3">
+							<div class="size-9 rounded-lg bg-success-bg flex items-center justify-center">
+								<svg class="size-4 text-success-fg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+							</div>
+							<div class="flex-1 min-w-0">
+								<p class="text-sm font-semibold text-foreground">QUO-003 · Acme Corp</p>
+								<p class="text-xs text-muted-foreground">$2,400.00 · 3 items</p>
+							</div>
+							<span class="text-xs text-success-fg font-medium">Accepted</span>
+						</div>
+						<div class="rounded-lg bg-warning-bg/30 border border-warning-fg/20 p-3.5 flex items-center gap-3">
+							<div class="size-9 rounded-lg bg-warning-bg flex items-center justify-center">
+								<svg class="size-4 text-warning-fg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+							</div>
+							<div class="flex-1 min-w-0">
+								<p class="text-sm font-medium text-foreground">QUO-004 · Beta Labs</p>
+								<p class="text-xs text-muted-foreground">$850.00 · 2 items</p>
+							</div>
+							<span class="text-xs text-warning-fg font-medium">Sent</span>
+						</div>
+						<div class="rounded-lg bg-muted/50 p-3.5 flex items-center gap-3">
+							<div class="size-9 rounded-lg bg-muted flex items-center justify-center">
+								<svg class="size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+							</div>
+							<div class="flex-1 min-w-0">
+								<p class="text-sm font-medium text-foreground">QUO-005 · Nova Design</p>
+								<p class="text-xs text-muted-foreground">$1,200.00 · 4 items</p>
+							</div>
+							<span class="text-xs text-muted-foreground font-medium">Draft</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ─── Projects & Time Tracking ──────────────────────────────────────── -->
+	<section class="border-t border-border/60">
+		<div class="mx-auto max-w-5xl px-6 py-20">
+			<div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+				<!-- Left: mockup -->
+				<div class="order-2 lg:order-1">
+					<div class="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+						<div class="bg-primary/5 px-5 py-3.5 flex items-center justify-between border-b border-border">
+							<div>
+								<p class="text-sm font-semibold text-foreground">Website Redesign</p>
+								<p class="text-xs text-muted-foreground">Acme Corp · Active</p>
+							</div>
+							<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-success-bg text-success-fg">3 / 5 tasks done</span>
+						</div>
+						<div class="px-5 py-4 space-y-2">
+							<div class="flex items-center gap-2.5 text-sm">
+								<svg class="size-4 text-success-fg shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+								<span class="text-muted-foreground line-through">Wireframes</span>
+								<span class="ml-auto text-xs tabular-nums text-muted-foreground">8h</span>
+							</div>
+							<div class="flex items-center gap-2.5 text-sm">
+								<svg class="size-4 text-success-fg shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+								<span class="text-muted-foreground line-through">UI Design</span>
+								<span class="ml-auto text-xs tabular-nums text-muted-foreground">12h</span>
+							</div>
+							<div class="flex items-center gap-2.5 text-sm">
+								<svg class="size-4 text-success-fg shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+								<span class="text-muted-foreground line-through">Frontend Dev</span>
+								<span class="ml-auto text-xs tabular-nums text-muted-foreground">20h</span>
+							</div>
+							<div class="flex items-center gap-2.5 text-sm">
+								<svg class="size-4 text-info-fg shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l3 3"/></svg>
+								<span class="text-foreground font-medium">Backend Integration</span>
+								<span class="ml-auto text-xs tabular-nums text-info-fg">4h logged</span>
+							</div>
+							<div class="flex items-center gap-2.5 text-sm">
+								<div class="size-4 rounded-full border-2 border-muted-foreground/40 shrink-0"></div>
+								<span class="text-foreground">QA & Launch</span>
+								<span class="ml-auto text-xs tabular-nums text-muted-foreground">—</span>
+							</div>
+						</div>
+						<div class="border-t border-border px-5 py-3 flex justify-between text-xs text-muted-foreground">
+							<span>Total logged: 44h</span>
+							<span>Est. $4,400.00</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right: text -->
+				<div class="order-1 lg:order-2">
+					<p class="text-sm font-medium tracking-widest uppercase text-primary mb-2">Projects & Time Tracking</p>
+					<h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+						Track work, bill accurately
+					</h2>
+					<p class="text-muted-foreground mb-8 leading-relaxed">
+						Break work into tasks, log time against them, and convert completed projects into invoices — so nothing slips through the cracks.
+					</p>
+
+					<div class="flex flex-col gap-5">
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Task Management</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Break projects into tasks with status tracking — todo, in progress, done.</p>
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Time Tracking</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Log hours against tasks with start/stop times and notes.</p>
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Flexible Billing</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Fixed-price or hourly rate per task. Compare estimates vs actuals.</p>
+							</div>
+						</div>
+						<div class="flex gap-3">
+							<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+								<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+								</svg>
+							</div>
+							<div>
+								<h3 class="text-sm font-semibold text-foreground">Project → Invoice</h3>
+								<p class="text-xs text-muted-foreground leading-relaxed">Convert completed projects into invoices with one click.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
 	<!-- ─── Business Setup ─────────────────────────────────────────────────── -->
 	<section class="bg-secondary/30">
 		<div class="mx-auto max-w-5xl px-6 py-20">
@@ -564,15 +775,17 @@
 						{#each [
 							'1 business',
 							'Unlimited transactions',
-							'Dashboard overview',
+							'Dashboard & trend analysis',
 							'Income & expense tracking',
+							'Quotes & estimates',
+							'Up to 3 active projects',
 							'Chart of accounts',
 							'Categories, locations, channels',
 							'Print invoices & receipts',
 							'Statement generation',
 							'Contact management',
 							'Product catalog',
-							'Dark mode'
+							'Notifications'
 						] as feature}
 							<li class="flex items-center gap-2 text-sm text-foreground">
 								<svg class="size-4 text-success-fg shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -612,6 +825,7 @@
 							'Team invitations & roles',
 							'File attachments (10 MB)',
 							'Email invoices & receipts',
+							'Unlimited active projects',
 							'Export to CSV'
 						] as feature}
 							<li class="flex items-center gap-2 text-sm text-foreground">

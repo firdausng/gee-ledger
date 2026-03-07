@@ -10,7 +10,8 @@
       "Bash(npx tsc:*)",
       "Bash(mkdir:*)",
       "Bash(pnpm build:*)",
-      "Bash(npx shadcn@latest:*)"
+      "Bash(npx shadcn@latest:*)",
+      "Bash(sed:*)"
     ]
   }
 }
