@@ -120,6 +120,13 @@
       "when": 1772854623332,
       "tag": "0016_greedy_ravenous",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1772858177071,
+      "tag": "0017_stiff_warlock",
+      "breakpoints": true
     }
   ]
 }

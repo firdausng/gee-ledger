@@ -25,7 +25,14 @@ export async function updateBusinessHandler(
 			...(data.currency    !== undefined && { currency:    data.currency    }),
 			...(data.address     !== undefined && { address:     data.address     }),
 			...(data.phone       !== undefined && { phone:       data.phone       }),
-			...(data.taxId       !== undefined && { taxId:       data.taxId       }),
+			...(data.taxId          !== undefined && { taxId:          data.taxId          }),
+			...(data.registrationNo !== undefined && { registrationNo: data.registrationNo }),
+			...(data.vatNo          !== undefined && { vatNo:          data.vatNo          }),
+			...(data.website        !== undefined && { website:        data.website        }),
+			...(data.email          !== undefined && { email:          data.email          }),
+			...(data.companySize    !== undefined && { companySize:    data.companySize    }),
+			...(data.industry       !== undefined && { industry:       data.industry       }),
+			...(data.classification !== undefined && { classification: data.classification }),
 			updatedAt: now,
 			updatedBy: user.id
 		})
