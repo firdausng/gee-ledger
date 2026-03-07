@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
-	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
+	import { parsePhone } from '$lib/data/phoneCodes';
+	import PhoneCodeCombobox from '$lib/components/PhoneCodeCombobox.svelte';
 	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import { Plus, Loader2, Pencil, Trash2, UsersRound, Download, Crown, Search } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
@@ -267,12 +268,7 @@
 				<input type="email" bind:value={createEmail} placeholder="Email"
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 				<div class="flex rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring overflow-hidden">
-					<select bind:value={createPhoneCode}
-						class="shrink-0 bg-transparent border-r border-input pl-2 pr-1 py-2 text-sm focus:outline-none text-foreground">
-						{#each PHONE_CODES as p (p.code)}
-							<option value={p.code}>{p.flag} {p.code}</option>
-						{/each}
-					</select>
+					<PhoneCodeCombobox bind:value={createPhoneCode} />
 					<input type="tel" bind:value={createPhoneNumber} placeholder="Phone"
 						class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
 				</div>
@@ -329,12 +325,7 @@
 							<input type="email" bind:value={editEmail} placeholder="Email"
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 							<div class="flex rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring overflow-hidden">
-								<select bind:value={editPhoneCode}
-									class="shrink-0 bg-transparent border-r border-input pl-2 pr-1 py-2 text-sm focus:outline-none text-foreground">
-									{#each PHONE_CODES as p (p.code)}
-										<option value={p.code}>{p.flag} {p.code}</option>
-									{/each}
-								</select>
+								<PhoneCodeCombobox bind:value={editPhoneCode} />
 								<input type="tel" bind:value={editPhoneNumber} placeholder="Phone"
 									class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
 							</div>

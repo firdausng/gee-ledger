@@ -13,7 +13,8 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Separator } from '$lib/components/ui/separator';
 	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
-	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
+	import { parsePhone } from '$lib/data/phoneCodes';
+	import PhoneCodeCombobox from '$lib/components/PhoneCodeCombobox.svelte';
 
 	let { data } = $props();
 
@@ -228,14 +229,7 @@
 					<div class="space-y-2">
 						<Label for="contact-phone-number">Phone</Label>
 						<div class="flex rounded-md border border-input bg-background focus-within:ring-[3px] focus-within:ring-ring/50 focus-within:border-ring overflow-hidden shadow-xs">
-							<select
-								bind:value={contactPhoneCode}
-								class="shrink-0 bg-transparent border-r border-input pl-2 pr-1 py-2 text-sm focus:outline-none text-foreground"
-							>
-								{#each PHONE_CODES as p (p.code)}
-									<option value={p.code}>{p.flag} {p.code}</option>
-								{/each}
-							</select>
+							<PhoneCodeCombobox bind:value={contactPhoneCode} />
 							<input
 								id="contact-phone-number"
 								type="tel"
