@@ -470,7 +470,7 @@
 								<Label>Location <span class="text-destructive">*</span></Label>
 								<Select.Root type="single" bind:value={locationId}>
 									<Select.Trigger class="w-full">
-										{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}
+										<span class="truncate">{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}</span>
 									</Select.Trigger>
 									<Select.Content>
 										{#each locations as loc (loc.id)}
@@ -487,7 +487,7 @@
 									</Label>
 									<Select.Root type="single" bind:value={salesChannelId}>
 										<Select.Trigger class="w-full">
-											{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'Select channel'}
+											<span class="truncate">{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'Select channel'}</span>
 										</Select.Trigger>
 										<Select.Content>
 											{#each channels as ch (ch.id)}
@@ -502,7 +502,7 @@
 								<Label>Category</Label>
 								<Select.Root type="single" bind:value={categoryId}>
 									<Select.Trigger class="w-full">
-										{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}
+										<span class="truncate">{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}</span>
 									</Select.Trigger>
 									<Select.Content>
 										<Select.Item value="">No category</Select.Item>
@@ -519,7 +519,7 @@
 									<Label>Client</Label>
 									<Select.Root type="single" bind:value={contactId}>
 										<Select.Trigger class="w-full">
-											{contactId ? clientContacts.find((c) => c.id === contactId)?.name : 'No client'}
+											<span class="truncate">{contactId ? clientContacts.find((c) => c.id === contactId)?.name : 'No client'}</span>
 										</Select.Trigger>
 										<Select.Content>
 											<Select.Item value="">No client</Select.Item>
@@ -534,7 +534,7 @@
 									<Label>Supplier</Label>
 									<Select.Root type="single" bind:value={contactId}>
 										<Select.Trigger class="w-full">
-											{contactId ? supplierContacts.find((c) => c.id === contactId)?.name : 'No supplier'}
+											<span class="truncate">{contactId ? supplierContacts.find((c) => c.id === contactId)?.name : 'No supplier'}</span>
 										</Select.Trigger>
 										<Select.Content>
 											<Select.Item value="">No supplier</Select.Item>

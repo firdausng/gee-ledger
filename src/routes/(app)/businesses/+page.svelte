@@ -7,6 +7,7 @@
 	import { Building2, Plus, X, Loader2, Crown, Mail } from '@lucide/svelte';
 	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import PhoneCodeCombobox from '$lib/components/PhoneCodeCombobox.svelte';
+	import AddressInput from '$lib/components/AddressInput.svelte';
 	import { PLAN_KEY, PLANS } from '$lib/configurations/plans';
 
 	type Business = {
@@ -37,7 +38,12 @@
 	let createName        = $state('');
 	let createDescription = $state('');
 	let createCurrency    = $state('USD');
-	let createAddress     = $state('');
+	let createAddrLine1      = $state('');
+	let createAddrLine2      = $state('');
+	let createAddrCity       = $state('');
+	let createAddrState      = $state('');
+	let createAddrPostalCode = $state('');
+	let createAddrCountry    = $state('');
 	let createPhoneCode   = $state('+1');
 	let createPhoneNumber = $state('');
 	let createTaxId       = $state('');
@@ -63,7 +69,12 @@
 				name:        createName.trim(),
 				description: createDescription.trim() || undefined,
 				currency:    createCurrency,
-				address:     createAddress.trim() || undefined,
+				addressLine1:      createAddrLine1.trim() || undefined,
+				addressLine2:      createAddrLine2.trim() || undefined,
+				addressCity:       createAddrCity.trim() || undefined,
+				addressState:      createAddrState.trim() || undefined,
+				addressPostalCode: createAddrPostalCode.trim() || undefined,
+				addressCountry:    createAddrCountry.trim() || undefined,
 				phone:       createPhoneNumber.trim() ? `${createPhoneCode}${createPhoneNumber.trim()}` : undefined,
 				taxId:       createTaxId.trim() || undefined,
 			});
@@ -72,7 +83,12 @@
 			createName        = '';
 			createDescription = '';
 			createCurrency    = 'USD';
-			createAddress     = '';
+			createAddrLine1      = '';
+			createAddrLine2      = '';
+			createAddrCity       = '';
+			createAddrState      = '';
+			createAddrPostalCode = '';
+			createAddrCountry    = '';
 			createPhoneCode   = '+1';
 			createPhoneNumber = '';
 			createTaxId       = '';
@@ -158,16 +174,10 @@
 				</div>
 
 				<div>
-					<label class="text-sm font-medium text-foreground block mb-1" for="create-address">
+					<label class="text-sm font-medium text-foreground block mb-1">
 						Address
 					</label>
-					<textarea
-						id="create-address"
-						bind:value={createAddress}
-						rows="3"
-						placeholder="Optional — appears on invoices and receipts"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-					></textarea>
+					<AddressInput bind:line1={createAddrLine1} bind:line2={createAddrLine2} bind:city={createAddrCity} bind:region={createAddrState} bind:postalCode={createAddrPostalCode} bind:country={createAddrCountry} />
 				</div>
 
 				<div>

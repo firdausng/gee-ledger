@@ -5,6 +5,8 @@
 	import { parsePhone } from '$lib/data/phoneCodes';
 	import PhoneCodeCombobox from '$lib/components/PhoneCodeCombobox.svelte';
 	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
+	import AddressInput from '$lib/components/AddressInput.svelte';
+	import { formatAddress } from '$lib/utils/address';
 	import {
 		ArrowLeft, Loader2, ReceiptText, FileText, FolderKanban,
 		ShoppingBag, Clock, TrendingUp, TrendingDown, Pencil, X, Check
@@ -17,7 +19,12 @@
 		name: string;
 		email: string | null;
 		phone: string | null;
-		address: string | null;
+		addressLine1: string | null;
+		addressLine2: string | null;
+		addressCity: string | null;
+		addressState: string | null;
+		addressPostalCode: string | null;
+		addressCountry: string | null;
 		taxId: string | null;
 		isClient: boolean;
 		isSupplier: boolean;
@@ -63,7 +70,12 @@
 	let editEmail = $state('');
 	let editPhoneCode = $state('+1');
 	let editPhoneNumber = $state('');
-	let editAddress = $state('');
+	let editAddrLine1 = $state('');
+	let editAddrLine2 = $state('');
+	let editAddrCity = $state('');
+	let editAddrState = $state('');
+	let editAddrPostalCode = $state('');
+	let editAddrCountry = $state('');
 	let editTaxId = $state('');
 	let editIsClient = $state(false);
 	let editIsSupplier = $state(false);
@@ -78,7 +90,12 @@
 		editEmail = contact.email ?? '';
 		editPhoneCode = parsed.code;
 		editPhoneNumber = parsed.number;
-		editAddress = contact.address ?? '';
+		editAddrLine1 = contact.addressLine1 ?? '';
+		editAddrLine2 = contact.addressLine2 ?? '';
+		editAddrCity = contact.addressCity ?? '';
+		editAddrState = contact.addressState ?? '';
+		editAddrPostalCode = contact.addressPostalCode ?? '';
+		editAddrCountry = contact.addressCountry ?? '';
 		editTaxId = contact.taxId ?? '';
 		editIsClient = contact.isClient;
 		editIsSupplier = contact.isSupplier;
@@ -99,7 +116,12 @@
 				name: editName.trim(),
 				email: editEmail.trim() || null,
 				phone,
-				address: editAddress.trim() || null,
+				addressLine1: editAddrLine1.trim() || null,
+				addressLine2: editAddrLine2.trim() || null,
+				addressCity: editAddrCity.trim() || null,
+				addressState: editAddrState.trim() || null,
+				addressPostalCode: editAddrPostalCode.trim() || null,
+				addressCountry: editAddrCountry.trim() || null,
 				taxId: editTaxId.trim() || null,
 				isClient: editIsClient,
 				isSupplier: editIsSupplier,
@@ -169,8 +191,9 @@
 					{#if contact.taxId}<span>Tax ID: {contact.taxId}</span>{/if}
 					{#if contact.defaultCurrency}<span>Currency: {contact.defaultCurrency}</span>{/if}
 				</div>
-				{#if contact.address}
-					<p class="text-sm text-muted-foreground mt-1">{contact.address}</p>
+				
+				{#if formatAddress({ line1: contact.addressLine1, line2: contact.addressLine2, city: contact.addressCity, state: contact.addressState, postalCode: contact.addressPostalCode, country: contact.addressCountry })}
+					<p class="text-sm text-muted-foreground mt-1 whitespace-pre-line">{formatAddress({ line1: contact.addressLine1, line2: contact.addressLine2, city: contact.addressCity, state: contact.addressState, postalCode: contact.addressPostalCode, country: contact.addressCountry })}</p>
 				{/if}
 			</div>
 			<button
@@ -201,8 +224,7 @@
 						<input type="tel" bind:value={editPhoneNumber} placeholder="Phone"
 							class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
 					</div>
-					<textarea bind:value={editAddress} placeholder="Address" rows="3"
-						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
+					<AddressInput bind:line1={editAddrLine1} bind:line2={editAddrLine2} bind:city={editAddrCity} bind:region={editAddrState} bind:postalCode={editAddrPostalCode} bind:country={editAddrCountry} />
 					<input type="text" bind:value={editTaxId} placeholder="Tax ID / SST No."
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 					<CurrencyCombobox bind:value={editDefaultCurrency} placeholder="Default Currency (none)" />

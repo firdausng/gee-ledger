@@ -4,6 +4,7 @@ import { contacts, clients, suppliers } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import { buildCsv } from '$lib/server/utils/csv';
+import { formatAddress } from '$lib/utils/address';
 
 export async function exportContactsHandler(
 	user: App.User,
@@ -19,8 +20,10 @@ export async function exportContactsHandler(
 		.from(contacts)
 		.where(and(eq(contacts.businessId, businessId), isNull(contacts.deletedAt)));
 
+	const headers = ['Name', 'Email', 'Phone', 'Address Line 1', 'Address Line 2', 'City', 'State', 'Postal Code', 'Country', 'Tax ID', 'Is Client', 'Is Supplier'];
+
 	if (rows.length === 0) {
-		return buildCsv(['Name', 'Email', 'Phone', 'Address', 'Tax ID', 'Is Client', 'Is Supplier'], []);
+		return buildCsv(headers, []);
 	}
 
 	const [clientRows, supplierRows] = await Promise.all([
@@ -31,13 +34,16 @@ export async function exportContactsHandler(
 	const clientSet = new Set(clientRows.map((r) => r.contactId));
 	const supplierSet = new Set(supplierRows.map((r) => r.contactId));
 
-	const headers = ['Name', 'Email', 'Phone', 'Address', 'Tax ID', 'Is Client', 'Is Supplier'];
-
 	const csvRows = rows.map((c) => [
 		c.name,
 		c.email ?? '',
 		c.phone ?? '',
-		c.address ?? '',
+		c.addressLine1 ?? '',
+		c.addressLine2 ?? '',
+		c.addressCity ?? '',
+		c.addressState ?? '',
+		c.addressPostalCode ?? '',
+		c.addressCountry ?? '',
 		c.taxId ?? '',
 		clientSet.has(c.id) ? 'Yes' : 'No',
 		supplierSet.has(c.id) ? 'Yes' : 'No',

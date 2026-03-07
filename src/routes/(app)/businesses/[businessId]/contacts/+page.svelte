@@ -5,6 +5,8 @@
 	import { parsePhone } from '$lib/data/phoneCodes';
 	import PhoneCodeCombobox from '$lib/components/PhoneCodeCombobox.svelte';
 	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
+	import AddressInput from '$lib/components/AddressInput.svelte';
+	import { formatAddress } from '$lib/utils/address';
 	import { Plus, Loader2, Pencil, Trash2, UsersRound, Download, Crown, Search } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
 
@@ -13,7 +15,12 @@
 		name: string;
 		email: string | null;
 		phone: string | null;
-		address: string | null;
+		addressLine1: string | null;
+		addressLine2: string | null;
+		addressCity: string | null;
+		addressState: string | null;
+		addressPostalCode: string | null;
+		addressCountry: string | null;
 		taxId: string | null;
 		isClient: boolean;
 		isSupplier: boolean;
@@ -56,7 +63,12 @@
 	let createEmail    = $state('');
 	let createPhoneCode   = $state('+1');
 	let createPhoneNumber = $state('');
-	let createAddress  = $state('');
+	let createAddrLine1 = $state('');
+	let createAddrLine2 = $state('');
+	let createAddrCity = $state('');
+	let createAddrState = $state('');
+	let createAddrPostalCode = $state('');
+	let createAddrCountry = $state('');
 	let createTaxId    = $state('');
 	let createIsClient   = $state(false);
 	let createIsSupplier = $state(false);
@@ -70,7 +82,12 @@
 	let editEmail      = $state('');
 	let editPhoneCode     = $state('+1');
 	let editPhoneNumber   = $state('');
-	let editAddress    = $state('');
+	let editAddrLine1 = $state('');
+	let editAddrLine2 = $state('');
+	let editAddrCity = $state('');
+	let editAddrState = $state('');
+	let editAddrPostalCode = $state('');
+	let editAddrCountry = $state('');
 	let editTaxId      = $state('');
 	let editIsClient   = $state(false);
 	let editIsSupplier = $state(false);
@@ -117,7 +134,12 @@
 				name:       createName.trim(),
 				email:      createEmail.trim() || undefined,
 				phone,
-				address:    createAddress.trim() || undefined,
+				addressLine1: createAddrLine1.trim() || undefined,
+				addressLine2: createAddrLine2.trim() || undefined,
+				addressCity: createAddrCity.trim() || undefined,
+				addressState: createAddrState.trim() || undefined,
+				addressPostalCode: createAddrPostalCode.trim() || undefined,
+				addressCountry: createAddrCountry.trim() || undefined,
 				taxId:      createTaxId.trim() || undefined,
 				isClient:   createIsClient,
 				isSupplier: createIsSupplier,
@@ -129,7 +151,12 @@
 			createEmail  = '';
 			createPhoneCode   = '+1';
 			createPhoneNumber = '';
-			createAddress = '';
+			createAddrLine1 = '';
+			createAddrLine2 = '';
+			createAddrCity = '';
+			createAddrState = '';
+			createAddrPostalCode = '';
+			createAddrCountry = '';
 			createTaxId  = '';
 			createIsClient   = false;
 			createIsSupplier = false;
@@ -148,7 +175,12 @@
 		editEmail      = c.email ?? '';
 		editPhoneCode     = parsed.code;
 		editPhoneNumber   = parsed.number;
-		editAddress    = c.address ?? '';
+		editAddrLine1 = c.addressLine1 ?? '';
+		editAddrLine2 = c.addressLine2 ?? '';
+		editAddrCity = c.addressCity ?? '';
+		editAddrState = c.addressState ?? '';
+		editAddrPostalCode = c.addressPostalCode ?? '';
+		editAddrCountry = c.addressCountry ?? '';
 		editTaxId      = c.taxId ?? '';
 		editIsClient   = c.isClient;
 		editIsSupplier = c.isSupplier;
@@ -168,7 +200,12 @@
 				name:       editName.trim(),
 				email:      editEmail.trim() || null,
 				phone,
-				address:    editAddress.trim() || null,
+				addressLine1: editAddrLine1.trim() || null,
+				addressLine2: editAddrLine2.trim() || null,
+				addressCity: editAddrCity.trim() || null,
+				addressState: editAddrState.trim() || null,
+				addressPostalCode: editAddrPostalCode.trim() || null,
+				addressCountry: editAddrCountry.trim() || null,
 				taxId:      editTaxId.trim() || null,
 				isClient:   editIsClient,
 				isSupplier: editIsSupplier,
@@ -272,8 +309,7 @@
 					<input type="tel" bind:value={createPhoneNumber} placeholder="Phone"
 						class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
 				</div>
-				<textarea bind:value={createAddress} placeholder="Address" rows="3"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
+				<AddressInput bind:line1={createAddrLine1} bind:line2={createAddrLine2} bind:city={createAddrCity} bind:region={createAddrState} bind:postalCode={createAddrPostalCode} bind:country={createAddrCountry} />
 				<input type="text" bind:value={createTaxId} placeholder="Tax ID / SST No."
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 				<CurrencyCombobox bind:value={createDefaultCurrency} placeholder="Default Currency (none)" />
@@ -329,8 +365,7 @@
 								<input type="tel" bind:value={editPhoneNumber} placeholder="Phone"
 									class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" />
 							</div>
-							<textarea bind:value={editAddress} placeholder="Address" rows="3"
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"></textarea>
+							<AddressInput bind:line1={editAddrLine1} bind:line2={editAddrLine2} bind:city={editAddrCity} bind:region={editAddrState} bind:postalCode={editAddrPostalCode} bind:country={editAddrCountry} />
 							<input type="text" bind:value={editTaxId} placeholder="Tax ID / SST No."
 								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 							<CurrencyCombobox bind:value={editDefaultCurrency} placeholder="Default Currency (none)" />

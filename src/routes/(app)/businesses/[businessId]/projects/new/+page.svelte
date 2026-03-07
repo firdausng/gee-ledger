@@ -111,7 +111,7 @@
 				{:else}
 					<Select.Root type="single" bind:value={contactId}>
 						<Select.Trigger>
-							{contactId ? clientContacts.find((c) => c.id === contactId)?.name : 'No client'}
+							<span class="truncate">{contactId ? clientContacts.find((c) => c.id === contactId)?.name : 'No client'}</span>
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="">No client</Select.Item>

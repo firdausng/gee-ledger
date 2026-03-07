@@ -3,12 +3,19 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { Plus, Loader2, Pencil, Trash2, MapPin } from '@lucide/svelte';
+	import AddressInput from '$lib/components/AddressInput.svelte';
+	import { formatAddress } from '$lib/utils/address';
 
 	type Location = {
 		id: string;
 		name: string;
 		type: string;
-		address: string | null;
+		addressLine1: string | null;
+		addressLine2: string | null;
+		addressCity: string | null;
+		addressState: string | null;
+		addressPostalCode: string | null;
+		addressCountry: string | null;
 		isActive: boolean;
 	};
 
@@ -24,7 +31,12 @@
 	let showCreate = $state(false);
 	let createName = $state('');
 	let createType = $state<string>('branch');
-	let createAddress = $state('');
+	let createAddrLine1 = $state('');
+	let createAddrLine2 = $state('');
+	let createAddrCity = $state('');
+	let createAddrState = $state('');
+	let createAddrPostalCode = $state('');
+	let createAddrCountry = $state('');
 	let creating = $state(false);
 	let createError = $state<string | null>(null);
 
@@ -32,7 +44,12 @@
 	let editId = $state<string | null>(null);
 	let editName = $state('');
 	let editType = $state('');
-	let editAddress = $state('');
+	let editAddrLine1 = $state('');
+	let editAddrLine2 = $state('');
+	let editAddrCity = $state('');
+	let editAddrState = $state('');
+	let editAddrPostalCode = $state('');
+	let editAddrCountry = $state('');
 	let editing = $state(false);
 	let editError = $state<string | null>(null);
 
@@ -60,13 +77,23 @@
 			const loc = await api.post<Location>(`/businesses/${businessId}/locations`, {
 				name: createName.trim(),
 				type: createType,
-				address: createAddress.trim() || undefined
+				addressLine1: createAddrLine1.trim() || undefined,
+				addressLine2: createAddrLine2.trim() || undefined,
+				addressCity: createAddrCity.trim() || undefined,
+				addressState: createAddrState.trim() || undefined,
+				addressPostalCode: createAddrPostalCode.trim() || undefined,
+				addressCountry: createAddrCountry.trim() || undefined
 			});
 			locations = [...locations, loc];
 			showCreate = false;
 			createName = '';
 			createType = 'branch';
-			createAddress = '';
+			createAddrLine1 = '';
+			createAddrLine2 = '';
+			createAddrCity = '';
+			createAddrState = '';
+			createAddrPostalCode = '';
+			createAddrCountry = '';
 		} catch (e) {
 			createError = e instanceof Error ? e.message : 'Failed to create';
 		} finally {
@@ -78,7 +105,12 @@
 		editId = loc.id;
 		editName = loc.name;
 		editType = loc.type;
-		editAddress = loc.address ?? '';
+		editAddrLine1 = loc.addressLine1 ?? '';
+		editAddrLine2 = loc.addressLine2 ?? '';
+		editAddrCity = loc.addressCity ?? '';
+		editAddrState = loc.addressState ?? '';
+		editAddrPostalCode = loc.addressPostalCode ?? '';
+		editAddrCountry = loc.addressCountry ?? '';
 		editError = null;
 	}
 
@@ -90,7 +122,12 @@
 			const updated = await api.patch<Location>(`/businesses/${businessId}/locations/${editId}`, {
 				name: editName.trim(),
 				type: editType,
-				address: editAddress.trim() || undefined
+				addressLine1: editAddrLine1.trim() || undefined,
+				addressLine2: editAddrLine2.trim() || undefined,
+				addressCity: editAddrCity.trim() || undefined,
+				addressState: editAddrState.trim() || undefined,
+				addressPostalCode: editAddrPostalCode.trim() || undefined,
+				addressCountry: editAddrCountry.trim() || undefined
 			});
 			locations = locations.map((l) => (l.id === editId ? updated : l));
 			editId = null;
@@ -150,12 +187,7 @@
 						<option value={t}>{t}</option>
 					{/each}
 				</select>
-				<input
-					type="text"
-					bind:value={createAddress}
-					placeholder="Address (optional)"
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-				/>
+				<AddressInput bind:line1={createAddrLine1} bind:line2={createAddrLine2} bind:city={createAddrCity} bind:region={createAddrState} bind:postalCode={createAddrPostalCode} bind:country={createAddrCountry} />
 				<div class="flex justify-end gap-2">
 					<button
 						onclick={() => { showCreate = false; createError = null; }}
@@ -211,12 +243,7 @@
 									<option value={t}>{t}</option>
 								{/each}
 							</select>
-							<input
-								type="text"
-								bind:value={editAddress}
-								placeholder="Address (optional)"
-								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-							/>
+						<AddressInput bind:line1={editAddrLine1} bind:line2={editAddrLine2} bind:city={editAddrCity} bind:region={editAddrState} bind:postalCode={editAddrPostalCode} bind:country={editAddrCountry} />
 							<div class="flex justify-end gap-2">
 								<button
 									onclick={() => (editId = null)}
@@ -236,12 +263,13 @@
 						</div>
 					</div>
 				{:else}
+					{@const addr = formatAddress({ line1: loc.addressLine1, line2: loc.addressLine2, city: loc.addressCity, state: loc.addressState, postalCode: loc.addressPostalCode, country: loc.addressCountry })}
 					<div class="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
 						<MapPin class="size-4 text-muted-foreground shrink-0" />
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground">{loc.name}</p>
-							{#if loc.address}
-								<p class="text-xs text-muted-foreground truncate">{loc.address}</p>
+							{#if addr}
+								<p class="text-xs text-muted-foreground truncate">{addr}</p>
 							{/if}
 						</div>
 						<span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize shrink-0">

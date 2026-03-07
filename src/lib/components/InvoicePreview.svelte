@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { formatAddress } from '$lib/utils/address';
+
 	type BillTo = {
 		name?:    string;
 		address?: string;
@@ -24,7 +26,12 @@
 		business: {
 			name: string;
 			currency: string;
-			address?: string | null;
+			addressLine1?: string | null;
+			addressLine2?: string | null;
+			addressCity?: string | null;
+			addressState?: string | null;
+			addressPostalCode?: string | null;
+			addressCountry?: string | null;
 			phone?: string | null;
 			taxId?: string | null;
 			logoR2Key?: string | null;
@@ -82,6 +89,15 @@
 	const itemsTotal = $derived(
 		items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
 	);
+
+	const bizAddress = $derived(formatAddress({
+		line1: biz.addressLine1,
+		line2: biz.addressLine2,
+		city: biz.addressCity,
+		state: biz.addressState,
+		postalCode: biz.addressPostalCode,
+		country: biz.addressCountry,
+	}));
 </script>
 
 <div class="bg-white text-gray-900 font-sans {compact ? 'p-4 sm:p-6' : 'p-10'}">
@@ -97,8 +113,8 @@
 		{/if}
 		<div class="flex-1 min-w-0">
 			<p class="{compact ? 'text-sm' : 'text-lg'} font-bold text-gray-900">{biz.name}</p>
-			{#if biz.address}
-				<p class="{compact ? 'text-[11px]' : 'text-sm'} text-gray-500 mt-0.5 whitespace-pre-line">{biz.address}</p>
+			{#if bizAddress}
+				<p class="{compact ? 'text-[11px]' : 'text-sm'} text-gray-500 mt-0.5 whitespace-pre-line">{bizAddress}</p>
 			{/if}
 			<div class="flex flex-wrap gap-x-3 mt-0.5 {compact ? 'text-[11px]' : 'text-sm'} text-gray-500">
 				{#if biz.phone}<span>{biz.phone}</span>{/if}

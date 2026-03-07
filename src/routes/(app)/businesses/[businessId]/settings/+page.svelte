@@ -5,23 +5,23 @@
 	import { toast } from 'svelte-sonner';
 	import { Settings2, Loader2, Upload, ImageOff, Trash2 } from '@lucide/svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
-	import * as Card from '$lib/components/ui/card';
+	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import { Separator } from '$lib/components/ui/separator';
 	import CurrencyCombobox from '$lib/components/CurrencyCombobox.svelte';
 	import { parsePhone } from '$lib/data/phoneCodes';
 	import PhoneCodeCombobox from '$lib/components/PhoneCodeCombobox.svelte';
+	import AddressInput from '$lib/components/AddressInput.svelte';
 
 	let { data } = $props();
 
 	const businessId = $page.params.businessId!;
 	const biz = $derived(data.business);
 
-	// ── Business Info ──────────────────────────────────────────────
+	// ── General ────────────────────────────────────────────────────
 	let infoName        = $state(biz.name ?? '');
 	let infoDescription = $state(biz.description ?? '');
 	let infoCurrency    = $state(biz.currency ?? 'USD');
@@ -29,8 +29,20 @@
 	let infoError       = $state<string | null>(null);
 	let infoSuccess     = $state(false);
 
+	// Logo
+	let logoInput: HTMLInputElement;
+	let logoPreview    = $state<string | null>(biz.logoR2Key ? `/api/businesses/${businessId}/logo` : null);
+	let logoUploading  = $state(false);
+	let logoError      = $state<string | null>(null);
+	let logoSuccess    = $state(false);
+
 	// ── Contact & Legal ────────────────────────────────────────────
-	let contactAddress = $state(biz.address ?? '');
+	let contactAddrLine1      = $state(biz.addressLine1 ?? '');
+	let contactAddrLine2      = $state(biz.addressLine2 ?? '');
+	let contactAddrCity       = $state(biz.addressCity ?? '');
+	let contactAddrState      = $state(biz.addressState ?? '');
+	let contactAddrPostalCode = $state(biz.addressPostalCode ?? '');
+	let contactAddrCountry    = $state(biz.addressCountry ?? '');
 	let contactTaxId   = $state(biz.taxId ?? '');
 
 	const parsedPhone = parsePhone(biz.phone ?? '');
@@ -60,13 +72,6 @@
 		'Manufacturing', 'Non-Profit', 'Real Estate', 'Retail', 'Technology',
 		'Telecommunications', 'Transportation & Logistics', 'Other'
 	];
-
-	// ── Logo ───────────────────────────────────────────────────────
-	let logoInput: HTMLInputElement;
-	let logoPreview    = $state<string | null>(biz.logoR2Key ? `/api/businesses/${businessId}/logo` : null);
-	let logoUploading  = $state(false);
-	let logoError      = $state<string | null>(null);
-	let logoSuccess    = $state(false);
 
 	// ── Delete ─────────────────────────────────────────────────────
 	const isOwner = $derived(data.policyKey === 'owner');
@@ -98,11 +103,17 @@
 			contactSaving = true;
 			contactError = null;
 			contactSuccess = false;
-			await api.patch(`/businesses/${businessId}`, {
-				address: contactAddress || undefined,
-				phone: contactPhoneNumber.trim() ? `${contactPhoneCode}${contactPhoneNumber.trim()}` : undefined,
-				taxId: contactTaxId || undefined,
-			});
+			const body: Record<string, unknown> = {
+				addressLine1: contactAddrLine1.trim() || null,
+				addressLine2: contactAddrLine2.trim() || null,
+				addressCity: contactAddrCity.trim() || null,
+				addressState: contactAddrState.trim() || null,
+				addressPostalCode: contactAddrPostalCode.trim() || null,
+				addressCountry: contactAddrCountry.trim() || null,
+			};
+			if (contactPhoneNumber.trim()) body.phone = `${contactPhoneCode}${contactPhoneNumber.trim()}`;
+			if (contactTaxId) body.taxId = contactTaxId;
+			await api.patch(`/businesses/${businessId}`, body);
 			contactSuccess = true;
 			setTimeout(() => (contactSuccess = false), 3000);
 		} catch (e) {
@@ -179,13 +190,19 @@
 		</div>
 	</div>
 
-	<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-		<!-- Business Info -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title class="text-sm">Business Info</Card.Title>
-			</Card.Header>
-			<Card.Content class="space-y-4">
+	<Tabs.Root value="general">
+		<Tabs.List class="w-full">
+			<Tabs.Trigger value="general">General</Tabs.Trigger>
+			<Tabs.Trigger value="contact">Contact & Legal</Tabs.Trigger>
+			<Tabs.Trigger value="details">Company Details</Tabs.Trigger>
+			{#if isOwner}
+				<Tabs.Trigger value="danger" class="data-[state=active]:text-destructive">Danger Zone</Tabs.Trigger>
+			{/if}
+		</Tabs.List>
+
+		<!-- ── General ──────────────────────────────────────────────── -->
+		<Tabs.Content value="general" class="mt-4 space-y-4">
+			<div class="space-y-4">
 				<div class="space-y-2">
 					<Label for="info-name">Name</Label>
 					<Input id="info-name" type="text" bind:value={infoName} maxlength={100} />
@@ -198,8 +215,50 @@
 					<Label>Currency</Label>
 					<CurrencyCombobox bind:value={infoCurrency} />
 				</div>
-			</Card.Content>
-			<Card.Footer class="flex items-center gap-3">
+			</div>
+
+			<!-- Logo -->
+			<div class="rounded-lg border border-border bg-card p-4 space-y-3">
+				<div>
+					<p class="text-sm font-medium">Logo</p>
+					<p class="text-xs text-muted-foreground">Appears on printed receipts and emailed invoices. JPEG or PNG, max 2 MB.</p>
+				</div>
+				<div class="flex items-center gap-4">
+					{#if logoPreview}
+						<img src={logoPreview} alt="Business logo" class="h-16 w-16 rounded-md object-contain border border-border bg-muted/20" />
+					{:else}
+						<div class="h-16 w-16 rounded-md border border-dashed border-border flex items-center justify-center bg-muted/20">
+							<ImageOff class="size-6 text-muted-foreground" />
+						</div>
+					{/if}
+					<div class="flex-1 min-w-0">
+						<input
+							bind:this={logoInput}
+							type="file"
+							accept="image/jpeg,image/png"
+							class="hidden"
+							onchange={uploadLogo}
+						/>
+						<Button variant="outline" size="sm" onclick={() => logoInput.click()} disabled={logoUploading}>
+							{#if logoUploading}
+								<Loader2 class="size-4 animate-spin" />
+								Uploading...
+							{:else}
+								<Upload class="size-4" />
+								{logoPreview ? 'Replace logo' : 'Upload logo'}
+							{/if}
+						</Button>
+						{#if logoError}
+							<p class="text-destructive text-xs mt-2">{logoError}</p>
+						{/if}
+						{#if logoSuccess}
+							<p class="text-xs text-success-fg mt-2">Logo updated!</p>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<div class="flex items-center gap-3">
 				<Button onclick={saveInfo} disabled={infoSaving} size="sm">
 					{#if infoSaving}<Loader2 class="size-4 animate-spin" />{/if}
 					Save
@@ -210,106 +269,53 @@
 				{#if infoError}
 					<span class="text-xs text-destructive">{infoError}</span>
 				{/if}
-			</Card.Footer>
-		</Card.Root>
+			</div>
+		</Tabs.Content>
 
-		<!-- Right column -->
-		<div class="flex flex-col gap-4">
-			<!-- Contact & Legal -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-sm">Contact & Legal</Card.Title>
-					<Card.Description>Shown on invoices and receipts sent to customers.</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-4">
-					<div class="space-y-2">
-						<Label for="contact-address">Address</Label>
-						<Textarea id="contact-address" bind:value={contactAddress} rows={3} class="resize-none" placeholder="123 Main St, City, Country" />
-					</div>
-					<div class="space-y-2">
-						<Label for="contact-phone-number">Phone</Label>
-						<div class="flex rounded-md border border-input bg-background focus-within:ring-[3px] focus-within:ring-ring/50 focus-within:border-ring overflow-hidden shadow-xs">
-							<PhoneCodeCombobox bind:value={contactPhoneCode} />
-							<input
-								id="contact-phone-number"
-								type="tel"
-								bind:value={contactPhoneNumber}
-								placeholder="12-345 6789"
-								class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground"
-							/>
-						</div>
-					</div>
-					<div class="space-y-2">
-						<Label for="contact-taxid">Tax ID / SST No.</Label>
-						<Input id="contact-taxid" type="text" bind:value={contactTaxId} placeholder="W10-1234-56789012" />
-					</div>
-				</Card.Content>
-				<Card.Footer class="flex items-center gap-3">
-					<Button onclick={saveContact} disabled={contactSaving} size="sm">
-						{#if contactSaving}<Loader2 class="size-4 animate-spin" />{/if}
-						Save
-					</Button>
-					{#if contactSuccess}
-						<span class="text-xs text-success-fg">Saved!</span>
-					{/if}
-					{#if contactError}
-						<span class="text-xs text-destructive">{contactError}</span>
-					{/if}
-				</Card.Footer>
-			</Card.Root>
+		<!-- ── Contact & Legal ──────────────────────────────────────── -->
+		<Tabs.Content value="contact" class="mt-4 space-y-4">
+			<p class="text-xs text-muted-foreground">Shown on invoices and receipts sent to customers.</p>
 
-			<!-- Logo -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title class="text-sm">Logo</Card.Title>
-					<Card.Description>Appears on printed receipts and emailed invoices. JPEG or PNG, max 2 MB.</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<div class="flex items-center gap-4">
-						{#if logoPreview}
-							<img src={logoPreview} alt="Business logo" class="h-16 w-16 rounded-md object-contain border border-border bg-muted/20" />
-						{:else}
-							<div class="h-16 w-16 rounded-md border border-dashed border-border flex items-center justify-center bg-muted/20">
-								<ImageOff class="size-6 text-muted-foreground" />
-							</div>
-						{/if}
-						<div class="flex-1 min-w-0">
-							<input
-								bind:this={logoInput}
-								type="file"
-								accept="image/jpeg,image/png"
-								class="hidden"
-								onchange={uploadLogo}
-							/>
-							<Button variant="outline" size="sm" onclick={() => logoInput.click()} disabled={logoUploading}>
-								{#if logoUploading}
-									<Loader2 class="size-4 animate-spin" />
-									Uploading...
-								{:else}
-									<Upload class="size-4" />
-									{logoPreview ? 'Replace logo' : 'Upload logo'}
-								{/if}
-							</Button>
-							{#if logoError}
-								<p class="text-destructive text-xs mt-2">{logoError}</p>
-							{/if}
-							{#if logoSuccess}
-								<p class="text-xs text-success-fg mt-2">Logo updated!</p>
-							{/if}
-						</div>
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</div>
-	</div>
+			<div class="space-y-2">
+				<Label>Address</Label>
+				<AddressInput bind:line1={contactAddrLine1} bind:line2={contactAddrLine2} bind:city={contactAddrCity} bind:region={contactAddrState} bind:postalCode={contactAddrPostalCode} bind:country={contactAddrCountry} />
+			</div>
+			<div class="space-y-2">
+				<Label for="contact-phone-number">Phone</Label>
+				<div class="flex rounded-md border border-input bg-background focus-within:ring-[3px] focus-within:ring-ring/50 focus-within:border-ring overflow-hidden shadow-xs">
+					<PhoneCodeCombobox bind:value={contactPhoneCode} />
+					<input
+						id="contact-phone-number"
+						type="tel"
+						bind:value={contactPhoneNumber}
+						placeholder="12-345 6789"
+						class="flex-1 bg-transparent px-3 py-2 text-sm focus:outline-none text-foreground placeholder:text-muted-foreground"
+					/>
+				</div>
+			</div>
+			<div class="space-y-2">
+				<Label for="contact-taxid">Tax ID / SST No.</Label>
+				<Input id="contact-taxid" type="text" bind:value={contactTaxId} placeholder="W10-1234-56789012" />
+			</div>
 
-	<!-- Company Details -->
-	<Card.Root class="mt-4">
-		<Card.Header>
-			<Card.Title class="text-sm">Company Details</Card.Title>
-			<Card.Description>Additional company information for compliance and identification.</Card.Description>
-		</Card.Header>
-		<Card.Content class="space-y-4">
+			<div class="flex items-center gap-3">
+				<Button onclick={saveContact} disabled={contactSaving} size="sm">
+					{#if contactSaving}<Loader2 class="size-4 animate-spin" />{/if}
+					Save
+				</Button>
+				{#if contactSuccess}
+					<span class="text-xs text-success-fg">Saved!</span>
+				{/if}
+				{#if contactError}
+					<span class="text-xs text-destructive">{contactError}</span>
+				{/if}
+			</div>
+		</Tabs.Content>
+
+		<!-- ── Company Details ──────────────────────────────────────── -->
+		<Tabs.Content value="details" class="mt-4 space-y-4">
+			<p class="text-xs text-muted-foreground">Additional company information for compliance and identification.</p>
+
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 				<div class="space-y-2">
 					<Label for="detail-regno">ID / Registration No.</Label>
@@ -362,67 +368,68 @@
 				<Label for="detail-classification">Classification</Label>
 				<Input id="detail-classification" type="text" bind:value={detailClassification} placeholder="e.g. Sole Proprietorship, LLC, Sdn Bhd" />
 			</div>
-		</Card.Content>
-		<Card.Footer class="flex items-center gap-3">
-			<Button onclick={saveDetails} disabled={detailSaving} size="sm">
-				{#if detailSaving}<Loader2 class="size-4 animate-spin" />{/if}
-				Save
-			</Button>
-			{#if detailSuccess}
-				<span class="text-xs text-success-fg">Saved!</span>
-			{/if}
-			{#if detailError}
-				<span class="text-xs text-destructive">{detailError}</span>
-			{/if}
-		</Card.Footer>
-	</Card.Root>
 
-	<!-- Danger Zone -->
-	{#if isOwner}
-		<Card.Root class="mt-4 border-destructive/30">
-			<Card.Header>
-				<Card.Title class="text-sm text-destructive">Danger Zone</Card.Title>
-				<Card.Description>
-					Deleting this business will permanently remove all its transactions, accounts, contacts, and other data. This action cannot be undone.
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<AlertDialog.Root onOpenChange={() => (deleteConfirmName = '')}>
-					<AlertDialog.Trigger>
-						{#snippet child({ props })}
-							<Button variant="outline" size="sm" {...props} class="border-destructive/30 text-destructive hover:bg-destructive/10">
-								<Trash2 class="size-4" />
-								Delete Business
-							</Button>
-						{/snippet}
-					</AlertDialog.Trigger>
-					<AlertDialog.Content>
-						<AlertDialog.Header>
-							<AlertDialog.Title>Delete {biz.name}?</AlertDialog.Title>
-							<AlertDialog.Description>
-								This will permanently delete all transactions, accounts, contacts, categories, locations, channels, and attachments associated with this business.
-							</AlertDialog.Description>
-						</AlertDialog.Header>
-						<div class="py-2 space-y-2">
-							<Label>
-								Type <span class="font-semibold">{biz.name}</span> to confirm
-							</Label>
-							<Input type="text" bind:value={deleteConfirmName} placeholder={biz.name} />
-						</div>
-						<AlertDialog.Footer>
-							<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-							<Button
-								variant="destructive"
-								onclick={deleteBusiness}
-								disabled={deleting || deleteConfirmName !== biz.name}
-							>
-								{#if deleting}<Loader2 class="size-4 animate-spin" />{/if}
-								Delete permanently
-							</Button>
-						</AlertDialog.Footer>
-					</AlertDialog.Content>
-				</AlertDialog.Root>
-			</Card.Content>
-		</Card.Root>
-	{/if}
+			<div class="flex items-center gap-3">
+				<Button onclick={saveDetails} disabled={detailSaving} size="sm">
+					{#if detailSaving}<Loader2 class="size-4 animate-spin" />{/if}
+					Save
+				</Button>
+				{#if detailSuccess}
+					<span class="text-xs text-success-fg">Saved!</span>
+				{/if}
+				{#if detailError}
+					<span class="text-xs text-destructive">{detailError}</span>
+				{/if}
+			</div>
+		</Tabs.Content>
+
+		<!-- ── Danger Zone ──────────────────────────────────────────── -->
+		{#if isOwner}
+			<Tabs.Content value="danger" class="mt-4">
+				<div class="rounded-lg border border-destructive/30 p-6 space-y-4">
+					<div>
+						<h3 class="text-sm font-semibold text-destructive">Delete Business</h3>
+						<p class="text-sm text-muted-foreground mt-1">
+							Deleting this business will permanently remove all its transactions, accounts, contacts, and other data. This action cannot be undone.
+						</p>
+					</div>
+					<AlertDialog.Root onOpenChange={() => (deleteConfirmName = '')}>
+						<AlertDialog.Trigger>
+							{#snippet child({ props })}
+								<Button variant="outline" size="sm" {...props} class="border-destructive/30 text-destructive hover:bg-destructive/10">
+									<Trash2 class="size-4" />
+									Delete Business
+								</Button>
+							{/snippet}
+						</AlertDialog.Trigger>
+						<AlertDialog.Content>
+							<AlertDialog.Header>
+								<AlertDialog.Title>Delete {biz.name}?</AlertDialog.Title>
+								<AlertDialog.Description>
+									This will permanently delete all transactions, accounts, contacts, categories, locations, channels, and attachments associated with this business.
+								</AlertDialog.Description>
+							</AlertDialog.Header>
+							<div class="py-2 space-y-2">
+								<Label>
+									Type <span class="font-semibold">{biz.name}</span> to confirm
+								</Label>
+								<Input type="text" bind:value={deleteConfirmName} placeholder={biz.name} />
+							</div>
+							<AlertDialog.Footer>
+								<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+								<Button
+									variant="destructive"
+									onclick={deleteBusiness}
+									disabled={deleting || deleteConfirmName !== biz.name}
+								>
+									{#if deleting}<Loader2 class="size-4 animate-spin" />{/if}
+									Delete permanently
+								</Button>
+							</AlertDialog.Footer>
+						</AlertDialog.Content>
+					</AlertDialog.Root>
+				</div>
+			</Tabs.Content>
+		{/if}
+	</Tabs.Root>
 </div>

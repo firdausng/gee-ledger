@@ -23,7 +23,12 @@ export async function updateLocationHandler(
 		.set({
 			...(data.name !== undefined && { name: data.name }),
 			...(data.type !== undefined && { type: data.type }),
-			...(data.address !== undefined && { address: data.address }),
+			...(data.addressLine1      !== undefined && { addressLine1:      data.addressLine1 }),
+			...(data.addressLine2      !== undefined && { addressLine2:      data.addressLine2 }),
+			...(data.addressCity       !== undefined && { addressCity:       data.addressCity }),
+			...(data.addressState      !== undefined && { addressState:      data.addressState }),
+			...(data.addressPostalCode !== undefined && { addressPostalCode: data.addressPostalCode }),
+			...(data.addressCountry    !== undefined && { addressCountry:    data.addressCountry }),
 			...(data.isActive !== undefined && { isActive: data.isActive }),
 			updatedAt: now,
 			updatedBy: user.id

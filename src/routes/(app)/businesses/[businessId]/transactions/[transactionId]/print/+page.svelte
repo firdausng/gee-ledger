@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { ArrowLeft, Printer, Mail, Crown } from '@lucide/svelte';
 	import InvoicePreview from '$lib/components/InvoicePreview.svelte';
+	import { formatAddress } from '$lib/utils/address';
 	import { api } from '$lib/client/api.svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
 
@@ -29,7 +30,7 @@
 
 	let documentType = $state<DocType>((data.transaction.documentType as DocType | null) ?? defaultDocType(data.transaction.type));
 	let billToName  = $state(data.contact?.name ?? '');
-	let billToAddr  = $state(data.contact?.address ?? '');
+	let billToAddr  = $state(data.contact ? formatAddress({ line1: data.contact.addressLine1, line2: data.contact.addressLine2, city: data.contact.addressCity, state: data.contact.addressState, postalCode: data.contact.addressPostalCode, country: data.contact.addressCountry }) : '');
 	let billToEmail = $state('');
 	let invoiceNo   = $state(tx.invoiceNo ?? '');
 	let receiptNo   = $state(tx.receiptNo ?? '');

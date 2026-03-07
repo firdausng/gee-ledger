@@ -262,7 +262,7 @@
 					{:else}
 						<Select.Root type="single" bind:value={locationId}>
 							<Select.Trigger>
-								{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}
+								<span class="truncate">{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}</span>
 							</Select.Trigger>
 							<Select.Content>
 								{#each locations as loc (loc.id)}
@@ -278,7 +278,7 @@
 					<Label>Channel</Label>
 					<Select.Root type="single" bind:value={salesChannelId}>
 						<Select.Trigger>
-							{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'No channel'}
+							<span class="truncate">{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'No channel'}</span>
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="">No channel</Select.Item>
@@ -296,7 +296,7 @@
 					<Label>Category</Label>
 					<Select.Root type="single" bind:value={categoryId}>
 						<Select.Trigger>
-							{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}
+							<span class="truncate">{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}</span>
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="">No category</Select.Item>
@@ -312,7 +312,7 @@
 					<Label>Client</Label>
 					<Select.Root type="single" bind:value={contactId}>
 						<Select.Trigger>
-							{contactId ? clientContacts.find((c) => c.id === contactId)?.name : 'No client'}
+							<span class="truncate">{contactId ? clientContacts.find((c) => c.id === contactId)?.name : 'No client'}</span>
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="">No client</Select.Item>

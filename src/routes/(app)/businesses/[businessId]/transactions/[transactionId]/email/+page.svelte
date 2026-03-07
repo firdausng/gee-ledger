@@ -4,6 +4,7 @@
 	import { api } from '$lib/client/api.svelte';
 	import { ArrowLeft, Send, Loader2, CheckCircle2, Mail } from '@lucide/svelte';
 	import InvoicePreview from '$lib/components/InvoicePreview.svelte';
+	import { formatAddress } from '$lib/utils/address';
 
 	let { data } = $props();
 
@@ -35,7 +36,7 @@
 	let documentType = $state<DocType>((initTx.documentType as DocType | null) ?? defaultDocType(initTx.type));
 	let toEmail      = $state(initContact?.email ?? '');
 	let billToName   = $state(initContact?.name ?? '');
-	let billToAddr   = $state(initContact?.address ?? '');
+	let billToAddr   = $state(initContact ? formatAddress({ line1: initContact.addressLine1, line2: initContact.addressLine2, city: initContact.addressCity, state: initContact.addressState, postalCode: initContact.addressPostalCode, country: initContact.addressCountry }) : '');
 	let subject      = $state('');
 	let sending      = $state(false);
 	let sent         = $state(false);

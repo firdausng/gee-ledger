@@ -1,7 +1,14 @@
+import { formatAddress, type Address } from '$lib/utils/address';
+
 type Business = {
 	name: string;
 	currency: string;
-	address?: string | null;
+	addressLine1?: string | null;
+	addressLine2?: string | null;
+	addressCity?: string | null;
+	addressState?: string | null;
+	addressPostalCode?: string | null;
+	addressCountry?: string | null;
 	phone?: string | null;
 	taxId?: string | null;
 };
@@ -76,8 +83,17 @@ function buildHtml(opts: {
 		row('Note',       transaction.note ?? ''),
 	].filter(Boolean).join('\n');
 
+	const bizAddress = formatAddress({
+		line1: business.addressLine1,
+		line2: business.addressLine2,
+		city: business.addressCity,
+		state: business.addressState,
+		postalCode: business.addressPostalCode,
+		country: business.addressCountry,
+	});
+
 	const businessMeta = [
-		business.address,
+		bizAddress ? bizAddress.replace(/\n/g, '<br>') : null,
 		business.phone   ? `Phone: ${business.phone}` : null,
 		business.taxId   ? `Tax ID: ${business.taxId}` : null,
 	].filter(Boolean).join('<br>');

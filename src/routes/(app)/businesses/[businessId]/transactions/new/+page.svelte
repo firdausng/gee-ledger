@@ -475,7 +475,7 @@
 						<div class="flex gap-1.5">
 							<Select.Root type="single" bind:value={locationId}>
 								<Select.Trigger class="flex-1 min-w-0">
-									{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}
+									<span class="truncate">{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}</span>
 								</Select.Trigger>
 								<Select.Content>
 									{#each locations as loc (loc.id)}
@@ -508,7 +508,7 @@
 						<div class="flex gap-1.5">
 							<Select.Root type="single" bind:value={salesChannelId}>
 								<Select.Trigger class="flex-1 min-w-0">
-									{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'Select channel'}
+									<span class="truncate">{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'Select channel'}</span>
 								</Select.Trigger>
 								<Select.Content>
 									{#each channels as ch (ch.id)}
@@ -544,7 +544,7 @@
 						<div class="flex gap-1.5">
 							<Select.Root type="single" bind:value={categoryId}>
 								<Select.Trigger class="flex-1 min-w-0">
-									{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}
+									<span class="truncate">{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}</span>
 								</Select.Trigger>
 								<Select.Content>
 									<Select.Item value="">No category</Select.Item>
@@ -569,11 +569,11 @@
 					<div class="flex gap-1.5">
 						<Select.Root type="single" bind:value={contactId}>
 							<Select.Trigger class="flex-1 min-w-0">
-								{#if contactId}
+								<span class="truncate">{#if contactId}
 									{(type === 'income' ? clientContacts : supplierContacts).find((c) => c.id === contactId)?.name}
 								{:else}
 									No {type === 'income' ? 'client' : 'supplier'}
-								{/if}
+								{/if}</span>
 							</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="">No {type === 'income' ? 'client' : 'supplier'}</Select.Item>
