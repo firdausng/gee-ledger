@@ -292,6 +292,8 @@ export const transactions = sqliteTable(
 		lineItemMode:    text('line_item_mode').notNull().default('items'),
 		// 'invoice' | 'receipt' — overrides the default derived from type
 		documentType:    text('document_type'),
+		// Optional link to project
+		projectId: text('project_id'),
 		// ISO date string YYYY-MM-DD
 		transactionDate: text('transaction_date').notNull(),
 		// Optional due date YYYY-MM-DD (for invoices)
@@ -435,6 +437,8 @@ export const quotes = sqliteTable(
 		referenceNo: text('reference_no'),
 		featuredImageId: text('featured_image_id'),
 		lineItemMode: text('line_item_mode').notNull().default('items'),
+		// Optional link to project
+		projectId: text('project_id'),
 		// 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
 		status: text('status').notNull().default('draft'),
 		convertedTransactionId: text('converted_transaction_id'),
@@ -513,6 +517,104 @@ export const quoteConversions = sqliteTable(
 	(t) => ({
 		quoteIdx:       index('quote_conversions_quote_idx').on(t.quoteId),
 		transactionIdx: index('quote_conversions_tx_idx').on(t.transactionId),
+	})
+);
+
+// ─── Projects ─────────────────────────────────────────────────────────────────
+
+export const projects = sqliteTable(
+	'projects',
+	{
+		id: text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		name: text('name').notNull(),
+		description: text('description'),
+		contactId: text('contact_id'),
+		// 'draft' | 'active' | 'on-hold' | 'completed' | 'cancelled'
+		status: text('status').notNull().default('draft'),
+		// Sum of task estimated costs (cents), kept in sync
+		estimatedAmount: integer('estimated_amount').notNull().default(0),
+		createdAt: text('created_at').notNull(),
+		createdBy: text('created_by').notNull(),
+		updatedAt: text('updated_at').notNull(),
+		updatedBy: text('updated_by').notNull(),
+		deletedAt: text('deleted_at'),
+		deletedBy: text('deleted_by')
+	},
+	(t) => ({
+		businessDeletedIdx: index('projects_business_deleted_idx').on(t.businessId, t.deletedAt),
+		businessStatusIdx: index('projects_business_status_idx').on(t.businessId, t.status, t.deletedAt),
+	})
+);
+
+export const projectTasks = sqliteTable(
+	'project_tasks',
+	{
+		id: text('id').primaryKey(),
+		projectId: text('project_id').notNull(),
+		title: text('title').notNull(),
+		description: text('description'),
+		// 'todo' | 'in-progress' | 'done'
+		status: text('status').notNull().default('todo'),
+		// 'fixed' | 'hourly'
+		billingMode: text('billing_mode').notNull().default('fixed'),
+		estimatedCost: integer('estimated_cost').notNull().default(0), // cents (used when fixed)
+		hourlyRate: integer('hourly_rate'),                            // cents/hr (used when hourly)
+		actualCost: integer('actual_cost'),                            // cents, optional
+		sortOrder: integer('sort_order').notNull().default(0),
+		createdAt: text('created_at').notNull(),
+		updatedAt: text('updated_at').notNull(),
+	},
+	(t) => ({
+		projectIdx: index('project_tasks_project_idx').on(t.projectId),
+	})
+);
+
+export const projectConversions = sqliteTable(
+	'project_conversions',
+	{
+		id: text('id').primaryKey(),
+		projectId: text('project_id').notNull(),
+		quoteId: text('quote_id'),
+		transactionId: text('transaction_id'),
+		note: text('note'),
+		createdAt: text('created_at').notNull(),
+		createdBy: text('created_by').notNull(),
+	},
+	(t) => ({
+		projectIdx: index('project_conversions_project_idx').on(t.projectId),
+		quoteIdx: index('project_conversions_quote_idx').on(t.quoteId),
+		transactionIdx: index('project_conversions_tx_idx').on(t.transactionId),
+	})
+);
+
+export const projectConversionItems = sqliteTable(
+	'project_conversion_items',
+	{
+		conversionId: text('conversion_id').notNull(),
+		taskId: text('task_id').notNull(),
+	},
+	(t) => ({
+		pk: primaryKey({ columns: [t.conversionId, t.taskId] }),
+	})
+);
+
+export const projectTimeEntries = sqliteTable(
+	'project_time_entries',
+	{
+		id: text('id').primaryKey(),
+		taskId: text('task_id').notNull(),
+		projectId: text('project_id').notNull(),
+		userId: text('user_id').notNull(),
+		startedAt: text('started_at').notNull(),
+		stoppedAt: text('stopped_at'),
+		durationMinutes: integer('duration_minutes'),
+		note: text('note'),
+	},
+	(t) => ({
+		taskIdx: index('time_entries_task_idx').on(t.taskId),
+		projectIdx: index('time_entries_project_idx').on(t.projectId),
+		userActiveIdx: index('time_entries_user_active_idx').on(t.userId, t.stoppedAt),
 	})
 );
 

@@ -77,7 +77,7 @@ export const TransactionItemSchema = v.object({
 	unitPrice:     v.pipe(v.number(), v.integer(), v.minValue(0)),
 	sortOrder:     v.optional(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
 	attachmentIds: v.optional(v.array(v.string()), []),
-	productId:     v.pipe(v.string(), v.minLength(1)),
+	productId:     v.optional(v.nullable(v.pipe(v.string(), v.minLength(1)))),
 });
 export const SaveTransactionItemsSchema = v.array(TransactionItemSchema);
 
