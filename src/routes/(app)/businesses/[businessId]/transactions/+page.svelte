@@ -23,6 +23,7 @@
 		categoryId: string | null;
 		contactId: string | null;
 		contactName: string | null;
+		firstItemDescription: string | null;
 		attachmentCount: number;
 	};
 
@@ -41,7 +42,7 @@
 	let perPage = $state(10);
 
 	// Filters
-	const entityFilterKeys = ['contactId', 'locationId', 'salesChannelId', 'categoryId'];
+	const entityFilterKeys = ['contactId', 'locationId', 'salesChannelId', 'categoryId', 'projectId'];
 	let entityFilters = $state<Record<string, string>>({});
 	let filterType = $state('');
 	let filterFrom = $state('');
@@ -228,7 +229,7 @@
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground truncate">{tx.note ?? tx.firstItemDescription ?? '—'}</p>
 							<p class="text-xs text-muted-foreground">
-							{new Date(tx.transactionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{#if tx.contactName} · {tx.contactName}{/if}
+							{new Date(tx.transactionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{#if tx.contactName && tx.contactId} · <a href="/businesses/{businessId}/transactions?contactId={tx.contactId}" class="text-primary hover:underline" onclick={(e) => e.stopPropagation()}>{tx.contactName}</a>{:else if tx.contactName} · {tx.contactName}{/if}
 						</p>
 						</div>
 						<span

@@ -17,6 +17,7 @@
 		estimatedAmount: number;
 		taskCount: number;
 		totalTrackedMinutes: number;
+		contactId: string | null;
 		contactName: string | null;
 		createdAt: string;
 	};
@@ -172,7 +173,7 @@
 						<div class="flex-1 min-w-0">
 							<p class="text-sm font-medium text-foreground truncate">{p.name}</p>
 							<p class="text-xs text-muted-foreground">
-								{#if p.contactName}{p.contactName} · {/if}
+								{#if p.contactName && p.contactId}<a href="/businesses/{businessId}/projects?contactId={p.contactId}" class="text-primary hover:underline" onclick={(e) => e.stopPropagation()}>{p.contactName}</a> · {:else if p.contactName}{p.contactName} · {/if}
 								<ListChecks class="size-3 inline-block -mt-0.5" /> {p.taskCount} tasks
 								{#if p.totalTrackedMinutes > 0}
 									· <Clock class="size-3 inline-block -mt-0.5" /> {formatTime(p.totalTrackedMinutes)}

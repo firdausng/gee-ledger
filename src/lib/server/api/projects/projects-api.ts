@@ -23,6 +23,7 @@ import { getProjectConversionsHandler } from './getProjectConversionsHandler';
 import { getTimeEntriesHandler } from './getTimeEntriesHandler';
 import { createTimeEntryHandler } from './createTimeEntryHandler';
 import { deleteTimeEntryHandler } from './deleteTimeEntryHandler';
+import { getProjectStatsHandler } from './getProjectStatsHandler';
 import { HTTPException } from 'hono/http-exception';
 
 export const projectsApi = new Hono<App.Api>()
@@ -52,6 +53,12 @@ export const projectsApi = new Hono<App.Api>()
 	.get('/businesses/:businessId/projects/:projectId', async (c) => {
 		const user = c.get('currentUser');
 		const data = await getProjectHandler(user, c.req.param('businessId'), c.req.param('projectId'), c.env);
+		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/projects/:projectId/stats', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getProjectStatsHandler(user, c.req.param('businessId'), c.req.param('projectId'), c.env);
 		return c.json({ data });
 	})
 

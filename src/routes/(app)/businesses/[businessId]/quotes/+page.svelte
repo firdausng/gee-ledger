@@ -21,6 +21,7 @@
 		status: string;
 		contactId: string | null;
 		contactName: string | null;
+		firstItemDescription: string | null;
 	};
 
 	const businessId = $page.params.businessId!;
@@ -182,7 +183,7 @@
 								{q.quoteNo ?? q.note ?? q.firstItemDescription ?? '—'}
 							</p>
 							<p class="text-xs text-muted-foreground">
-								{new Date(q.quoteDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{#if q.contactName} · {q.contactName}{/if}
+								{new Date(q.quoteDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{#if q.contactName && q.contactId} · <a href="/businesses/{businessId}/quotes?contactId={q.contactId}" class="text-primary hover:underline" onclick={(e) => e.stopPropagation()}>{q.contactName}</a>{:else if q.contactName} · {q.contactName}{/if}
 							</p>
 						</div>
 						<span class="text-sm font-semibold shrink-0 text-foreground">

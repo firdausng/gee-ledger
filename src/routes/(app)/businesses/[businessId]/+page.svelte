@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, TrendingUp, TrendingDown, Scale, Loader2, AlertTriangle, Clock } from '@lucide/svelte';
+	import { Plus, TrendingUp, TrendingDown, Scale, Loader2, AlertTriangle, Clock, Percent } from '@lucide/svelte';
 	import { DateRangePicker } from '$lib/components/ui/date-picker';
 
 	let { data } = $props();
@@ -20,7 +20,7 @@
 	};
 
 	type TrendRow = { period: string; income: number; expense: number };
-	type CategoryRow = { categoryName: string; type: string; total: number };
+	type CategoryRow = { categoryId: string; categoryName: string; type: string; total: number };
 	type DueInvoice = { id: string; type: string; amount: number; note: string | null; dueDate: string; contactName: string | null };
 
 	type Period = 'week' | 'month' | 'year' | 'custom';
@@ -91,6 +91,7 @@
 	let totalIncome = $derived(trend.reduce((s, t) => s + t.income, 0));
 	let totalExpense = $derived(trend.reduce((s, t) => s + t.expense, 0));
 	let balance = $derived(totalIncome - totalExpense);
+	let profitMargin = $derived(totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0);
 
 	let businessId = $derived($page.params.businessId!);
 
@@ -239,13 +240,13 @@
 	</div>
 
 	<!-- Summary cards -->
-	<div class="grid grid-cols-3 gap-2 mb-6 max-w-2xl">
+	<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
 		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
 			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
 				<TrendingUp class="size-3.5 sm:size-4 text-success-fg shrink-0" />
-				<span class="truncate">Income</span>
+				<span>Income</span>
 			</div>
-			<p class="text-sm sm:text-xl font-bold text-success-fg truncate">
+			<p class="text-sm sm:text-xl font-bold text-success-fg">
 				{statsLoading ? '—' : formatAmount(totalIncome, currency)}
 			</p>
 			<p class="text-xs text-muted-foreground mt-0.5">{periodLabel}</p>
@@ -253,9 +254,9 @@
 		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
 			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
 				<TrendingDown class="size-3.5 sm:size-4 text-destructive shrink-0" />
-				<span class="truncate">Expense</span>
+				<span>Expense</span>
 			</div>
-			<p class="text-sm sm:text-xl font-bold text-destructive truncate">
+			<p class="text-sm sm:text-xl font-bold text-destructive">
 				{statsLoading ? '—' : formatAmount(totalExpense, currency)}
 			</p>
 			<p class="text-xs text-muted-foreground mt-0.5">{periodLabel}</p>
@@ -263,10 +264,20 @@
 		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
 			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
 				<Scale class="size-3.5 sm:size-4 text-info-fg shrink-0" />
-				<span class="truncate">Balance</span>
+				<span>Balance</span>
 			</div>
-			<p class="text-sm sm:text-xl font-bold truncate {balance >= 0 ? 'text-foreground' : 'text-destructive'}">
+			<p class="text-sm sm:text-xl font-bold {balance >= 0 ? 'text-foreground' : 'text-destructive'}">
 				{statsLoading ? '—' : formatAmount(balance, currency)}
+			</p>
+			<p class="text-xs text-muted-foreground mt-0.5">{periodLabel}</p>
+		</div>
+		<div class="rounded-lg border border-border bg-card p-3 sm:p-4">
+			<div class="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-1">
+				<Percent class="size-3.5 sm:size-4 shrink-0 {profitMargin >= 0 ? 'text-success-fg' : 'text-destructive'}" />
+				<span>Margin</span>
+			</div>
+			<p class="text-sm sm:text-xl font-bold {profitMargin >= 0 ? 'text-success-fg' : 'text-destructive'}">
+				{statsLoading ? '—' : `${profitMargin.toFixed(1)}%`}
 			</p>
 			<p class="text-xs text-muted-foreground mt-0.5">{periodLabel}</p>
 		</div>
@@ -388,11 +399,11 @@
 							<h3 class="text-sm font-semibold text-foreground mb-3">Income by Category</h3>
 							<div class="flex flex-col gap-2.5">
 								{#each incomeCategories as cat, i}
-									<div class="flex items-center gap-2">
+									<a href="/businesses/{businessId}/transactions?categoryId={cat.categoryId}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
 										<span class="size-2.5 rounded-sm shrink-0" style:background={chartColors[i % chartColors.length]}></span>
 										<span class="text-xs text-muted-foreground truncate flex-1 min-w-0">{cat.categoryName}</span>
 										<span class="text-xs font-medium tabular-nums shrink-0">{formatAmount(cat.total, currency)}</span>
-									</div>
+									</a>
 									<div class="h-2 rounded-full bg-muted overflow-hidden -mt-1">
 										<div
 											class="h-full rounded-full transition-all"
@@ -411,11 +422,11 @@
 							<h3 class="text-sm font-semibold text-foreground mb-3">Expense by Category</h3>
 							<div class="flex flex-col gap-2.5">
 								{#each expenseCategories as cat, i}
-									<div class="flex items-center gap-2">
+									<a href="/businesses/{businessId}/transactions?categoryId={cat.categoryId}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
 										<span class="size-2.5 rounded-sm shrink-0" style:background={chartColors[i % chartColors.length]}></span>
 										<span class="text-xs text-muted-foreground truncate flex-1 min-w-0">{cat.categoryName}</span>
 										<span class="text-xs font-medium tabular-nums shrink-0">{formatAmount(cat.total, currency)}</span>
-									</div>
+									</a>
 									<div class="h-2 rounded-full bg-muted overflow-hidden -mt-1">
 										<div
 											class="h-full rounded-full transition-all"

@@ -7,7 +7,7 @@
 	import {
 		ArrowLeft, Loader2, Plus, Trash2, Check, Pencil, X,
 		FileText, ReceiptText, ExternalLink,
-		Clock
+		Clock, UsersRound
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -72,9 +72,16 @@
 	const businessId = $page.params.businessId!;
 	const projectId = $page.params.projectId!;
 
+	type ProjectStats = {
+		transactionCount: number;
+		quoteCount: number;
+	};
+
 	let project = $state<Project | null>(null);
 	let tasks = $state<Task[]>([]);
 	let conversions = $state<Conversion[]>([]);
+	let stats = $state<ProjectStats | null>(null);
+	let contactName = $state<string | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
@@ -264,14 +271,24 @@
 		try {
 			loading = true;
 			error = null;
-			const [p, t, c] = await Promise.all([
+			const [p, t, c, s] = await Promise.all([
 				api.get<Project>(`/businesses/${businessId}/projects/${projectId}`),
 				api.get<Task[]>(`/businesses/${businessId}/projects/${projectId}/tasks`),
 				api.get<Conversion[]>(`/businesses/${businessId}/projects/${projectId}/conversions`),
+				api.get<ProjectStats>(`/businesses/${businessId}/projects/${projectId}/stats`),
 			]);
 			project = p;
 			tasks = t;
 			conversions = c;
+			stats = s;
+
+			// Resolve contact name if project has contactId
+			if (p.contactId) {
+				try {
+					const contact = await api.get<{ name: string }>(`/businesses/${businessId}/contacts/${p.contactId}`);
+					contactName = contact.name;
+				} catch { contactName = null; }
+			}
 
 			} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load';
@@ -567,6 +584,44 @@
 				</button>
 			{/if}
 		</div>
+
+		<!-- Stat cards -->
+		{#if stats}
+			<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
+				<a
+					href="/businesses/{businessId}/transactions?projectId={projectId}"
+					class="rounded-lg border border-border bg-card p-3 hover:bg-muted/30 transition-colors"
+				>
+					<div class="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+						<ReceiptText class="size-3.5" />
+						<span>Transactions</span>
+					</div>
+					<p class="text-lg font-bold text-foreground">{stats.transactionCount}</p>
+				</a>
+				<a
+					href="/businesses/{businessId}/quotes?projectId={projectId}"
+					class="rounded-lg border border-border bg-card p-3 hover:bg-muted/30 transition-colors"
+				>
+					<div class="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+						<FileText class="size-3.5" />
+						<span>Quotes</span>
+					</div>
+					<p class="text-lg font-bold text-foreground">{stats.quoteCount}</p>
+				</a>
+				{#if project.contactId}
+					<a
+						href="/businesses/{businessId}/contacts/{project.contactId}"
+						class="rounded-lg border border-border bg-card p-3 hover:bg-muted/30 transition-colors"
+					>
+						<div class="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+							<UsersRound class="size-3.5" />
+							<span>Contact</span>
+						</div>
+						<p class="text-sm font-medium text-foreground truncate">{contactName ?? '...'}</p>
+					</a>
+				{/if}
+			</div>
+		{/if}
 
 		{#if error}
 			<div class="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>
