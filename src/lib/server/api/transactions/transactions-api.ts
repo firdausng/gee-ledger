@@ -13,6 +13,7 @@ import { createTransactionHandler } from './createTransactionHandler';
 import { updateTransactionHandler } from './updateTransactionHandler';
 import { deleteTransactionHandler } from './deleteTransactionHandler';
 import { shareTransactionHandler } from './shareTransactionHandler';
+import { getEmailUsageHandler } from './getEmailUsageHandler';
 import { getTransactionItemsHandler } from './getTransactionItemsHandler';
 import { saveTransactionItemsHandler } from './saveTransactionItemsHandler';
 import { getServiceItemsHandler } from './getServiceItemsHandler';
@@ -184,6 +185,12 @@ export const transactionsApi = new Hono<App.Api>()
 			c.req.param('transactionId'),
 			c.env
 		);
+		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/email-usage', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getEmailUsageHandler(user, c.req.param('businessId'), c.env);
 		return c.json({ data });
 	})
 

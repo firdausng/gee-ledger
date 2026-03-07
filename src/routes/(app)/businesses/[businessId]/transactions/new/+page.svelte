@@ -368,23 +368,54 @@
 		<div class="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{submitError}</div>
 	{/if}
 
-	<div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
+	<div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:items-stretch">
 
-		<!-- Card: Transaction (left) -->
+		<!-- Left: Line Items -->
 		<Card.Root>
-			<Card.Header class="pb-3">
-				<Card.Title class="text-base">Transaction</Card.Title>
-			</Card.Header>
-			<Card.Content class="flex flex-col gap-4">
+			<Card.Content class="flex flex-col gap-4 pt-5">
+				<div class="flex items-center justify-between">
+					<Label>
+						{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
+					</Label>
+					<div class="flex gap-1">
+						{#each [['items', 'Items'], ['services', 'Services']] as [m, label]}
+							<Button
+								variant={lineItemMode === m ? 'default' : 'ghost'}
+								size="sm"
+								class="h-6 px-2 text-xs"
+								onclick={() => switchMode(m as 'items' | 'services')}
+							>
+								{label}
+							</Button>
+						{/each}
+					</div>
+				</div>
+				{#if lineItemMode === 'items'}
+					<LineItemsEditor bind:items {businessId} {canUploadAttachment} {products} onCreateProduct={createProductInline} />
+				{:else}
+					<ServicesEditor bind:items={serviceItems} {businessId} {canUploadAttachment} />
+				{/if}
+
+				<!-- Note -->
+				<div class="space-y-1.5">
+					<Label for="tx-note">Note</Label>
+					<Input id="tx-note" type="text" bind:value={note} placeholder="Optional note" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+
+		<!-- Right: Details -->
+		<Card.Root>
+			<Card.Content class="flex flex-col gap-4 pt-5">
 				<!-- Type -->
 				<div class="space-y-1.5">
 					<Label>Type <span class="text-destructive">*</span></Label>
-					<div class="flex gap-2">
+					<div class="flex gap-1.5">
 						{#each ['income', 'expense'] as t}
 							<Button
 								variant={type === t ? 'default' : 'outline'}
 								size="sm"
-								class="flex-1 capitalize"
+								class="flex-1 capitalize h-8 text-xs"
 								onclick={() => { type = t as typeof type; salesChannelId = ''; categoryId = ''; }}
 							>
 								{t}
@@ -393,209 +424,158 @@
 					</div>
 				</div>
 
-				<!-- Mode -->
-				<div class="space-y-1.5">
-					<Label>Mode</Label>
-					<div class="flex gap-2">
-						{#each [['items', 'Line Items'], ['services', 'Services']] as [m, label]}
-							<Button
-								variant={lineItemMode === m ? 'default' : 'outline'}
-								size="sm"
-								class="flex-1"
-								onclick={() => switchMode(m as 'items' | 'services')}
-							>
-								{label}
-							</Button>
-						{/each}
-					</div>
-				</div>
-
-				<!-- Line Items / Services -->
-				<div class="space-y-1.5">
-					<Label>
-						{lineItemMode === 'items' ? 'Line Items' : 'Services'} <span class="text-destructive">*</span>
-					</Label>
-					{#if lineItemMode === 'items'}
-						<LineItemsEditor bind:items {businessId} {canUploadAttachment} {products} onCreateProduct={createProductInline} />
-					{:else}
-						<ServicesEditor bind:items={serviceItems} {businessId} {canUploadAttachment} />
-					{/if}
-				</div>
-
 				<!-- Date -->
 				<div class="space-y-1.5">
 					<Label for="tx-date">Date <span class="text-destructive">*</span></Label>
 					<DatePicker id="tx-date" bind:value={transactionDate} />
 				</div>
+
+				<!-- Location -->
+				<div class="space-y-1.5">
+					<Label>Location <span class="text-destructive">*</span></Label>
+					{#if loadingMeta}
+						<div class="h-9 rounded-md border border-input bg-muted animate-pulse"></div>
+					{:else if locations.length === 0}
+						<button
+							type="button"
+							onclick={openLocationModal}
+							class="w-full flex items-center justify-center gap-1 h-9 rounded-md border border-dashed border-input text-sm text-primary hover:bg-muted transition-colors"
+						>
+							<Plus class="size-3.5" /> Add location
+						</button>
+					{:else}
+						<div class="flex gap-1.5">
+							<Select.Root type="single" bind:value={locationId}>
+								<Select.Trigger class="flex-1 min-w-0">
+									{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}
+								</Select.Trigger>
+								<Select.Content>
+									{#each locations as loc (loc.id)}
+										<Select.Item value={loc.id}>{loc.name}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+							<button
+								type="button"
+								onclick={openLocationModal}
+								class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+								title="Add new location"
+							><Plus class="size-4" /></button>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Channel -->
+				<div class="space-y-1.5">
+					<Label>Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}</Label>
+					{#if !loadingMeta && channels.length === 0}
+						<button
+							type="button"
+							onclick={openChannelModal}
+							class="w-full flex items-center justify-center gap-1 h-9 rounded-md border border-dashed border-input text-sm text-primary hover:bg-muted transition-colors"
+						>
+							<Plus class="size-3.5" /> Add channel
+						</button>
+					{:else}
+						<div class="flex gap-1.5">
+							<Select.Root type="single" bind:value={salesChannelId}>
+								<Select.Trigger class="flex-1 min-w-0">
+									{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'Select channel'}
+								</Select.Trigger>
+								<Select.Content>
+									{#each channels as ch (ch.id)}
+										<Select.Item value={ch.id}>{ch.name}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+							<button
+								type="button"
+								onclick={openChannelModal}
+								class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+								title="Add new channel"
+							><Plus class="size-4" /></button>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Divider -->
+				<div class="border-t border-border"></div>
+
+				<!-- Category -->
+				<div class="space-y-1.5">
+					<Label>Category</Label>
+					{#if !loadingMeta && filteredCategories.length === 0}
+						<button
+							type="button"
+							onclick={openCategoryModal}
+							class="w-full flex items-center justify-center gap-1 h-9 rounded-md border border-dashed border-input text-sm text-primary hover:bg-muted transition-colors"
+						>
+							<Plus class="size-3.5" /> Add category
+						</button>
+					{:else}
+						<div class="flex gap-1.5">
+							<Select.Root type="single" bind:value={categoryId}>
+								<Select.Trigger class="flex-1 min-w-0">
+									{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}
+								</Select.Trigger>
+								<Select.Content>
+									<Select.Item value="">No category</Select.Item>
+									{#each filteredCategories as cat (cat.id)}
+										<Select.Item value={cat.id}>{cat.name}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+							<button
+								type="button"
+								onclick={openCategoryModal}
+								class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+								title="Add new category"
+							><Plus class="size-4" /></button>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Contact -->
+				<div class="space-y-1.5">
+					<Label>{type === 'income' ? 'Client' : 'Supplier'}</Label>
+					<div class="flex gap-1.5">
+						<Select.Root type="single" bind:value={contactId}>
+							<Select.Trigger class="flex-1 min-w-0">
+								{#if contactId}
+									{(type === 'income' ? clientContacts : supplierContacts).find((c) => c.id === contactId)?.name}
+								{:else}
+									No {type === 'income' ? 'client' : 'supplier'}
+								{/if}
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="">No {type === 'income' ? 'client' : 'supplier'}</Select.Item>
+								{#each (type === 'income' ? clientContacts : supplierContacts) as c (c.id)}
+									<Select.Item value={c.id}>{c.name}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+						<button
+							type="button"
+							onclick={openContactModal}
+							class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+							title="Add new contact"
+						><Plus class="size-4" /></button>
+					</div>
+				</div>
+
+				<!-- Reference No. -->
+				<div class="space-y-1.5">
+					<Label for="tx-ref">Reference No.</Label>
+					<Input id="tx-ref" type="text" bind:value={referenceNo} placeholder="Optional" />
+				</div>
 			</Card.Content>
 		</Card.Root>
 
-		<!-- Right column -->
-		<div class="flex flex-col gap-4">
-
-			<!-- Card: Classification -->
-			<Card.Root>
-				<Card.Header class="pb-3">
-					<Card.Title class="text-base">Classification</Card.Title>
-				</Card.Header>
-				<Card.Content>
-					<div class="grid grid-cols-2 gap-3">
-
-						<!-- Location -->
-						<div class="space-y-1.5">
-							<Label>Location <span class="text-destructive">*</span></Label>
-							{#if loadingMeta}
-								<div class="h-9 rounded-md border border-input bg-muted animate-pulse"></div>
-							{:else if locations.length === 0}
-								<button
-									type="button"
-									onclick={openLocationModal}
-									class="w-full flex items-center justify-center gap-1 h-9 rounded-md border border-dashed border-input text-sm text-primary hover:bg-muted transition-colors"
-								>
-									<Plus class="size-3.5" /> Add location
-								</button>
-							{:else}
-								<div class="flex gap-1.5">
-									<Select.Root type="single" bind:value={locationId}>
-										<Select.Trigger class="flex-1 min-w-0">
-											{locationId ? locations.find((l) => l.id === locationId)?.name : 'Select location'}
-										</Select.Trigger>
-										<Select.Content>
-											{#each locations as loc (loc.id)}
-												<Select.Item value={loc.id}>{loc.name}</Select.Item>
-											{/each}
-										</Select.Content>
-									</Select.Root>
-									<button
-										type="button"
-										onclick={openLocationModal}
-										class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-										title="Add new location"
-									><Plus class="size-4" /></button>
-								</div>
-							{/if}
-						</div>
-
-						<!-- Sales Channel -->
-						<div class="space-y-1.5">
-							<Label>Sales Channel {#if type === 'income'}<span class="text-destructive">*</span>{/if}</Label>
-							{#if !loadingMeta && channels.length === 0}
-								<button
-									type="button"
-									onclick={openChannelModal}
-									class="w-full flex items-center justify-center gap-1 h-9 rounded-md border border-dashed border-input text-sm text-primary hover:bg-muted transition-colors"
-								>
-									<Plus class="size-3.5" /> Add channel
-								</button>
-							{:else}
-								<div class="flex gap-1.5">
-									<Select.Root type="single" bind:value={salesChannelId}>
-										<Select.Trigger class="flex-1 min-w-0">
-											{salesChannelId ? channels.find((c) => c.id === salesChannelId)?.name : 'Select channel'}
-										</Select.Trigger>
-										<Select.Content>
-											{#each channels as ch (ch.id)}
-												<Select.Item value={ch.id}>{ch.name}</Select.Item>
-											{/each}
-										</Select.Content>
-									</Select.Root>
-									<button
-										type="button"
-										onclick={openChannelModal}
-										class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-										title="Add new channel"
-									><Plus class="size-4" /></button>
-								</div>
-							{/if}
-						</div>
-
-						<!-- Category -->
-						<div class="space-y-1.5">
-							<Label>Category</Label>
-							{#if !loadingMeta && filteredCategories.length === 0}
-								<button
-									type="button"
-									onclick={openCategoryModal}
-									class="w-full flex items-center justify-center gap-1 h-9 rounded-md border border-dashed border-input text-sm text-primary hover:bg-muted transition-colors"
-								>
-									<Plus class="size-3.5" /> Add category
-								</button>
-							{:else}
-								<div class="flex gap-1.5">
-									<Select.Root type="single" bind:value={categoryId}>
-										<Select.Trigger class="flex-1 min-w-0">
-											{categoryId ? filteredCategories.find((c) => c.id === categoryId)?.name : 'No category'}
-										</Select.Trigger>
-										<Select.Content>
-											<Select.Item value="">No category</Select.Item>
-											{#each filteredCategories as cat (cat.id)}
-												<Select.Item value={cat.id}>{cat.name}</Select.Item>
-											{/each}
-										</Select.Content>
-									</Select.Root>
-									<button
-										type="button"
-										onclick={openCategoryModal}
-										class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-										title="Add new category"
-									><Plus class="size-4" /></button>
-								</div>
-							{/if}
-						</div>
-
-						<!-- Contact -->
-						<div class="space-y-1.5">
-							<Label>{type === 'income' ? 'Client' : 'Supplier'}</Label>
-							<div class="flex gap-1.5">
-								<Select.Root type="single" bind:value={contactId}>
-									<Select.Trigger class="flex-1 min-w-0">
-										{#if contactId}
-											{(type === 'income' ? clientContacts : supplierContacts).find((c) => c.id === contactId)?.name}
-										{:else}
-											No {type === 'income' ? 'client' : 'supplier'}
-										{/if}
-									</Select.Trigger>
-									<Select.Content>
-										<Select.Item value="">No {type === 'income' ? 'client' : 'supplier'}</Select.Item>
-										{#each (type === 'income' ? clientContacts : supplierContacts) as c (c.id)}
-											<Select.Item value={c.id}>{c.name}</Select.Item>
-										{/each}
-									</Select.Content>
-								</Select.Root>
-								<button
-									type="button"
-									onclick={openContactModal}
-									class="px-2 rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-									title="Add new contact"
-								><Plus class="size-4" /></button>
-							</div>
-						</div>
-
-					</div>
-				</Card.Content>
-			</Card.Root>
-
-			<!-- Card: Details -->
-			<Card.Root>
-				<Card.Header class="pb-3">
-					<Card.Title class="text-base">Details</Card.Title>
-				</Card.Header>
-				<Card.Content class="flex flex-col gap-4">
-					<div class="space-y-1.5">
-						<Label for="tx-note">Note</Label>
-						<Input id="tx-note" type="text" bind:value={note} placeholder="Optional note" />
-					</div>
-					<div class="space-y-1.5">
-						<Label for="tx-ref">Reference No.</Label>
-						<Input id="tx-ref" type="text" bind:value={referenceNo} placeholder="Optional" />
-					</div>
-				</Card.Content>
-			</Card.Root>
-
-		</div><!-- end right column -->
 	</div><!-- end grid -->
 
-	<!-- Actions -->
+	<!-- Actions + Attachments -->
+	<div>
+
 	<div class="flex justify-end gap-2 mt-4">
 		<Button href="/businesses/{businessId}/transactions" variant="ghost" size="sm">Cancel</Button>
 		<Button
@@ -608,7 +588,6 @@
 		</Button>
 	</div>
 
-	<!-- Card: Attachments -->
 	<Card.Root class="mt-4">
 		<Card.Header class="pb-3">
 			<div class="flex items-center justify-between">
@@ -693,6 +672,8 @@
 			{/if}
 		</Card.Content>
 	</Card.Root>
+
+	</div><!-- end actions+attachments -->
 </div>
 
 <!-- ── Location modal ──────────────────────────────────────────────── -->

@@ -37,6 +37,9 @@
 	let relAmount = $state(7);
 	let relUnit = $state<Unit>('days');
 
+	// Absolute picker: single calendar toggling between from/to
+	let absPickingField = $state<'from' | 'to'>('from');
+
 	const UNITS: Unit[] = ['days', 'weeks', 'months', 'years'];
 
 	function fmt(d: CalendarDate): string {
@@ -109,11 +112,24 @@
 	let absFromCal = $state<DateValue | undefined>(parseDate(from));
 	let absToCal = $state<DateValue | undefined>(parseDate(to));
 
+	// The active calendar value based on which field is being picked
+	let absActiveCal = $derived(absPickingField === 'from' ? absFromCal : absToCal);
+
+	function onAbsCalChange(v: DateValue | undefined) {
+		if (absPickingField === 'from') {
+			absFromCal = v;
+			absPickingField = 'to';
+		} else {
+			absToCal = v;
+		}
+	}
+
 	// Sync absolute pickers when popover opens
 	$effect(() => {
 		if (open && tab === 'absolute') {
 			absFromCal = parseDate(from);
 			absToCal = parseDate(to);
+			absPickingField = 'from';
 		}
 	});
 
@@ -171,7 +187,7 @@
 			</Button>
 		{/snippet}
 	</Popover.Trigger>
-	<Popover.Content class="w-auto p-0" align="start">
+	<Popover.Content class="w-auto max-w-[calc(100vw-2rem)] p-0 max-h-[80vh] overflow-y-auto" align="start" avoidCollisions>
 		<!-- Tabs -->
 		<div class="flex border-b border-border">
 			{#each tabItems as t}
@@ -186,7 +202,7 @@
 		</div>
 
 		{#if tab === 'quick'}
-			<div class="p-1 min-w-[180px]">
+			<div class="p-1 min-w-0 sm:min-w-[180px]">
 				{#each presets as p}
 					<button
 						type="button"
@@ -199,7 +215,7 @@
 				{/each}
 			</div>
 		{:else if tab === 'relative'}
-			<div class="p-4 min-w-[260px]">
+			<div class="p-4 min-w-0 sm:min-w-[260px]">
 				<p class="text-sm text-muted-foreground mb-3">Show data from the last</p>
 				<div class="flex gap-2 mb-4">
 					<input
@@ -236,25 +252,34 @@
 				</div>
 			</div>
 		{:else}
-			<div class="p-4 flex flex-col gap-4">
-				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-					<div>
-						<p class="text-xs font-medium text-muted-foreground mb-2">From</p>
-						<Calendar
-							type="single"
-							bind:value={absFromCal}
-							captionLayout="dropdown"
-						/>
-					</div>
-					<div>
-						<p class="text-xs font-medium text-muted-foreground mb-2">To</p>
-						<Calendar
-							type="single"
-							bind:value={absToCal}
-							captionLayout="dropdown"
-						/>
-					</div>
+			<div class="p-3 sm:p-4 flex flex-col gap-3">
+				<!-- From / To toggle -->
+				<div class="grid grid-cols-2 gap-2">
+					<button
+						type="button"
+						onclick={() => absPickingField = 'from'}
+						class="rounded-md border px-3 py-1.5 text-sm text-left transition-colors
+							{absPickingField === 'from' ? 'border-primary bg-primary/5 text-foreground font-medium' : 'border-input text-muted-foreground hover:bg-muted'}"
+					>
+						<span class="text-[10px] uppercase tracking-wide block mb-0.5">From</span>
+						{absFrom ? df.format(parseDate(absFrom)!.toDate(tz)) : '—'}
+					</button>
+					<button
+						type="button"
+						onclick={() => absPickingField = 'to'}
+						class="rounded-md border px-3 py-1.5 text-sm text-left transition-colors
+							{absPickingField === 'to' ? 'border-primary bg-primary/5 text-foreground font-medium' : 'border-input text-muted-foreground hover:bg-muted'}"
+					>
+						<span class="text-[10px] uppercase tracking-wide block mb-0.5">To</span>
+						{absTo ? df.format(parseDate(absTo)!.toDate(tz)) : '—'}
+					</button>
 				</div>
+				<Calendar
+					type="single"
+					value={absActiveCal}
+					onValueChange={onAbsCalChange}
+					captionLayout="dropdown"
+				/>
 				<div class="flex items-center justify-between border-t border-border pt-3">
 					<p class="text-xs text-muted-foreground">
 						{#if absFrom && absTo}

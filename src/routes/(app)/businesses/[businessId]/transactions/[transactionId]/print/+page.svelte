@@ -15,10 +15,7 @@
 	const loadedItems = $derived(data.items);
 	const businessId    = $page.params.businessId!;
 	const transactionId = $page.params.transactionId!;
-	const canEmail = $derived(
-		($page.data.navBusinesses as { id: string; planKey: string }[])
-			?.find((b) => b.id === businessId)?.planKey === PLAN_KEY.PRO
-	);
+	const canEmail = $derived(data.planKey === PLAN_KEY.PRO);
 
 	type DocType = 'invoice' | 'receipt';
 
@@ -116,6 +113,7 @@
 	{#if canEmail}
 		<a
 			href="/businesses/{businessId}/transactions/{transactionId}/email"
+			data-sveltekit-reload
 			class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium text-foreground hover:bg-muted transition-colors shrink-0"
 			title="Email"
 		>

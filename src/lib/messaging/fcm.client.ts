@@ -92,10 +92,11 @@ export function onForegroundMessage(
 	if (!msg) return null;
 
 	return onMessage(msg, (payload) => {
+		const data = payload.data as Record<string, string> | undefined;
 		callback({
-			title: payload.notification?.title,
-			body: payload.notification?.body,
-			data: payload.data as Record<string, string> | undefined
+			title: payload.notification?.title ?? data?.title,
+			body: payload.notification?.body ?? data?.body,
+			data
 		});
 	});
 }

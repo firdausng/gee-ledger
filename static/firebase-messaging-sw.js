@@ -10,11 +10,10 @@ self.addEventListener('message', (event) => {
 		const messaging = firebase.messaging();
 
 		messaging.onBackgroundMessage((payload) => {
-			const notification = payload.notification || {};
 			const data = payload.data || {};
 
-			self.registration.showNotification(notification.title || 'Gee Ledger', {
-				body: notification.body || '',
+			self.registration.showNotification(data.title || 'Gee Ledger', {
+				body: data.body || '',
 				icon: '/favicon.svg',
 				badge: '/favicon.svg',
 				data: data,

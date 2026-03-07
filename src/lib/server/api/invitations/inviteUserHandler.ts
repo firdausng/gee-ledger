@@ -128,7 +128,7 @@ export async function inviteUserHandler(
 		}).catch((err) => console.error('Failed to send invitation email:', err));
 
 		// Push notification (fire-and-forget)
-		dispatchNotification({
+		await dispatchNotification({
 			recipientUserIds: [existingUser.id],
 			type: NOTIFICATION_TYPE.INVITATION_RECEIVED,
 			title: 'Added to business',

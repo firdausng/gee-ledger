@@ -34,4 +34,5 @@ export async function registerDeviceTokenHandler(
 			updatedAt: now
 		});
 	}
+
 }

@@ -6,6 +6,7 @@
 	import { PLANS, PLAN_KEY, ORG_ROLE } from '$lib/configurations/plans';
 	import { isAllowedEmailDomain } from '$lib/configurations/auth';
 	import * as Accordion from '$lib/components/ui/accordion';
+	import * as Select from '$lib/components/ui/select';
 	import { toast } from 'svelte-sonner';
 
 	type Member = {
@@ -464,14 +465,16 @@
 									All seats are in use ({org.seatInfo.usedSeats}/{org.seatInfo.allowedSeats}). Purchase additional seats to invite more members.
 								</p>
 								<div class="flex items-center gap-2">
-									<select
-										bind:value={seatQuantity}
-										class="rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-									>
-										{#each [1, 2, 3, 5, 10] as qty}
-											<option value={qty}>{qty} seat{qty > 1 ? 's' : ''}</option>
-										{/each}
-									</select>
+									<Select.Root type="single" value={String(seatQuantity)} onValueChange={(v) => { if (v) seatQuantity = Number(v); }}>
+										<Select.Trigger class="w-[120px]">
+											{seatQuantity} seat{seatQuantity > 1 ? 's' : ''}
+										</Select.Trigger>
+										<Select.Content>
+											{#each [1, 2, 3, 5, 10] as qty}
+												<Select.Item value={String(qty)}>{qty} seat{qty > 1 ? 's' : ''}</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
 									<button
 										onclick={handlePurchaseSeats}
 										disabled={purchasingSeats}
@@ -623,14 +626,16 @@
 													placeholder="Gmail address"
 													class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
 												/>
-												<select
-													bind:value={bizInviteRole}
-													class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-												>
-													{#each ROLES as r}
-														<option value={r}>{r}</option>
-													{/each}
-												</select>
+												<Select.Root type="single" value={bizInviteRole} onValueChange={(v) => { if (v) bizInviteRole = v; }}>
+													<Select.Trigger class="w-full capitalize">
+														{bizInviteRole}
+													</Select.Trigger>
+													<Select.Content>
+														{#each ROLES as r}
+															<Select.Item value={r} class="capitalize">{r}</Select.Item>
+														{/each}
+													</Select.Content>
+												</Select.Root>
 												<div class="flex justify-end gap-2">
 													<button
 														onclick={() => { bizInviteOpen = null; bizInviteError = null; }}

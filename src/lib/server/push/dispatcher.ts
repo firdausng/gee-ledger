@@ -5,14 +5,13 @@ import * as schema from '$lib/server/db/schema';
 import type { PushProvider } from './types';
 import { FCMPushProvider } from './fcm-provider';
 import type { NotificationType } from '$lib/configurations/notifications';
-import { dev } from '$app/environment';
+
 
 export function createPushProvider(env: Cloudflare.Env): PushProvider | null {
 	if (env.FIREBASE_SERVICE_ACCOUNT_JSON) {
 		return new FCMPushProvider(
 			env.FIREBASE_SERVICE_ACCOUNT_JSON,
-			env.PUBLIC_FIREBASE_PROJECT_ID,
-			env.APP_DOMAIN
+			env.PUBLIC_FIREBASE_PROJECT_ID
 		);
 	}
 	return null;
@@ -80,41 +79,37 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
 		);
 	}
 
-	// 2. Send push notifications (fire-and-forget)
+	// 2. Send push notifications
 	if (pushUserIds.length > 0) {
 		const provider = createPushProvider(env);
-		if (!provider) {
-			if (dev) console.log('[push] No push provider configured');
-			return;
-		}
+		if (!provider) return;
 
 		const tokens = await db
 			.select({ token: deviceTokens.token })
 			.from(deviceTokens)
 			.where(inArray(deviceTokens.userId, pushUserIds));
 
-		if (dev) console.log(`[push] Found ${tokens.length} device tokens for ${pushUserIds.length} users`);
-
 		if (tokens.length > 0) {
-			provider
-				.sendToTokens(
+			try {
+				const results = await provider.sendToTokens(
 					tokens.map((t) => t.token),
 					{ title, body, data: { ...data, type, actionUrl: actionUrl ?? '' }, actionUrl }
-				)
-				.then((results) => {
-					if (dev) console.log('[push] Send results:', JSON.stringify(results));
-					const invalidTokens = results
-						.filter((r) => r.invalidToken)
-						.map((r) => r.token);
-					if (invalidTokens.length > 0) {
-						db.delete(deviceTokens)
-							.where(inArray(deviceTokens.token, invalidTokens))
-							.catch((err) => console.error('Failed to clean up invalid tokens:', err));
-					}
-				})
-				.catch((err) => {
-					console.error('[push] Send failed:', err);
-				});
+				);
+				const failed = results.filter((r) => !r.success);
+				if (failed.length > 0) {
+					console.error('[push] Failed sends:', JSON.stringify(failed));
+				}
+				const invalidTokens = results
+					.filter((r) => r.invalidToken)
+					.map((r) => r.token);
+				if (invalidTokens.length > 0) {
+					await db.delete(deviceTokens)
+						.where(inArray(deviceTokens.token, invalidTokens))
+						.catch((err) => console.error('Failed to clean up invalid tokens:', err));
+				}
+			} catch (err) {
+				console.error('[push] Send failed:', err);
+			}
 		}
 	}
 }

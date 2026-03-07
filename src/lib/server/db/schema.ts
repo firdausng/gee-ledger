@@ -520,6 +520,23 @@ export const notifications = sqliteTable(
 	})
 );
 
+// ─── Email Sends (usage tracking) ───────────────────────────────────────────
+
+export const emailSends = sqliteTable(
+	'email_sends',
+	{
+		id: text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		userId: text('user_id').notNull(),
+		recipientEmail: text('recipient_email').notNull(),
+		transactionId: text('transaction_id'),
+		createdAt: text('created_at').notNull()
+	},
+	(t) => ({
+		businessDateIdx: index('email_sends_business_date_idx').on(t.businessId, t.createdAt)
+	})
+);
+
 // ─── Notification Preferences ────────────────────────────────────────────────
 
 export const notificationPreferences = sqliteTable(

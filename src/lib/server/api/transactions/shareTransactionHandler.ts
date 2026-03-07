@@ -1,8 +1,9 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, asc } from 'drizzle-orm';
-import { transactions, businesses, locations, categories, salesChannels, transactionItems } from '$lib/server/db/schema';
+import { eq, and, isNull, asc, gte, sql } from 'drizzle-orm';
+import { transactions, businesses, locations, categories, salesChannels, transactionItems, emailSends } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
-import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
+import { requireBusinessPermission, getBusinessPlanKey } from '$lib/server/utils/businessPermissions';
+import { PLANS } from '$lib/configurations/plans';
 import { HTTPException } from 'hono/http-exception';
 import { sendTransactionEmail } from '$lib/server/email/sendTransactionEmail';
 
@@ -22,6 +23,27 @@ export async function shareTransactionHandler(
 	await requireBusinessPermission(user, businessId, 'transaction:email', env);
 
 	const db = drizzle(env.DB, { schema });
+
+	// ── Check monthly email limit ───────────────────────────────────────────
+	const planKey = await getBusinessPlanKey(businessId, env);
+	const plan = PLANS[planKey];
+	const limit = plan.limits.maxEmailsPerMonth;
+
+	if (limit !== -1) {
+		const now = new Date();
+		const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00.000Z`;
+
+		const [{ count }] = await db
+			.select({ count: sql<number>`count(*)` })
+			.from(emailSends)
+			.where(and(eq(emailSends.businessId, businessId), gte(emailSends.createdAt, monthStart)));
+
+		if (count >= limit) {
+			throw new HTTPException(429, {
+				message: `Monthly email limit reached (${count}/${limit}). Resets next month.`
+			});
+		}
+	}
 
 	const [tx] = await db
 		.select()
@@ -76,6 +98,16 @@ export async function shareTransactionHandler(
 		fromDomain:   env.RESEND_FROM_DOMAIN,
 		appDomain:    env.APP_DOMAIN,
 		items,
+	});
+
+	// ── Record the email send ───────────────────────────────────────────────
+	await db.insert(emailSends).values({
+		id: crypto.randomUUID(),
+		businessId,
+		userId: user.id,
+		recipientEmail,
+		transactionId,
+		createdAt: new Date().toISOString()
 	});
 
 	return { sent: true };

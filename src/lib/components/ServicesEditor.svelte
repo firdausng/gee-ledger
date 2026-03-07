@@ -129,8 +129,19 @@
 	}
 </script>
 
+<button
+	type="button"
+	onclick={openNew}
+	class="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors {items.length === 0
+		? 'border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary'
+		: 'bg-muted hover:bg-muted/80'} mb-3"
+>
+	<Plus class="size-3" />
+	Add service
+</button>
+
 {#if items.length > 0}
-	<div class="rounded-lg border border-border overflow-hidden mb-3" role="list">
+	<div class="rounded-lg border border-border overflow-hidden" role="list">
 		{#each items as item, idx (idx)}
 			<div
 				role="listitem"
@@ -198,14 +209,6 @@
 	</div>
 {/if}
 
-<button
-	type="button"
-	onclick={openNew}
-	class="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium transition-colors"
->
-	<Plus class="size-3" />
-	Add service
-</button>
 
 <!-- ── Service Modal ───────────────────────────────────────────────────────── -->
 {#if modalOpen}

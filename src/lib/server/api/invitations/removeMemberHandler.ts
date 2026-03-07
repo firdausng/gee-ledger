@@ -125,7 +125,7 @@ export async function removeMemberHandler(
 	}
 
 	// Notify the removed user (fire-and-forget)
-	dispatchNotification({
+	await dispatchNotification({
 		recipientUserIds: [targetUserId],
 		type: NOTIFICATION_TYPE.MEMBER_LEFT,
 		title: 'Removed from business',

@@ -97,15 +97,32 @@
 		const user = authState.user;
 		if (user) {
 			user.getIdToken().then((idToken: string) => {
-				registerDeviceToken(idToken).catch(() => {});
+				registerDeviceToken(idToken).catch((err) => {
+					console.error('[fcm] registerDeviceToken failed:', err);
+				});
 			});
 		}
 
 		// Listen for foreground push messages
 		const unsubscribe = onForegroundMessage((payload) => {
 			notificationActions.addFromPush(payload);
-		});
 
+			// Show native browser notification so foreground users also see a popup
+			if (Notification.permission === 'granted') {
+				const n = new Notification(payload.title ?? 'Gee Ledger', {
+					body: payload.body ?? '',
+					icon: '/favicon.svg',
+					tag: payload.data?.notificationId ?? 'default'
+				});
+				const actionUrl = payload.data?.actionUrl;
+				if (actionUrl) {
+					n.onclick = () => {
+						window.focus();
+						window.location.href = actionUrl;
+					};
+				}
+			}
+		});
 		// Fetch existing notifications
 		notificationActions.fetchNotifications();
 

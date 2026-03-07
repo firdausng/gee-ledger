@@ -1,9 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, isNull, asc } from 'drizzle-orm';
-import { transactions, businesses, locations, categories, salesChannels, transactionAttachments, attachments, transactionItems, contacts } from '$lib/server/db/schema';
+import { transactions, businesses, locations, categories, salesChannels, transactionAttachments, attachments, transactionItems, contacts, subscriptions } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { checkBusinessPermission } from '$lib/server/utils/businessPermissions';
+import { PLAN_KEY, SUBSCRIPTION_STATUS } from '$lib/configurations/plans';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params, platform }) => {
@@ -48,5 +49,19 @@ export const load: PageServerLoad = async ({ locals, params, platform }) => {
 			.limit(1).then((r) => r[0] ?? null)
 		: null;
 
-	return { transaction: tx, business: biz, location, category, channel, attachments: atts, items, contact };
+	// Resolve plan for this business
+	let planKey = PLAN_KEY.FREE;
+	if (biz.organizationId) {
+		const [sub] = await db
+			.select({ planKey: subscriptions.planKey })
+			.from(subscriptions)
+			.where(and(
+				eq(subscriptions.organizationId, biz.organizationId),
+				eq(subscriptions.status, SUBSCRIPTION_STATUS.ACTIVE)
+			))
+			.limit(1);
+		if (sub) planKey = sub.planKey;
+	}
+
+	return { transaction: tx, business: biz, location, category, channel, attachments: atts, items, contact, planKey };
 };

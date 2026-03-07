@@ -2,11 +2,13 @@
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
-	import { ArrowLeft, Send, Loader2, CheckCircle2 } from '@lucide/svelte';
+	import { ArrowLeft, Send, Loader2, CheckCircle2, Mail } from '@lucide/svelte';
 	import InvoicePreview from '$lib/components/InvoicePreview.svelte';
 
 	let { data } = $props();
 
+	const emailUsage  = $derived(data.emailUsage);
+	const limitReached = $derived(emailUsage.limit !== null && emailUsage.used >= emailUsage.limit);
 	const tx          = $derived(data.transaction);
 	const biz         = $derived(data.business);
 	const location    = $derived(data.location);
@@ -38,6 +40,7 @@
 	let sending      = $state(false);
 	let sent         = $state(false);
 	let sendError    = $state<string | null>(null);
+	let emailsUsed   = $state(data.emailUsage.used);
 	let invoiceNo    = $state(initTx.invoiceNo ?? '');
 	let receiptNo    = $state(initTx.receiptNo ?? '');
 
@@ -72,6 +75,7 @@
 				documentType,
 			});
 			sent = true;
+			emailsUsed += 1;
 		} catch (e) {
 			sendError = e instanceof Error ? e.message : 'Failed to send email';
 		} finally {
@@ -105,9 +109,9 @@
 <!-- ── Action bar ─────────────────────────────────────────────────────────── -->
 <div class="sticky top-0 z-10 bg-card border-b border-border flex items-center gap-2 px-3 sm:px-4 h-14 shrink-0">
 	<a
-		href="/businesses/{businessId}/transactions/{transactionId}/print"
+		href="/businesses/{businessId}/transactions/{transactionId}"
 		class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
-		title="Back to PDF view"
+		title="Back to transaction"
 	>
 		<ArrowLeft class="size-4" />
 	</a>
@@ -116,12 +120,21 @@
 		<span class="hidden sm:inline">{biz.name} / </span><span class="text-muted-foreground">Email {titleLabel}</span>
 	</span>
 
+	{#if emailUsage.limit !== null}
+		<span class="text-xs tabular-nums text-muted-foreground shrink-0" title="Emails sent this month">
+			<Mail class="size-3 inline -mt-0.5" />
+			{emailsUsed}/{emailUsage.limit}
+		</span>
+	{/if}
+
 	{#if sent}
 		<span class="flex items-center gap-1.5 text-sm text-green-600 font-medium shrink-0">
 			<CheckCircle2 class="size-4" />
 			<span class="hidden sm:inline">Email sent!</span>
 			<span class="sm:hidden">Sent!</span>
 		</span>
+	{:else if limitReached}
+		<span class="text-xs text-destructive font-medium shrink-0">Limit reached</span>
 	{:else}
 		<button
 			onclick={send}
@@ -289,7 +302,17 @@
 	{/if}
 
 	<!-- Send button (mobile) -->
-	{#if !sent}
+	{#if emailUsage.limit !== null}
+		<div class="px-4 pt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+			<Mail class="size-3" />
+			<span class="tabular-nums">{emailsUsed}/{emailUsage.limit} emails this month</span>
+		</div>
+	{/if}
+	{#if limitReached && !sent}
+		<div class="px-4 py-4 border-b border-border">
+			<p class="text-sm text-destructive text-center font-medium">Monthly email limit reached. Resets next month.</p>
+		</div>
+	{:else if !sent}
 		<div class="px-4 py-4 border-b border-border">
 			<button
 				onclick={send}

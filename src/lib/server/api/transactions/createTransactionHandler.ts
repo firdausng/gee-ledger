@@ -79,7 +79,7 @@ export async function createTransactionHandler(
 
 	if (otherMembers.length > 0) {
 		const amountStr = (Math.abs(data.amount) / 100).toFixed(2);
-		dispatchNotification({
+		await dispatchNotification({
 			recipientUserIds: otherMembers.map((m) => m.userId),
 			type: NOTIFICATION_TYPE.TRANSACTION_CREATED,
 			title: `New ${data.type}`,

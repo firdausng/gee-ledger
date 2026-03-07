@@ -1,9 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, asc } from 'drizzle-orm';
-import { transactions, businesses, locations, categories, salesChannels, transactionAttachments, attachments, transactionItems, contacts } from '$lib/server/db/schema';
+import { eq, and, isNull, asc, gte, sql } from 'drizzle-orm';
+import { transactions, businesses, locations, categories, salesChannels, transactionAttachments, attachments, transactionItems, contacts, emailSends } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
-import { checkBusinessPermission } from '$lib/server/utils/businessPermissions';
+import { checkBusinessPermission, getBusinessPlanKey } from '$lib/server/utils/businessPermissions';
+import { PLANS } from '$lib/configurations/plans';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params, platform }) => {
@@ -48,5 +49,23 @@ export const load: PageServerLoad = async ({ locals, params, platform }) => {
 			.limit(1).then((r) => r[0] ?? null)
 		: null;
 
-	return { transaction: tx, business: biz, location, category, channel, attachments: atts, items, contact };
+	// ── Email usage ─────────────────────────────────────────────────────────
+	const planKey = await getBusinessPlanKey(businessId, env);
+	const plan = PLANS[planKey];
+	const emailLimit = plan.limits.maxEmailsPerMonth;
+
+	const now = new Date();
+	const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00.000Z`;
+
+	const [{ count: emailsUsed }] = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(emailSends)
+		.where(and(eq(emailSends.businessId, businessId), gte(emailSends.createdAt, monthStart)));
+
+	const emailUsage = {
+		used: emailsUsed,
+		limit: emailLimit === -1 ? null : emailLimit,
+	};
+
+	return { transaction: tx, business: biz, location, category, channel, attachments: atts, items, contact, emailUsage };
 };

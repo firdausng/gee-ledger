@@ -4,8 +4,7 @@ import { getAccessToken } from './fcm-auth';
 export class FCMPushProvider implements PushProvider {
 	constructor(
 		private serviceAccountJson: string,
-		private projectId: string,
-		private appDomain: string
+		private projectId: string
 	) {}
 
 	async sendToTokens(tokens: string[], message: PushMessage): Promise<PushSendResult[]> {
@@ -27,25 +26,18 @@ export class FCMPushProvider implements PushProvider {
 		token: string,
 		message: PushMessage
 	): Promise<PushSendResult> {
+		// Use data-only messages for full control over display in both
+		// foreground (onMessage) and background (onBackgroundMessage).
+		// Including a `notification` field can cause the service worker to
+		// auto-display and bypass our client-side handlers.
 		const fcmMessage: Record<string, unknown> = {
 			token,
-			notification: {
+			data: {
+				...(message.data ?? {}),
 				title: message.title,
 				body: message.body
 			}
 		};
-
-		if (message.data) {
-			fcmMessage.data = message.data;
-		}
-
-		if (message.actionUrl) {
-			fcmMessage.webpush = {
-				fcm_options: {
-					link: `https://${this.appDomain}${message.actionUrl}`
-				}
-			};
-		}
 
 		const res = await fetch(
 			`https://fcm.googleapis.com/v1/projects/${this.projectId}/messages:send`,
@@ -61,7 +53,12 @@ export class FCMPushProvider implements PushProvider {
 
 		if (!res.ok) {
 			const body = await res.text();
-			const invalidToken = res.status === 404 || res.status === 400;
+			// Only treat as invalid token for clear "not registered" / "not found" errors.
+			// 400 can mean many things (malformed payload, quota, etc.) — don't delete tokens for those.
+			const invalidToken =
+				res.status === 404 ||
+				body.includes('UNREGISTERED') ||
+				body.includes('INVALID_ARGUMENT') && body.includes('not a valid FCM registration token');
 			return { token, success: false, error: body, invalidToken };
 		}
 

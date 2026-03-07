@@ -1,10 +1,35 @@
 <script lang="ts">
 	import { notificationState, notificationActions } from '$lib/stores/notifications.svelte';
 	import { goto } from '$app/navigation';
-	import { CheckCheck, Loader2 } from '@lucide/svelte';
+	import { CheckCheck, Loader2, BellRing } from '@lucide/svelte';
+	import { registerDeviceToken } from '$lib/messaging/fcm.client';
+	import { authState } from '$lib/stores/auth.svelte';
+	import { browser } from '$app/environment';
 
 	let notifications = $derived(notificationState.notifications);
 	let loading = $derived(notificationState.loading);
+
+	let pushPermission = $state<NotificationPermission | 'unsupported'>(
+		browser && 'Notification' in window ? Notification.permission : 'unsupported'
+	);
+	let enabling = $state(false);
+
+	async function enablePush() {
+		enabling = true;
+		try {
+			const user = authState.user;
+			if (user) {
+				const idToken = await user.getIdToken();
+				await registerDeviceToken(idToken);
+				pushPermission =
+					'Notification' in window ? Notification.permission : 'unsupported';
+			}
+		} catch (err) {
+			console.error('[fcm] Enable push failed:', err);
+		} finally {
+			enabling = false;
+		}
+	}
 
 	function handleClick(notification: (typeof notifications)[0]) {
 		notificationActions.markAsRead(notification.id);
@@ -37,6 +62,18 @@
 			</button>
 		{/if}
 	</div>
+
+	<!-- Push permission prompt -->
+	{#if pushPermission !== 'granted' && pushPermission !== 'unsupported' && pushPermission !== 'denied'}
+		<button
+			class="flex items-center gap-2 px-4 py-2.5 text-xs text-primary bg-primary/5 border-b hover:bg-primary/10 transition-colors"
+			onclick={enablePush}
+			disabled={enabling}
+		>
+			<BellRing class="size-3.5 shrink-0" />
+			<span>{enabling ? 'Enabling...' : 'Enable push notifications on this device'}</span>
+		</button>
+	{/if}
 
 	<!-- List -->
 	<div class="overflow-y-auto flex-1">

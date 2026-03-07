@@ -68,7 +68,7 @@ async function notifyOrgMembers(
 		.where(eq(organizationMembers.organizationId, orgId));
 
 	if (members.length > 0) {
-		dispatchNotification({
+		await dispatchNotification({
 			recipientUserIds: members.map((m) => m.userId),
 			type: NOTIFICATION_TYPE.SUBSCRIPTION_CHANGED,
 			title,

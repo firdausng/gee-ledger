@@ -95,7 +95,7 @@ export async function acceptInvitationHandler(
 		);
 
 	if (otherMembers.length > 0) {
-		dispatchNotification({
+		await dispatchNotification({
 			recipientUserIds: otherMembers.map((m) => m.userId),
 			type: NOTIFICATION_TYPE.MEMBER_JOINED,
 			title: 'New member joined',
