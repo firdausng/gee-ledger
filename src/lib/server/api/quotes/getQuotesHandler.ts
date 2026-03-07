@@ -22,6 +22,7 @@ export async function getQuotesHandler(
 
 	if (filters.status) conditions.push(eq(quotes.status, filters.status));
 	if (filters.contactId) conditions.push(eq(quotes.contactId, filters.contactId));
+	if (filters.projectId) conditions.push(eq(quotes.projectId, filters.projectId));
 	if (filters.from) conditions.push(gte(quotes.quoteDate, filters.from));
 	if (filters.to) conditions.push(lte(quotes.quoteDate, `${filters.to}T23:59:59`));
 

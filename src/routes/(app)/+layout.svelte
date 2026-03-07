@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { authActions } from '$lib/stores/auth.svelte';
 	import logoSvg from '$lib/assets/logo.svg?raw';
 	import {
@@ -8,7 +9,8 @@
 		Mail,
 		LogOut,
 		Plus,
-		ChevronRight,
+		ChevronsUpDown,
+		Check,
 		ReceiptText,
 		BookOpen,
 		Tag,
@@ -26,7 +28,7 @@
 		Sparkles,
 		X
 	} from '@lucide/svelte';
-	import { Collapsible } from 'bits-ui';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import { onMount } from 'svelte';
 	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
@@ -38,7 +40,7 @@
 
 	let bannerDismissed = $state(false);
 
-	let currentBusinessId = $derived($page.params.businessId ?? null);
+	let currentBusinessId = $derived(page.params.businessId ?? null);
 	let currentBusiness = $derived(
 		currentBusinessId
 			? (data.navBusinesses.find((b: { id: string }) => b.id === currentBusinessId) ?? null)
@@ -91,10 +93,19 @@
 
 	function isSubActive(bizId: string, tabHref: string): boolean {
 		const base = `/businesses/${bizId}`;
-		const path = $page.url.pathname;
+		const path = page.url.pathname;
 		if (tabHref === '') return path === base;
 		return path.startsWith(`${base}${tabHref}`);
 	}
+
+	function subHref(bizId: string, tabHref: string): string {
+		const base = `/businesses/${bizId}${tabHref}`;
+		if (page.url.search) {
+			return `${base}${page.url.search}`;
+		}
+		return base;
+	}
+
 
 	onMount(() => {
 		// Register device for push notifications
@@ -160,84 +171,66 @@
 
 				<!-- Content: Nav -->
 				<Sidebar.Content>
-					<!-- Businesses grouped by organization -->
-					{#each orgGroups as group (group.organizationId ?? '__ungrouped')}
-						<Sidebar.Group>
-							<Sidebar.GroupLabel>
-								{group.organizationName ?? 'Personal'}
-								{#if group.orgRole === 'owner'}
-									<Sidebar.GroupAction>
+					<!-- Business Switcher -->
+					<Sidebar.Group>
+						<Sidebar.Menu>
+							<Sidebar.MenuItem>
+								<DropdownMenu.Root>
+									<DropdownMenu.Trigger>
 										{#snippet child({ props })}
-											<a href="/businesses" {...props} title="Manage businesses">
-												<Plus class="size-4" />
-											</a>
+											<Sidebar.MenuButton size="lg" {...props}>
+												<Building2 class="size-4" />
+												<span class="truncate flex-1 text-left">
+													{currentBusiness?.name ?? 'Select a business'}
+												</span>
+												<ChevronsUpDown class="size-4 text-muted-foreground shrink-0" />
+											</Sidebar.MenuButton>
 										{/snippet}
-									</Sidebar.GroupAction>
-								{/if}
-							</Sidebar.GroupLabel>
+									</DropdownMenu.Trigger>
+									<DropdownMenu.Content class="w-[--bits-dropdown-menu-trigger-width] min-w-56" align="start" side="bottom">
+										{#each orgGroups as group (group.organizationId ?? '__ungrouped')}
+											<DropdownMenu.Group>
+												<DropdownMenu.GroupHeading>{group.organizationName ?? 'Personal'}</DropdownMenu.GroupHeading>
+												{#each group.businesses as biz (biz.id)}
+													<DropdownMenu.Item onSelect={() => goto(`/businesses/${biz.id}`)}>
+														<Check class="size-4 {currentBusinessId === biz.id ? '' : 'invisible'}" />
+														<span class="truncate">{biz.name}</span>
+													</DropdownMenu.Item>
+												{/each}
+											</DropdownMenu.Group>
+										{:else}
+											<DropdownMenu.Item onSelect={() => goto('/businesses')}>
+												<Plus class="size-4" />
+												Create a business
+											</DropdownMenu.Item>
+										{/each}
+									</DropdownMenu.Content>
+								</DropdownMenu.Root>
+							</Sidebar.MenuItem>
+						</Sidebar.Menu>
+					</Sidebar.Group>
+
+					<!-- Business Nav Tabs -->
+					{#if currentBusinessId}
+						<Sidebar.Group>
 							<Sidebar.GroupContent>
 								<Sidebar.Menu>
-									{#each group.businesses as biz (biz.id)}
-										<Collapsible.Root open={currentBusinessId === biz.id}>
-											<Sidebar.MenuItem>
-												<Sidebar.MenuButton isActive={currentBusinessId === biz.id}>
-													{#snippet child({ props })}
-														<a href="/businesses/{biz.id}" {...props}>
-															<Building2 class="size-4" />
-															<span class="truncate flex-1">{biz.name}</span>
-															<Collapsible.Trigger
-																	class="ml-auto"
-																	onclick={(e: MouseEvent) => e.preventDefault()}
-															>
-																<ChevronRight
-																		class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
-																/>
-															</Collapsible.Trigger>
-														</a>
-													{/snippet}
-												</Sidebar.MenuButton>
-												<Collapsible.Content>
-													<Sidebar.MenuSub>
-														{#each bizTabs as tab}
-															<Sidebar.MenuSubItem>
-																<Sidebar.MenuSubButton
-																		href="/businesses/{biz.id}{tab.href}"
-																		isActive={isSubActive(biz.id, tab.href)}
-																>
-																	<tab.icon class="size-3.5" />
-																	<span>{tab.label}</span>
-																</Sidebar.MenuSubButton>
-															</Sidebar.MenuSubItem>
-														{/each}
-													</Sidebar.MenuSub>
-												</Collapsible.Content>
-											</Sidebar.MenuItem>
-										</Collapsible.Root>
+									{#each bizTabs as tab}
+										<Sidebar.MenuItem>
+											<Sidebar.MenuButton isActive={isSubActive(currentBusinessId, tab.href)}>
+												{#snippet child({ props })}
+													<a href={subHref(currentBusinessId, tab.href)} {...props}>
+														<tab.icon class="size-4" />
+														<span>{tab.label}</span>
+													</a>
+												{/snippet}
+											</Sidebar.MenuButton>
+										</Sidebar.MenuItem>
 									{/each}
 								</Sidebar.Menu>
 							</Sidebar.GroupContent>
 						</Sidebar.Group>
-					{:else}
-						<Sidebar.Group>
-							<Sidebar.GroupLabel>
-								Businesses
-								<Sidebar.GroupAction>
-									{#snippet child({ props })}
-										<a href="/businesses" {...props} title="Manage businesses">
-											<Plus class="size-4" />
-										</a>
-									{/snippet}
-								</Sidebar.GroupAction>
-							</Sidebar.GroupLabel>
-							<Sidebar.GroupContent>
-								<Sidebar.Menu>
-									<Sidebar.MenuItem>
-										<p class="px-2 py-1.5 text-sm text-muted-foreground">No businesses yet.</p>
-									</Sidebar.MenuItem>
-								</Sidebar.Menu>
-							</Sidebar.GroupContent>
-						</Sidebar.Group>
-					{/each}
+					{/if}
 
 					<!-- General links -->
 					<Sidebar.Group class="mt-auto">

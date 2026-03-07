@@ -2,8 +2,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Trash2, X } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2 } from '@lucide/svelte';
 	import { DateRangeFilter } from '$lib/components/ui/date-picker';
+	import { ActiveFilters } from '$lib/components/ui/active-filters';
 	import * as Select from '$lib/components/ui/select';
 	import * as Pagination from '$lib/components/ui/pagination';
 
@@ -33,8 +34,8 @@
 	let perPage = $state(10);
 
 	// Filters
-	let filterContactId = $state($page.url.searchParams.get('contactId') ?? '');
-	let filterContactName = $state('');
+	const entityFilterKeys = ['contactId', 'projectId'];
+	let entityFilters = $state<Record<string, string>>({});
 	let filterStatus = $state('');
 	let filterFrom = $state('');
 	let filterTo = $state('');
@@ -52,7 +53,9 @@
 
 	function buildQuery() {
 		const q = new URLSearchParams();
-		if (filterContactId) q.set('contactId', filterContactId);
+		for (const [key, val] of Object.entries(entityFilters)) {
+			q.set(key, val);
+		}
 		if (filterStatus) q.set('status', filterStatus);
 		if (filterFrom) q.set('from', filterFrom);
 		if (filterTo) q.set('to', filterTo);
@@ -105,25 +108,7 @@
 		loadQuotes();
 	}
 
-	function clearContactFilter() {
-		filterContactId = '';
-		filterContactName = '';
-		currentPage = 1;
-		const url = new URL(window.location.href);
-		url.searchParams.delete('contactId');
-		window.history.replaceState({}, '', url.toString());
-		loadQuotes();
-	}
-
-	onMount(async () => {
-		if (filterContactId) {
-			try {
-				const c = await api.get<{ name: string }>(`/businesses/${businessId}/contacts/${filterContactId}`);
-				filterContactName = c.name;
-			} catch {}
-		}
-		loadQuotes(true);
-	});
+	onMount(() => loadQuotes(true));
 </script>
 
 <div>
@@ -141,16 +126,7 @@
 	</div>
 
 	<!-- Filters -->
-	{#if filterContactId}
-		<div class="flex items-center gap-2 mb-3">
-			<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-sm text-foreground">
-				Contact: <span class="font-medium">{filterContactName || 'Loading…'}</span>
-				<button onclick={clearContactFilter} class="p-0.5 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground">
-					<X class="size-3" />
-				</button>
-			</span>
-		</div>
-	{/if}
+	<ActiveFilters {businessId} params={entityFilterKeys} bind:active={entityFilters} onchange={() => { currentPage = 1; loadQuotes(); }} />
 	<div class="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mb-4 items-center">
 		<Select.Root type="single" value={filterStatus} onValueChange={(v) => { filterStatus = v ?? ''; currentPage = 1; loadQuotes(); }}>
 			<Select.Trigger class="w-full sm:w-auto">

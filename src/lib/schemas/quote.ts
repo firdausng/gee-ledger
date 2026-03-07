@@ -39,6 +39,7 @@ export const UpdateQuoteSchema = v.object({
 export const QuoteFiltersSchema = v.object({
 	status: v.optional(QuoteStatusSchema),
 	contactId: v.optional(v.string()),
+	projectId: v.optional(v.string()),
 	from: v.optional(DateSchema),
 	to: v.optional(DateSchema),
 	page: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), 1),

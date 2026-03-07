@@ -11,7 +11,8 @@
       "Bash(mkdir:*)",
       "Bash(pnpm build:*)",
       "Bash(npx shadcn@latest:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(npx svelte-check:*)"
     ]
   }
 }
