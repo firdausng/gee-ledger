@@ -4,8 +4,6 @@
 	import { goto } from '$app/navigation';
 	import { api, formatAmount } from '$lib/client/api.svelte';
 	import { Plus, TrendingUp, TrendingDown, Scale, Loader2 } from '@lucide/svelte';
-	import { BarChart, PieChart } from 'layerchart';
-	import { ChartContainer, type ChartConfig } from '$lib/components/ui/chart';
 	import { DateRangePicker } from '$lib/components/ui/date-picker';
 
 	let { data } = $props();
@@ -22,7 +20,7 @@
 	};
 
 	type TrendRow = { period: string; income: number; expense: number };
-	type CategoryRow = { categoryName: string; total: number };
+	type CategoryRow = { categoryName: string; type: string; total: number };
 
 	type Period = 'week' | 'month' | 'year' | 'custom';
 
@@ -172,62 +170,31 @@
 		if (customTo) customToInput = customTo;
 	});
 
-	// ─── Chart config ───────────────────────────────────────────────────────
-	const trendChartConfig: ChartConfig = {
-		income: { label: 'Income', color: 'var(--color-chart-2)' },
-		expense: { label: 'Expense', color: 'var(--color-chart-5)' }
-	};
+	// ─── Chart helpers ──────────────────────────────────────────────────────
+	const chartColors = [
+		'var(--color-chart-1)',
+		'var(--color-chart-2)',
+		'var(--color-chart-3)',
+		'var(--color-chart-4)',
+		'var(--color-chart-5)',
+		'var(--color-muted-foreground)'
+	];
 
-	let pieChartConfig = $derived.by<ChartConfig>(() => {
-		const colors = [
-			'var(--color-chart-1)',
-			'var(--color-chart-2)',
-			'var(--color-chart-3)',
-			'var(--color-chart-4)',
-			'var(--color-chart-5)',
-			'var(--color-muted-foreground)',
-			'var(--color-chart-1)',
-			'var(--color-chart-3)'
-		];
-		const config: ChartConfig = {};
-		categoryBreakdown.forEach((c, i) => {
-			config[c.categoryName] = {
-				label: c.categoryName,
-				color: colors[i % colors.length]
-			};
-		});
-		return config;
-	});
-
-	// Format period labels for the bar chart x-axis
 	function formatPeriodLabel(period: string): string {
 		if (period.length === 7) {
-			// YYYY-MM → short month name
 			const [y, m] = period.split('-');
 			const date = new Date(Number(y), Number(m) - 1, 1);
 			return date.toLocaleDateString('en', { month: 'short' });
 		}
-		// YYYY-MM-DD → short day
 		const date = new Date(period + 'T00:00:00');
 		return date.toLocaleDateString('en', { month: 'short', day: 'numeric' });
 	}
 
-	let trendForChart = $derived(
-		trend.map((t) => ({
-			...t,
-			label: formatPeriodLabel(t.period),
-			incomeDisplay: t.income / 100,
-			expenseDisplay: t.expense / 100
-		}))
-	);
-
-	let pieDataForChart = $derived(
-		categoryBreakdown.map((c) => ({
-			key: c.categoryName,
-			label: c.categoryName,
-			value: c.total / 100
-		}))
-	);
+	let trendMax = $derived(Math.max(...trend.map((t) => Math.max(t.income, t.expense)), 1));
+	let incomeCategories = $derived(categoryBreakdown.filter((c) => c.type === 'income'));
+	let expenseCategories = $derived(categoryBreakdown.filter((c) => c.type === 'expense'));
+	let incomeMax = $derived(Math.max(...incomeCategories.map((c) => c.total), 1));
+	let expenseMax = $derived(Math.max(...expenseCategories.map((c) => c.total), 1));
 
 	const currency = $derived(data.business.currency);
 </script>
@@ -297,41 +264,93 @@
 			<Loader2 class="size-7 animate-spin text-muted-foreground" />
 		</div>
 	{:else if trend.length > 0 || categoryBreakdown.length > 0}
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+		<div class="flex flex-col gap-4 mb-6">
 			<!-- Trend Bar Chart -->
-			{#if trendForChart.length > 0}
+			{#if trend.length > 0}
 				<div class="rounded-lg border border-border bg-card p-4">
 					<h3 class="text-sm font-semibold text-foreground mb-3">Income vs Expense</h3>
-					<ChartContainer config={trendChartConfig} class="h-[250px] w-full">
-						<BarChart
-							data={trendForChart}
-							x="label"
-							series={[
-								{ key: 'incomeDisplay', label: 'Income', color: 'var(--color-chart-2)' },
-								{ key: 'expenseDisplay', label: 'Expense', color: 'var(--color-chart-5)' }
-							]}
-							seriesLayout="group"
-							bandPadding={0.3}
-							groupPadding={0.1}
-							tooltip={true}
-						/>
-					</ChartContainer>
+					<div class="flex items-end gap-1 h-[200px]">
+						{#each trend as row}
+							<div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end min-w-0">
+								<div class="w-full flex gap-px justify-center flex-1 items-end">
+									<div
+										class="flex-1 rounded-t-sm bg-[var(--color-chart-2)] max-w-5 transition-all"
+										style:height="{Math.max((row.income / trendMax) * 100, row.income > 0 ? 2 : 0)}%"
+										title="Income: {formatAmount(row.income, currency)}"
+									></div>
+									<div
+										class="flex-1 rounded-t-sm bg-[var(--color-chart-5)] max-w-5 transition-all"
+										style:height="{Math.max((row.expense / trendMax) * 100, row.expense > 0 ? 2 : 0)}%"
+										title="Expense: {formatAmount(row.expense, currency)}"
+									></div>
+								</div>
+								<span class="text-[10px] text-muted-foreground truncate w-full text-center">
+									{formatPeriodLabel(row.period)}
+								</span>
+							</div>
+						{/each}
+					</div>
+					<div class="flex items-center gap-4 mt-3 justify-center">
+						<div class="flex items-center gap-1.5 text-xs">
+							<span class="size-2.5 rounded-sm bg-[var(--color-chart-2)]"></span>
+							<span class="text-muted-foreground">Income</span>
+						</div>
+						<div class="flex items-center gap-1.5 text-xs">
+							<span class="size-2.5 rounded-sm bg-[var(--color-chart-5)]"></span>
+							<span class="text-muted-foreground">Expense</span>
+						</div>
+					</div>
 				</div>
 			{/if}
 
-			<!-- Category Pie Chart -->
-			{#if pieDataForChart.length > 0}
-				<div class="rounded-lg border border-border bg-card p-4">
-					<h3 class="text-sm font-semibold text-foreground mb-3">Expense by Category</h3>
-					<ChartContainer config={pieChartConfig} class="h-[250px] w-full">
-						<PieChart
-							data={pieDataForChart}
-							key="key"
-							label="label"
-							value="value"
-							tooltip={true}
-						/>
-					</ChartContainer>
+			<!-- Category Breakdown — side by side -->
+			{#if incomeCategories.length > 0 || expenseCategories.length > 0}
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+					<!-- Income by Category -->
+					{#if incomeCategories.length > 0}
+						<div class="rounded-lg border border-border bg-card p-4">
+							<h3 class="text-sm font-semibold text-foreground mb-3">Income by Category</h3>
+							<div class="flex flex-col gap-2.5">
+								{#each incomeCategories as cat, i}
+									<div class="flex items-center gap-2">
+										<span class="size-2.5 rounded-sm shrink-0" style:background={chartColors[i % chartColors.length]}></span>
+										<span class="text-xs text-muted-foreground truncate flex-1 min-w-0">{cat.categoryName}</span>
+										<span class="text-xs font-medium tabular-nums shrink-0">{formatAmount(cat.total, currency)}</span>
+									</div>
+									<div class="h-2 rounded-full bg-muted overflow-hidden -mt-1">
+										<div
+											class="h-full rounded-full transition-all"
+											style:width="{(cat.total / incomeMax) * 100}%"
+											style:background={chartColors[i % chartColors.length]}
+										></div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Expense by Category -->
+					{#if expenseCategories.length > 0}
+						<div class="rounded-lg border border-border bg-card p-4">
+							<h3 class="text-sm font-semibold text-foreground mb-3">Expense by Category</h3>
+							<div class="flex flex-col gap-2.5">
+								{#each expenseCategories as cat, i}
+									<div class="flex items-center gap-2">
+										<span class="size-2.5 rounded-sm shrink-0" style:background={chartColors[i % chartColors.length]}></span>
+										<span class="text-xs text-muted-foreground truncate flex-1 min-w-0">{cat.categoryName}</span>
+										<span class="text-xs font-medium tabular-nums shrink-0">{formatAmount(cat.total, currency)}</span>
+									</div>
+									<div class="h-2 rounded-full bg-muted overflow-hidden -mt-1">
+										<div
+											class="h-full rounded-full transition-all"
+											style:width="{(cat.total / expenseMax) * 100}%"
+											style:background={chartColors[i % chartColors.length]}
+										></div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
 				</div>
 			{/if}
 		</div>

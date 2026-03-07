@@ -132,6 +132,7 @@
 	});
 </script>
 
+<div class="mx-auto w-full max-w-7xl">
 <Sidebar.Provider>
 	<Sidebar.Root collapsible="offcanvas" side="left">
 		<!-- Header: Logo -->
@@ -326,22 +327,24 @@
 	<Sidebar.Inset>
 		<!-- Top bar -->
 		<header
-			class="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background/95 backdrop-blur px-4"
+			class="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur"
 		>
-			<Sidebar.Trigger class="md:hidden" />
-			{#if currentBusiness}
-				<span class="font-semibold text-foreground truncate">{currentBusiness.name}</span>
-			{:else}
-				<a
-					href="/businesses"
-					class="flex items-center gap-2 text-foreground [&_svg]:h-7 [&_svg]:w-auto"
-				>
-					{@html logoSvg}
-					<span class="font-semibold">Gee Ledger</span>
-				</a>
-			{/if}
-			<div class="ml-auto flex items-center gap-2">
-				<NotificationBell />
+			<div class="flex h-14 items-center gap-3 px-4 sm:px-6">
+				<Sidebar.Trigger class="md:hidden" />
+				{#if currentBusiness}
+					<span class="font-semibold text-foreground truncate">{currentBusiness.name}</span>
+				{:else}
+					<a
+						href="/businesses"
+						class="flex items-center gap-2 text-foreground [&_svg]:h-7 [&_svg]:w-auto"
+					>
+						{@html logoSvg}
+						<span class="font-semibold">Gee Ledger</span>
+					</a>
+				{/if}
+				<div class="ml-auto flex items-center gap-2">
+					<NotificationBell />
+				</div>
 			</div>
 		</header>
 
@@ -350,7 +353,7 @@
 			<div
 				class="border-b border-amber-200 dark:border-amber-800/50 bg-amber-50/80 dark:bg-amber-900/10"
 			>
-				<div class="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
+				<div class="px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
 					<a
 						href="/organizations/{data.upgradeOrgId}"
 						class="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 hover:underline"
@@ -370,8 +373,9 @@
 		{/if}
 
 		<!-- Page content -->
-		<main class="flex-1">
+		<main class="flex-1 px-4 py-4 sm:px-6">
 			{@render children()}
 		</main>
 	</Sidebar.Inset>
 </Sidebar.Provider>
+</div>

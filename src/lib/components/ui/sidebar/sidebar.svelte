@@ -78,25 +78,13 @@
 		data-side={side}
 		data-slot="sidebar"
 	>
-		<!-- This is what handles the sidebar gap on desktop -->
-		<div
-			data-slot="sidebar-gap"
-			class={cn(
-				"relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
-				"group-data-[collapsible=offcanvas]:w-0",
-				"group-data-[side=right]:rotate-180",
-				variant === "floating" || variant === "inset"
-					? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
-			)}
-		></div>
+		<!-- Gap div hidden — sticky sidebar handles its own space -->
+		<div data-slot="sidebar-gap" class="hidden"></div>
 		<div
 			data-slot="sidebar-container"
 			class={cn(
-				"fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
-				side === "left"
-					? "start-0 group-data-[collapsible=offcanvas]:start-[calc(var(--sidebar-width)*-1)]"
-					: "end-0 group-data-[collapsible=offcanvas]:end-[calc(var(--sidebar-width)*-1)]",
+				"sticky top-0 z-10 hidden h-svh w-(--sidebar-width) shrink-0 transition-[width] duration-200 ease-linear md:flex",
+				"group-data-[collapsible=offcanvas]:w-0 group-data-[collapsible=offcanvas]:overflow-hidden",
 				// Adjust the padding for floating and inset variants.
 				variant === "floating" || variant === "inset"
 					? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"

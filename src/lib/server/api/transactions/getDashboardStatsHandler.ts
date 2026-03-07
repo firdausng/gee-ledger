@@ -5,7 +5,7 @@ import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 
 type TrendRow = { period: string; income: number; expense: number };
-type CategoryRow = { categoryName: string; total: number };
+type CategoryRow = { categoryName: string; type: string; total: number };
 
 export async function getDashboardStatsHandler(
 	user: App.User,
@@ -48,21 +48,21 @@ export async function getDashboardStatsHandler(
 	}
 	const trend = Array.from(trendMap.values());
 
-	// Query 2: Category breakdown — top 8 expense categories
+	// Query 2: Category breakdown — top 8 per type (income + expense)
 	const categoryBreakdown = await db.all<CategoryRow>(
 		sql`SELECT
 			COALESCE(${categories.name}, 'Uncategorized') AS categoryName,
+			${transactions.type} AS type,
 			COALESCE(SUM(${transactions.amount}), 0) AS total
 		FROM ${transactions}
 		LEFT JOIN ${categories} ON ${categories.id} = ${transactions.categoryId}
 		WHERE ${transactions.businessId} = ${businessId}
 			AND ${transactions.deletedAt} IS NULL
-			AND ${transactions.type} = 'expense'
 			AND ${transactions.transactionDate} >= ${params.from}
 			AND ${transactions.transactionDate} <= ${params.to}
-		GROUP BY ${transactions.categoryId}
+		GROUP BY ${transactions.categoryId}, ${transactions.type}
 		ORDER BY total DESC
-		LIMIT 8`
+		LIMIT 16`
 	);
 
 	return { trend, categoryBreakdown };
