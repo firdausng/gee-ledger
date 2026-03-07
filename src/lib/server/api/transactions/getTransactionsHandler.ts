@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, gte, lte, inArray, count, desc } from 'drizzle-orm';
-import { transactions, transactionAttachments, attachments, contacts } from '$lib/server/db/schema';
+import { eq, and, isNull, gte, lte, inArray, count, desc, asc } from 'drizzle-orm';
+import { transactions, transactionAttachments, attachments, contacts, transactionItems } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 import type { TransactionFilters } from '$lib/schemas/transaction';
@@ -76,10 +76,31 @@ export async function getTransactionsHandler(
 		}
 	}
 
+	// Resolve first line item description for rows without a note
+	const firstItemDesc: Record<string, string> = {};
+	const noNoteIds = rows.filter((t) => !t.note).map((t) => t.id);
+	if (noNoteIds.length > 0) {
+		const itemRows = await db
+			.select({
+				transactionId: transactionItems.transactionId,
+				description: transactionItems.description,
+				sortOrder: transactionItems.sortOrder,
+			})
+			.from(transactionItems)
+			.where(inArray(transactionItems.transactionId, noNoteIds))
+			.orderBy(asc(transactionItems.sortOrder));
+		for (const row of itemRows) {
+			if (!(row.transactionId in firstItemDesc)) {
+				firstItemDesc[row.transactionId] = row.description;
+			}
+		}
+	}
+
 	const data = rows.map((t) => ({
 		...t,
 		attachmentCount: attachmentCounts[t.id] ?? 0,
-		contactName: t.contactId ? (contactNames[t.contactId] ?? null) : null
+		contactName: t.contactId ? (contactNames[t.contactId] ?? null) : null,
+		firstItemDescription: firstItemDesc[t.id] ?? null
 	}));
 
 	return { data, total, page, perPage };

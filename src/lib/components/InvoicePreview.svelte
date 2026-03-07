@@ -36,7 +36,7 @@
 		invoiceNo?:       string | null;
 		receiptNo?:       string | null;
 		featuredImageId?: string | null;
-		documentType?:    'invoice' | 'receipt' | null;
+		documentType?:    'invoice' | 'receipt' | 'quote' | null;
 	};
 
 	let {
@@ -54,7 +54,8 @@
 		documentType,
 	}: Props = $props();
 
-	function docTitle(type: string, override?: 'invoice' | 'receipt' | null): string {
+	function docTitle(type: string, override?: 'invoice' | 'receipt' | 'quote' | null): string {
+		if (override === 'quote') return 'QUOTE';
 		if (override === 'invoice') return 'INVOICE';
 		if (override === 'receipt') return 'RECEIPT';
 		if (type === 'expense') return 'RECEIPT';
@@ -113,6 +114,11 @@
 				<div class="flex gap-2">
 					<span class="text-gray-400 {compact ? 'w-18' : 'w-24'} shrink-0">Receipt No</span>
 					<span class="font-semibold">{receiptNo}</span>
+				</div>
+			{:else if documentType === 'quote' && invoiceNo}
+				<div class="flex gap-2">
+					<span class="text-gray-400 {compact ? 'w-18' : 'w-24'} shrink-0">Quote No</span>
+					<span class="font-semibold">{invoiceNo}</span>
 				</div>
 			{:else if documentType !== 'receipt' && invoiceNo}
 				<div class="flex gap-2">

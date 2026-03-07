@@ -16,6 +16,7 @@ import { invitationsApi } from './invitations/invitations-api';
 import { attachmentsApi } from './attachments/attachments-api';
 import { organizationsApi } from './organizations/organizations-api';
 import { notificationsApi } from './notifications/notifications-api';
+import { quotesApi } from './quotes/quotes-api';
 
 const router = new Hono<App.Api>()
 	// Verify Firebase token and resolve user on every request
@@ -68,6 +69,7 @@ const router = new Hono<App.Api>()
 	.route('/', attachmentsApi)
 	.route('/', organizationsApi)
 	.route('/', notificationsApi)
+	.route('/', quotesApi)
 
 	// Global error handler
 	.onError((err, c) => {

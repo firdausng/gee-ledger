@@ -18,6 +18,7 @@
 		Paperclip,
 		Settings2,
 		ScrollText,
+		FileText,
 		UsersRound,
 		Crown,
 		Package,
@@ -73,6 +74,7 @@
 	const bizTabs = [
 		{ href: '', label: 'Overview', icon: LayoutDashboard },
 		{ href: '/transactions', label: 'Transactions', icon: ReceiptText },
+		{ href: '/quotes', label: 'Quotes', icon: FileText },
 		{ href: '/contacts', label: 'Contacts', icon: UsersRound },
 		{ href: '/accounts', label: 'Accounts', icon: BookOpen },
 		{ href: '/products', label: 'Products', icon: Package },

@@ -93,6 +93,7 @@ export const businesses = sqliteTable(
 		logoR2Key:      text('logo_r2_key'),
 		nextInvoiceNo: integer('next_invoice_no').notNull().default(1),
 		nextReceiptNo: integer('next_receipt_no').notNull().default(1),
+		nextQuoteNo:   integer('next_quote_no').notNull().default(1),
 		createdAt: text('created_at').notNull(),
 		createdBy: text('created_by').notNull(),
 		updatedAt: text('updated_at').notNull(),
@@ -411,6 +412,107 @@ export const transactionServiceItemAttachments = sqliteTable(
 	(t) => ({
 		pk:             primaryKey({ columns: [t.serviceItemId, t.attachmentId] }),
 		serviceItemIdx: index('tx_svc_item_attachments_svc_item_idx').on(t.serviceItemId),
+	})
+);
+
+// ─── Quotes ───────────────────────────────────────────────────────────────────
+
+export const quotes = sqliteTable(
+	'quotes',
+	{
+		id: text('id').primaryKey(),
+		businessId: text('business_id').notNull(),
+		contactId: text('contact_id'),
+		locationId: text('location_id').notNull(),
+		salesChannelId: text('sales_channel_id'),
+		categoryId: text('category_id'),
+		amount: integer('amount').notNull(),
+		quoteNo: text('quote_no'),
+		quoteDate: text('quote_date').notNull(),
+		expiryDate: text('expiry_date'),
+		dueDate: text('due_date'),
+		note: text('note'),
+		referenceNo: text('reference_no'),
+		featuredImageId: text('featured_image_id'),
+		lineItemMode: text('line_item_mode').notNull().default('items'),
+		// 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+		status: text('status').notNull().default('draft'),
+		convertedTransactionId: text('converted_transaction_id'),
+		createdAt: text('created_at').notNull(),
+		createdBy: text('created_by').notNull(),
+		updatedAt: text('updated_at').notNull(),
+		updatedBy: text('updated_by').notNull(),
+		deletedAt: text('deleted_at'),
+		deletedBy: text('deleted_by')
+	},
+	(t) => ({
+		businessDeletedIdx: index('quotes_business_deleted_idx').on(t.businessId, t.deletedAt),
+		businessStatusIdx: index('quotes_business_status_idx').on(t.businessId, t.status, t.deletedAt),
+	})
+);
+
+export const quoteItems = sqliteTable('quote_items', {
+	id:          text('id').primaryKey(),
+	quoteId:     text('quote_id').notNull(),
+	productId:   text('product_id'),
+	description: text('description').notNull(),
+	quantity:    integer('quantity').notNull().default(1),
+	unitPrice:   integer('unit_price').notNull(),
+	sortOrder:   integer('sort_order').notNull().default(0),
+}, (t) => ({
+	quoteIdx: index('quote_items_quote_idx').on(t.quoteId)
+}));
+
+export const quoteServiceItems = sqliteTable('quote_service_items', {
+	id:          text('id').primaryKey(),
+	quoteId:     text('quote_id').notNull(),
+	description: text('description').notNull(),
+	hours:       real('hours').notNull(),
+	rate:        integer('rate').notNull(),
+	sortOrder:   integer('sort_order').notNull().default(0),
+}, (t) => ({
+	quoteIdx: index('quote_service_items_quote_idx').on(t.quoteId)
+}));
+
+export const quoteItemAttachments = sqliteTable(
+	'quote_item_attachments',
+	{
+		itemId:       text('item_id').notNull(),
+		attachmentId: text('attachment_id').notNull(),
+	},
+	(t) => ({
+		pk:      primaryKey({ columns: [t.itemId, t.attachmentId] }),
+		itemIdx: index('quote_item_attachments_item_idx').on(t.itemId),
+	})
+);
+
+export const quoteServiceItemAttachments = sqliteTable(
+	'quote_service_item_attachments',
+	{
+		serviceItemId: text('service_item_id').notNull(),
+		attachmentId:  text('attachment_id').notNull(),
+	},
+	(t) => ({
+		pk:             primaryKey({ columns: [t.serviceItemId, t.attachmentId] }),
+		serviceItemIdx: index('quote_svc_item_attachments_svc_item_idx').on(t.serviceItemId),
+	})
+);
+
+// ─── Quote Conversions (quote → transaction, many-to-many) ───────────────────
+
+export const quoteConversions = sqliteTable(
+	'quote_conversions',
+	{
+		id:            text('id').primaryKey(),
+		quoteId:       text('quote_id').notNull(),
+		transactionId: text('transaction_id').notNull(),
+		note:          text('note'),
+		createdAt:     text('created_at').notNull(),
+		createdBy:     text('created_by').notNull(),
+	},
+	(t) => ({
+		quoteIdx:       index('quote_conversions_quote_idx').on(t.quoteId),
+		transactionIdx: index('quote_conversions_tx_idx').on(t.transactionId),
 	})
 );
 
