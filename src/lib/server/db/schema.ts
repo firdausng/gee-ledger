@@ -293,6 +293,8 @@ export const transactions = sqliteTable(
 		documentType:    text('document_type'),
 		// ISO date string YYYY-MM-DD
 		transactionDate: text('transaction_date').notNull(),
+		// Optional due date YYYY-MM-DD (for invoices)
+		dueDate: text('due_date'),
 		createdAt: text('created_at').notNull(),
 		createdBy: text('created_by').notNull(),
 		updatedAt: text('updated_at').notNull(),
@@ -321,7 +323,8 @@ export const transactions = sqliteTable(
 			t.type,
 			t.deletedAt
 		),
-		categoryIdx: index('transactions_category_idx').on(t.categoryId)
+		categoryIdx: index('transactions_category_idx').on(t.categoryId),
+		businessDueDateIdx: index('transactions_business_due_date_idx').on(t.businessId, t.dueDate, t.deletedAt)
 	})
 );
 

@@ -31,6 +31,7 @@ export async function updateTransactionHandler(
 			...(data.note !== undefined && { note: data.note }),
 			...(data.referenceNo !== undefined && { referenceNo: data.referenceNo }),
 			...(data.transactionDate !== undefined && { transactionDate: data.transactionDate }),
+			...(data.dueDate !== undefined && { dueDate: data.dueDate }),
 			...(data.featuredImageId !== undefined && { featuredImageId: data.featuredImageId }),
 			...(data.invoiceNo !== undefined && { invoiceNo: data.invoiceNo }),
 			...(data.receiptNo !== undefined && { receiptNo: data.receiptNo }),

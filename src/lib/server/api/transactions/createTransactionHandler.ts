@@ -53,6 +53,7 @@ export async function createTransactionHandler(
 			note: data.note ?? null,
 			referenceNo: data.referenceNo ?? null,
 			transactionDate: data.transactionDate,
+			dueDate: data.dueDate ?? null,
 			createdAt: now,
 			createdBy: user.id,
 			updatedAt: now,

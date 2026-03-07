@@ -45,6 +45,7 @@
 	let salesChannelId = $state('');
 	let categoryId = $state('');
 	let contactId = $state('');
+	let dueDate = $state('');
 	let note = $state('');
 	let referenceNo = $state('');
 
@@ -316,6 +317,7 @@
 				salesChannelId: salesChannelId || undefined,
 				categoryId: categoryId || undefined,
 				contactId: contactId || undefined,
+				dueDate: dueDate || undefined,
 				note: note.trim() || undefined,
 				referenceNo: referenceNo.trim() || undefined,
 				attachmentIds: pendingAttachments.map((a) => a.id)
@@ -428,6 +430,12 @@
 				<div class="space-y-1.5">
 					<Label for="tx-date">Date <span class="text-destructive">*</span></Label>
 					<DatePicker id="tx-date" bind:value={transactionDate} />
+				</div>
+
+				<!-- Due Date -->
+				<div class="space-y-1.5">
+					<Label for="tx-due-date">Due Date</Label>
+					<DatePicker id="tx-due-date" bind:value={dueDate} placeholder="No due date" />
 				</div>
 
 				<!-- Location -->

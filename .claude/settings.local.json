@@ -4,7 +4,9 @@
       "WebFetch(domain:www.shadcn-svelte.com)",
       "Bash(node:*)",
       "Bash(find:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ]
   }
 }

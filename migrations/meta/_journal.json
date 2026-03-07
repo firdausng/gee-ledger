@@ -127,6 +127,13 @@
       "when": 1772858177071,
       "tag": "0017_stiff_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1772858993051,
+      "tag": "0018_colossal_zeigeist",
+      "breakpoints": true
     }
   ]
 }

@@ -31,6 +31,7 @@
 		contactId: string | null;
 		note: string | null;
 		referenceNo: string | null;
+		dueDate: string | null;
 		invoiceNo: string | null;
 		featuredImageId: string | null;
 	};
@@ -71,6 +72,7 @@
 	let salesChannelId = $state('');
 	let categoryId = $state('');
 	let contactId = $state('');
+	let dueDate = $state('');
 	let note = $state('');
 	let referenceNo = $state('');
 	let invoiceNo = $state('');
@@ -145,6 +147,7 @@
 			salesChannelId = tx.salesChannelId ?? '';
 			categoryId = tx.categoryId ?? '';
 			contactId = tx.contactId ?? '';
+			dueDate = tx.dueDate ?? '';
 			note = tx.note ?? '';
 			referenceNo = tx.referenceNo ?? '';
 			invoiceNo = tx.invoiceNo ?? '';
@@ -201,6 +204,7 @@
 				type,
 				lineItemMode,
 				transactionDate,
+				dueDate: dueDate || null,
 				amount: total,
 				locationId,
 				salesChannelId: salesChannelId || undefined,
@@ -426,6 +430,12 @@
 					<div class="space-y-1.5">
 						<Label for="tx-date">Date <span class="text-destructive">*</span></Label>
 						<DatePicker id="tx-date" bind:value={transactionDate} />
+					</div>
+
+					<!-- Due Date -->
+					<div class="space-y-1.5">
+						<Label for="tx-due-date">Due Date</Label>
+						<DatePicker id="tx-due-date" bind:value={dueDate} placeholder="No due date" />
 					</div>
 				</Card.Content>
 			</Card.Root>

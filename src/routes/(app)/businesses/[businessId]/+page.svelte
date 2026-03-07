@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, TrendingUp, TrendingDown, Scale, Loader2 } from '@lucide/svelte';
+	import { Plus, TrendingUp, TrendingDown, Scale, Loader2, AlertTriangle, Clock } from '@lucide/svelte';
 	import { DateRangePicker } from '$lib/components/ui/date-picker';
 
 	let { data } = $props();
@@ -21,6 +21,7 @@
 
 	type TrendRow = { period: string; income: number; expense: number };
 	type CategoryRow = { categoryName: string; type: string; total: number };
+	type DueInvoice = { id: string; type: string; amount: number; note: string | null; dueDate: string; contactName: string | null };
 
 	type Period = 'week' | 'month' | 'year' | 'custom';
 
@@ -81,6 +82,8 @@
 	let transactions = $state<Transaction[]>([]);
 	let trend = $state<TrendRow[]>([]);
 	let categoryBreakdown = $state<CategoryRow[]>([]);
+	let pastDue = $state<DueInvoice[]>([]);
+	let upcoming = $state<DueInvoice[]>([]);
 	let loading = $state(true);
 	let statsLoading = $state(true);
 	let error = $state<string | null>(null);
@@ -116,14 +119,18 @@
 				to: range.to,
 				groupBy: range.groupBy
 			});
-			const res = await api.get<{ trend: TrendRow[]; categoryBreakdown: CategoryRow[] }>(
+			const res = await api.get<{ trend: TrendRow[]; categoryBreakdown: CategoryRow[]; pastDue: DueInvoice[]; upcoming: DueInvoice[] }>(
 				`/businesses/${bizId}/dashboard-stats?${q}`
 			);
 			trend = res.trend;
 			categoryBreakdown = res.categoryBreakdown;
+			pastDue = res.pastDue;
+			upcoming = res.upcoming;
 		} catch {
 			trend = [];
 			categoryBreakdown = [];
+			pastDue = [];
+			upcoming = [];
 		} finally {
 			statsLoading = false;
 		}
@@ -197,6 +204,13 @@
 	let expenseMax = $derived(Math.max(...expenseCategories.map((c) => c.total), 1));
 
 	const currency = $derived(data.business.currency);
+
+	function daysFromToday(dateStr: string): number {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const target = new Date(dateStr + 'T00:00:00');
+		return Math.round((target.getTime() - today.getTime()) / 86400000);
+	}
 </script>
 
 <div>
@@ -257,6 +271,68 @@
 			<p class="text-xs text-muted-foreground mt-0.5">{periodLabel}</p>
 		</div>
 	</div>
+
+	<!-- Past Due & Upcoming -->
+	{#if !statsLoading && (pastDue.length > 0 || upcoming.length > 0)}
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+			{#if pastDue.length > 0}
+				<div class="rounded-lg border border-destructive/30 bg-card p-4">
+					<div class="flex items-center gap-2 mb-3">
+						<AlertTriangle class="size-4 text-destructive" />
+						<h3 class="text-sm font-semibold text-destructive">Past Due</h3>
+						<span class="text-xs px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-medium">{pastDue.length}</span>
+					</div>
+					<div class="flex flex-col gap-1">
+						{#each pastDue as inv (inv.id)}
+							{@const days = Math.abs(daysFromToday(inv.dueDate))}
+							<a
+								href="/businesses/{businessId}/transactions/{inv.id}"
+								class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors -mx-1"
+							>
+								<div class="flex-1 min-w-0">
+									<p class="text-sm text-foreground truncate">{inv.contactName ?? inv.note ?? '—'}</p>
+									<p class="text-xs text-destructive">{days} day{days !== 1 ? 's' : ''} overdue</p>
+								</div>
+								<span class="text-sm font-semibold tabular-nums shrink-0 {inv.type === 'income' ? 'text-success-fg' : 'text-destructive'}">
+									{formatAmount(inv.amount, currency)}
+								</span>
+							</a>
+						{/each}
+					</div>
+				</div>
+			{/if}
+			{#if upcoming.length > 0}
+				<div class="rounded-lg border border-border bg-card p-4">
+					<div class="flex items-center gap-2 mb-3">
+						<Clock class="size-4 text-muted-foreground" />
+						<h3 class="text-sm font-semibold text-foreground">Upcoming Due</h3>
+						<span class="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">{upcoming.length}</span>
+					</div>
+					<div class="flex flex-col gap-1">
+						{#each upcoming as inv (inv.id)}
+							{@const days = daysFromToday(inv.dueDate)}
+							<a
+								href="/businesses/{businessId}/transactions/{inv.id}"
+								class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors -mx-1"
+							>
+								<div class="flex-1 min-w-0">
+									<p class="text-sm text-foreground truncate">{inv.contactName ?? inv.note ?? '—'}</p>
+									<p class="text-xs text-muted-foreground">
+										{#if days === 0}Due today
+										{:else}Due in {days} day{days !== 1 ? 's' : ''}
+										{/if}
+									</p>
+								</div>
+								<span class="text-sm font-semibold tabular-nums shrink-0 {inv.type === 'income' ? 'text-success-fg' : 'text-destructive'}">
+									{formatAmount(inv.amount, currency)}
+								</span>
+							</a>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Charts -->
 	{#if statsLoading}

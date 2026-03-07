@@ -1,11 +1,12 @@
 import { drizzle } from 'drizzle-orm/d1';
 import { sql } from 'drizzle-orm';
-import { transactions, categories } from '$lib/server/db/schema';
+import { transactions, categories, contacts } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
 
 type TrendRow = { period: string; income: number; expense: number };
 type CategoryRow = { categoryName: string; type: string; total: number };
+type DueInvoice = { id: string; type: string; amount: number; note: string | null; dueDate: string; contactName: string | null };
 
 export async function getDashboardStatsHandler(
 	user: App.User,
@@ -15,6 +16,8 @@ export async function getDashboardStatsHandler(
 ): Promise<{
 	trend: TrendRow[];
 	categoryBreakdown: CategoryRow[];
+	pastDue: DueInvoice[];
+	upcoming: DueInvoice[];
 }> {
 	await requireBusinessPermission(user, businessId, 'transaction:view', env);
 
@@ -65,5 +68,44 @@ export async function getDashboardStatsHandler(
 		LIMIT 16`
 	);
 
-	return { trend, categoryBreakdown };
+	// Query 3: Past due invoices — dueDate < today, oldest first
+	const today = new Date().toISOString().slice(0, 10);
+	const pastDue = await db.all<DueInvoice>(
+		sql`SELECT
+			${transactions.id} AS id,
+			${transactions.type} AS type,
+			${transactions.amount} AS amount,
+			${transactions.note} AS note,
+			${transactions.dueDate} AS dueDate,
+			${contacts.name} AS contactName
+		FROM ${transactions}
+		LEFT JOIN ${contacts} ON ${contacts.id} = ${transactions.contactId}
+		WHERE ${transactions.businessId} = ${businessId}
+			AND ${transactions.deletedAt} IS NULL
+			AND ${transactions.dueDate} IS NOT NULL
+			AND ${transactions.dueDate} < ${today}
+		ORDER BY ${transactions.dueDate} ASC
+		LIMIT 10`
+	);
+
+	// Query 4: Upcoming due invoices — dueDate >= today, soonest first
+	const upcoming = await db.all<DueInvoice>(
+		sql`SELECT
+			${transactions.id} AS id,
+			${transactions.type} AS type,
+			${transactions.amount} AS amount,
+			${transactions.note} AS note,
+			${transactions.dueDate} AS dueDate,
+			${contacts.name} AS contactName
+		FROM ${transactions}
+		LEFT JOIN ${contacts} ON ${contacts.id} = ${transactions.contactId}
+		WHERE ${transactions.businessId} = ${businessId}
+			AND ${transactions.deletedAt} IS NULL
+			AND ${transactions.dueDate} IS NOT NULL
+			AND ${transactions.dueDate} >= ${today}
+		ORDER BY ${transactions.dueDate} ASC
+		LIMIT 10`
+	);
+
+	return { trend, categoryBreakdown, pastDue, upcoming };
 }
