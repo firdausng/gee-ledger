@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/client/api.svelte';
 	import { PHONE_CODES, parsePhone } from '$lib/data/phoneCodes';
-	import { Plus, Loader2, Pencil, Trash2, UsersRound, Download, Crown } from '@lucide/svelte';
+	import { Plus, Loader2, Pencil, Trash2, UsersRound, Download, Crown, Search } from '@lucide/svelte';
 	import { PLAN_KEY } from '$lib/configurations/plans';
 
 	type Contact = {
@@ -28,14 +28,24 @@
 	let error      = $state<string | null>(null);
 
 	let activeTab = $state<'all' | 'client' | 'supplier'>('all');
+	let searchQuery = $state('');
+	let serverSearch = $state('');
 
-	const filteredContacts = $derived(
-		activeTab === 'all'
+	const filteredContacts = $derived.by(() => {
+		let list = activeTab === 'all'
 			? contacts
 			: activeTab === 'client'
 				? contacts.filter((c) => c.isClient)
-				: contacts.filter((c) => c.isSupplier)
-	);
+				: contacts.filter((c) => c.isSupplier);
+		const q = searchQuery.trim().toLowerCase();
+		if (q && q !== serverSearch.toLowerCase()) {
+			list = list.filter((c) =>
+				c.name.toLowerCase().includes(q) ||
+				(c.email && c.email.toLowerCase().includes(q))
+			);
+		}
+		return list;
+	});
 
 	// ── Create ───────────────────────────────────────────────────────────────────
 	let showCreate     = $state(false);
@@ -67,15 +77,26 @@
 	let deleteId  = $state<string | null>(null);
 	let deleting  = $state(false);
 
-	async function load() {
+	async function load(search?: string) {
 		try {
 			loading = true;
 			error = null;
-			contacts = await api.get<Contact[]>(`/businesses/${businessId}/contacts`);
+			const params = new URLSearchParams();
+			if (search) params.set('search', search);
+			const qs = params.toString();
+			contacts = await api.get<Contact[]>(`/businesses/${businessId}/contacts${qs ? `?${qs}` : ''}`);
+			serverSearch = search ?? '';
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load';
 		} finally {
 			loading = false;
+		}
+	}
+
+	function handleSearch() {
+		const q = searchQuery.trim();
+		if (q !== serverSearch) {
+			load(q || undefined);
 		}
 	}
 
@@ -215,6 +236,18 @@
 		{/each}
 	</div>
 
+	<!-- Search -->
+	<div class="relative mb-4">
+		<Search class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+		<input
+			type="text"
+			bind:value={searchQuery}
+			placeholder="Search by name or email… (Enter to search server)"
+			onkeydown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+			class="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+		/>
+	</div>
+
 	<!-- Create form -->
 	{#if showCreate}
 		<div class="rounded-lg border border-border bg-card p-4 mb-4">
@@ -324,21 +357,28 @@
 						</div>
 					</div>
 				{:else}
-					<div class="flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
-						<UsersRound class="size-4 text-muted-foreground shrink-0 mt-0.5" />
-						<div class="flex-1 min-w-0">
-							<p class="text-sm font-medium text-foreground">{c.name}</p>
-							{#if c.email}
-								<p class="text-xs text-muted-foreground">{c.email}</p>
-							{/if}
-						</div>
-						<div class="flex items-center gap-1.5 shrink-0">
-							{#if c.isClient}
-								<span class="text-xs px-2 py-0.5 rounded-full bg-info-bg text-info-fg">Client</span>
-							{/if}
-							{#if c.isSupplier}
-								<span class="text-xs px-2 py-0.5 rounded-full bg-warning-bg text-warning-fg">Supplier</span>
-							{/if}
+					<div class="flex items-start border-b border-border last:border-0 bg-card hover:bg-muted/30 transition-colors">
+						<a
+							href="/businesses/{businessId}/contacts/{c.id}"
+							class="flex items-start gap-3 px-4 py-3 flex-1 min-w-0"
+						>
+							<UsersRound class="size-4 text-muted-foreground shrink-0 mt-0.5" />
+							<div class="flex-1 min-w-0">
+								<p class="text-sm font-medium text-foreground">{c.name}</p>
+								{#if c.email}
+									<p class="text-xs text-muted-foreground">{c.email}</p>
+								{/if}
+							</div>
+							<div class="flex items-center gap-1.5 shrink-0">
+								{#if c.isClient}
+									<span class="text-xs px-2 py-0.5 rounded-full bg-info-bg text-info-fg">Client</span>
+								{/if}
+								{#if c.isSupplier}
+									<span class="text-xs px-2 py-0.5 rounded-full bg-warning-bg text-warning-fg">Supplier</span>
+								{/if}
+							</div>
+						</a>
+						<div class="flex items-center gap-1 px-2 py-3 shrink-0">
 							<button onclick={() => startEdit(c)}
 								class="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted">
 								<Pencil class="size-3.5" />

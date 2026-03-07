@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { api, formatAmount } from '$lib/client/api.svelte';
-	import { Plus, Loader2, Trash2, ListChecks, Clock } from '@lucide/svelte';
+	import { Plus, Loader2, Trash2, ListChecks, Clock, X } from '@lucide/svelte';
 	import * as Select from '$lib/components/ui/select';
 	import * as Pagination from '$lib/components/ui/pagination';
 
@@ -36,6 +36,8 @@
 	let currentPage = $state(1);
 	let perPage = $state(10);
 
+	let filterContactId = $state($page.url.searchParams.get('contactId') ?? '');
+	let filterContactName = $state('');
 	let filterStatus = $state('');
 	let deleteId = $state<string | null>(null);
 	let deleting = $state(false);
@@ -50,6 +52,7 @@
 
 	function buildQuery() {
 		const q = new URLSearchParams();
+		if (filterContactId) q.set('contactId', filterContactId);
 		if (filterStatus) q.set('status', filterStatus);
 		q.set('page', String(currentPage));
 		q.set('perPage', String(perPage));
@@ -100,7 +103,25 @@
 		loadProjects();
 	}
 
-	onMount(() => loadProjects(true));
+	function clearContactFilter() {
+		filterContactId = '';
+		filterContactName = '';
+		currentPage = 1;
+		const url = new URL(window.location.href);
+		url.searchParams.delete('contactId');
+		window.history.replaceState({}, '', url.toString());
+		loadProjects();
+	}
+
+	onMount(async () => {
+		if (filterContactId) {
+			try {
+				const c = await api.get<{ name: string }>(`/businesses/${businessId}/contacts/${filterContactId}`);
+				filterContactName = c.name;
+			} catch {}
+		}
+		loadProjects(true);
+	});
 </script>
 
 <div>
@@ -118,6 +139,16 @@
 	</div>
 
 	<!-- Filters -->
+	{#if filterContactId}
+		<div class="flex items-center gap-2 mb-3">
+			<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-sm text-foreground">
+				Contact: <span class="font-medium">{filterContactName || 'Loading…'}</span>
+				<button onclick={clearContactFilter} class="p-0.5 rounded-full hover:bg-background/80 text-muted-foreground hover:text-foreground">
+					<X class="size-3" />
+				</button>
+			</span>
+		</div>
+	{/if}
 	<div class="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 mb-4 items-center">
 		<Select.Root type="single" value={filterStatus} onValueChange={(v) => { filterStatus = v ?? ''; currentPage = 1; loadProjects(); }}>
 			<Select.Trigger class="w-full sm:w-auto">

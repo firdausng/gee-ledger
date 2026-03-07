@@ -7,6 +7,7 @@ import { createContactHandler } from './createContactHandler';
 import { updateContactHandler } from './updateContactHandler';
 import { deleteContactHandler } from './deleteContactHandler';
 import { exportContactsHandler } from './exportContactsHandler';
+import { getContactStatsHandler } from './getContactStatsHandler';
 import { csvResponse } from '$lib/server/utils/csv';
 import { HTTPException } from 'hono/http-exception';
 
@@ -15,7 +16,8 @@ export const contactsApi = new Hono<App.Api>()
 	.get('/businesses/:businessId/contacts', async (c) => {
 		const user = c.get('currentUser');
 		const role = c.req.query('role') as 'client' | 'supplier' | undefined;
-		const data = await getContactsHandler(user, c.req.param('businessId'), role, c.env);
+		const search = c.req.query('search')?.trim() || undefined;
+		const data = await getContactsHandler(user, c.req.param('businessId'), role, c.env, search);
 		return c.json({ data });
 	})
 
@@ -29,6 +31,17 @@ export const contactsApi = new Hono<App.Api>()
 	.get('/businesses/:businessId/contacts/:contactId', async (c) => {
 		const user = c.get('currentUser');
 		const data = await getContactHandler(
+			user,
+			c.req.param('businessId'),
+			c.req.param('contactId'),
+			c.env
+		);
+		return c.json({ data });
+	})
+
+	.get('/businesses/:businessId/contacts/:contactId/stats', async (c) => {
+		const user = c.get('currentUser');
+		const data = await getContactStatsHandler(
 			user,
 			c.req.param('businessId'),
 			c.req.param('contactId'),

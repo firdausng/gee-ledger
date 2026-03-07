@@ -23,6 +23,7 @@ export async function getTransactionsHandler(
 	if (filters.locationId) conditions.push(eq(transactions.locationId, filters.locationId));
 	if (filters.salesChannelId) conditions.push(eq(transactions.salesChannelId, filters.salesChannelId));
 	if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
+	if (filters.contactId) conditions.push(eq(transactions.contactId, filters.contactId));
 	if (filters.type) conditions.push(eq(transactions.type, filters.type));
 	if (filters.from) conditions.push(gte(transactions.transactionDate, filters.from));
 	if (filters.to) conditions.push(lte(transactions.transactionDate, `${filters.to}T23:59:59`));

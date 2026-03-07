@@ -64,6 +64,7 @@ export const TransactionFiltersSchema = v.object({
 	locationId: v.optional(v.string()),
 	salesChannelId: v.optional(v.string()),
 	categoryId: v.optional(v.string()),
+	contactId: v.optional(v.string()),
 	type: v.optional(TransactionTypeSchema),
 	from: v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
 	to: v.optional(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),

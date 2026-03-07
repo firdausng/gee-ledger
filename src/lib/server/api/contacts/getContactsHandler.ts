@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, like, or, sql } from 'drizzle-orm';
 import { contacts, clients, suppliers } from '$lib/server/db/schema';
 import * as schema from '$lib/server/db/schema';
 import { requireBusinessPermission } from '$lib/server/utils/businessPermissions';
@@ -8,17 +8,30 @@ export async function getContactsHandler(
 	user: App.User,
 	businessId: string,
 	role: 'client' | 'supplier' | undefined,
-	env: Cloudflare.Env
+	env: Cloudflare.Env,
+	search?: string
 ) {
 	await requireBusinessPermission(user, businessId, 'transaction:view', env);
 
 	const db = drizzle(env.DB, { schema });
 
-	// Fetch all non-deleted contacts for this business
+	const conditions = [eq(contacts.businessId, businessId), isNull(contacts.deletedAt)];
+
+	if (search) {
+		const pattern = `%${search}%`;
+		conditions.push(
+			or(
+				sql`lower(${contacts.name}) like lower(${pattern})`,
+				sql`lower(${contacts.email}) like lower(${pattern})`
+			)!
+		);
+	}
+
+	// Fetch non-deleted contacts for this business
 	let rows = await db
 		.select()
 		.from(contacts)
-		.where(and(eq(contacts.businessId, businessId), isNull(contacts.deletedAt)))
+		.where(and(...conditions))
 		.orderBy(desc(contacts.createdAt));
 
 	if (rows.length === 0) return [];
